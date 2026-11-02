@@ -326,13 +326,18 @@ const COLUMNS = [
   {who:'오세린',role:'변호사',t:'상가 권리금 회수기회 보호, 계약 갱신 전에 확인할 것',ex:'임대차 종료 6개월 전부터 임대인과 임차인이 각각 챙겨야 할 절차를 판례 중심으로 정리합니다.',d:'2026.10.27'},
   {who:'한도윤',role:'세무사',t:'법인으로 건물 살 때와 개인으로 살 때, 세후 수익 비교',ex:'취득세·보유세·양도 시점까지 같은 건물을 두 구조로 놓고 10년 현금흐름을 비교했습니다.',d:'2026.10.22'}
 ];
-const RATES = [
-  {k:'한국은행 기준금리',v:[2.50,2.50,2.50,2.75,3.00]},
-  {k:'개인 신용대출',v:[5.49,5.72,5.97,6.33,6.49]},
-  {k:'주택담보대출',v:[4.32,4.36,4.48,4.66,4.88]},
-  {k:'전세자금대출',v:[3.97,4.07,4.19,4.35,4.57]}
-];
-const MONTHS=['5월','6월','7월','8월','9월'];
+/* 금리: rates.json(한국은행 ECOS 자동 수집)을 우선 사용, 없으면 아래 임시 참고값 */
+const TMP_MONTHS=['2026-05','2026-06','2026-07','2026-08','2026-09'];
+let RATES = {source:null,updatedAt:null,series:[
+  ['한국은행 기준금리',[2.50,2.50,2.50,2.75,3.00]],
+  ['일반신용대출 금리',[5.49,5.72,5.97,6.33,6.49]],
+  ['주택담보대출 금리',[4.32,4.36,4.48,4.66,4.88]],
+  ['전세자금대출 금리',[3.97,4.07,4.19,4.35,4.57]]
+].map(([label,v])=>({label,basis:'',points:v.map((x,i)=>({t:TMP_MONTHS[i],v:x}))}))};
+const ym = t => `${t.slice(0,4)}.${t.slice(5,7)}`;
+const lastMonth = () => RATES.series[0]?.points.at(-1)?.t || '';
+const rateSourceLine = () => RATES.source ? `출처: ${RATES.source} · ${fmtTime(RATES.updatedAt)} 갱신` : '임시 참고값입니다. 한국은행 ECOS 자동 수집이 연결되면 공식 수치로 바뀝니다.';
+const nid = n => n.pblancId.toLowerCase().replace(/_/g,'-');
 
 /* ---------- 정부지원금: 기업마당 API 구조 데이터 ---------- */
 let FEED = {updatedAt:null,items:[]};
@@ -361,6 +366,10 @@ async function loadFeed(){
     if(!r.ok) throw 0;
     FEED=await r.json();
   }catch(e){ FEED={updatedAt:null,items:[]}; }
+  try{
+    const r=await fetch('rates.json',{cache:'no-store'});
+    if(r.ok){const j=await r.json(); if(j.series&&j.series.length) RATES=j;}
+  }catch(e){}
   render();
 }
 
@@ -392,16 +401,16 @@ function listingCard(l){
     </div></article>`;
 }
 function postItem(p){return `<a class="post" href="#community"><span class="cat">${esc(p.cat)}</span><span class="t">${esc(p.t)}</span><span class="ex">${esc(p.ex)}</span><span class="meta"><span>조회 <span class="num">${p.v.toLocaleString()}</span></span><span>댓글 <span class="num">${p.c}</span></span><span>추천 <span class="num">${p.l}</span></span></span></a>`}
-function noticeMini(n){const st=statusOf(n);return `<a class="nmini" href="#notice-${n.pblancId.slice(-6)}"><span class="dday ${st}">${ddayLabel(n)}</span><span><span class="t">${esc(n.pblancNm)}</span><br><span class="s">${esc(n.region)} · ${esc(n.realm)} · ${esc(n.excInsttNm)}</span></span></a>`}
+function noticeMini(n){const st=statusOf(n);return `<a class="nmini" href="#notice-${nid(n)}"><span class="dday ${st}">${ddayLabel(n)}</span><span><span class="t">${esc(n.pblancNm)}</span><br><span class="s">${esc(n.region)} · ${esc(n.realm)} · ${esc(n.excInsttNm)}</span></span></a>`}
 function rateCard(r){
-  const v=r.v, last=v[v.length-1], diff=(last-v[v.length-2]).toFixed(2);
+  const pts6=r.points.slice(-6), v=pts6.map(p=>p.v), last=v[v.length-1], diff=+(last-v[v.length-2]).toFixed(2);
   const lo=Math.min(...v)-.1, hi=Math.max(...v)+.1, W=200,H=56,p=4;
   const pts=v.map((y,i)=>[p+i*(W-2*p)/(v.length-1), H-p-(y-lo)/(hi-lo)*(H-2*p)]);
   const line=pts.map(q=>q.join(',')).join(' ');
   const area=`M${pts[0][0]},${H} L`+pts.map(q=>q.join(',')).join(' L')+` L${pts.at(-1)[0]},${H}Z`;
-  return `<div class="rate"><div class="lbl">${esc(r.k)}</div><div class="v"><b>${last.toFixed(2)}%</b><span>${diff>0?'▲':'–'} ${Math.abs(diff).toFixed(2)}</span></div>
+  return `<div class="rate"><div class="lbl">${esc(r.label)}</div><div class="v"><b>${last.toFixed(2)}%</b><span style="color:${diff>0?'var(--hot)':diff<0?'var(--accent)':'var(--faint)'}">${diff>0?'▲':diff<0?'▼':'–'} ${Math.abs(diff).toFixed(2)}</span></div>
   <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${area}" fill="var(--accent-soft)"/><polyline points="${line}" fill="none" stroke="var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke"/><circle cx="${pts.at(-1)[0]}" cy="${pts.at(-1)[1]}" r="3.5" fill="var(--accent)"/></svg>
-  <div class="axis"><span>${MONTHS[0]}</span><span>${MONTHS.at(-1)}</span></div></div>`;
+  <div class="axis"><span>${ym(pts6[0].t)}</span><span>${ym(pts6.at(-1).t)}</span></div>${r.basis?`<div class="note" style="margin-top:4px">${esc(r.basis)}</div>`:''}</div>`;
 }
 function lectureCard(l){return `<a class="lec" href="#lectures"><div class="cover">${esc(l.t)}</div><div class="who">${esc(l.who)}</div><div class="meta"><span class="p" style="color:var(--fg)">${esc(l.p)}</span><span>${esc(l.tag)}</span></div></a>`}
 const secHead=(eb,t,href,label='더보기')=>`<div class="sec-head"><div><div class="eyebrow">${eb}</div><h2>${t}</h2></div>${href?`<a class="more" href="${href}">${label} →</a>`:''}</div>`;
@@ -439,7 +448,7 @@ function viewHome(){
       <div class="note" style="margin-top:10px">${FEED.updatedAt?'기업마당 공고 · '+fmtTime(FEED.updatedAt)+' 동기화':''}</div></div>
   </div></section>
 
-  <section class="block">${secHead('2026.09 발표 기준','금리 동향','#rates','상세보기')}<div class="rates">${RATES.map(rateCard).join('')}</div></section>
+  <section class="block">${secHead(ym(lastMonth())+' 기준','금리 동향','#rates','상세보기')}<div class="rates">${RATES.series.map(rateCard).join('')}</div><p class="note">${esc(rateSourceLine())}</p></section>
 
   <section class="block">${secHead('전문가 인사이트','이번 주 칼럼','#insight')}<div class="cols">${COLUMNS.map(columnCard).join('')}</div></section>
 
@@ -472,8 +481,12 @@ function insightNav(cur){return `<nav class="subnav" aria-label="전문가 인�
   <a href="#rates" ${cur==='rates'?'aria-current="page"':''}>금리 동향</a>
   <a href="#support" ${cur==='support'?'aria-current="page"':''}>정부지원금</a></nav>`}
 function viewInsight(){return `<h1 style="font-size:26px;font-weight:800;margin-bottom:14px">전문가 인사이트</h1>${insightNav('insight')}<div class="cols">${COLUMNS.map(columnCard).join('')}</div>`}
-function viewRates(){return `<h1 style="font-size:26px;font-weight:800;margin-bottom:14px">전문가 인사이트</h1>${insightNav('rates')}<div class="rates">${RATES.map(rateCard).join('')}</div>
-  <div class="panel" style="margin-top:16px;overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:14px;min-width:520px"><thead><tr style="text-align:left;color:var(--faint)"><th style="padding:8px 6px">구분</th>${MONTHS.map(m=>`<th class="num" style="padding:8px 6px;text-align:right">${m}</th>`).join('')}</tr></thead><tbody>${RATES.map(r=>`<tr style="border-top:1px solid var(--line)"><td style="padding:8px 6px;font-weight:600">${esc(r.k)}</td>${r.v.map(x=>`<td class="num" style="padding:8px 6px;text-align:right">${x.toFixed(2)}%</td>`).join('')}</tr>`).join('')}</tbody></table></div>`}
+function viewRates(){
+  const months=RATES.series[0].points.slice(-6).map(p=>p.t);
+  const cell='padding:8px 6px;text-align:right';
+  return `<h1 style="font-size:26px;font-weight:800;margin-bottom:14px">전문가 인사이트</h1>${insightNav('rates')}<div class="rates">${RATES.series.map(rateCard).join('')}</div>
+  <div class="panel" style="margin-top:16px;overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:14px;min-width:560px"><thead><tr style="text-align:left;color:var(--faint)"><th style="padding:8px 6px">구분</th>${months.map(m=>`<th class="num" style="${cell}">${ym(m)}</th>`).join('')}</tr></thead><tbody>${RATES.series.map(r=>`<tr style="border-top:1px solid var(--line)"><td style="padding:8px 6px;font-weight:600">${esc(r.label)}${r.basis?`<div class="note">${esc(r.basis)}</div>`:''}</td>${months.map(m=>{const p=r.points.find(x=>x.t===m);return `<td class="num" style="${cell}">${p?p.v.toFixed(2)+'%':'–'}</td>`}).join('')}</tr>`).join('')}</tbody></table></div>
+  <p class="note">${esc(rateSourceLine())}</p>`}
 
 /* 정부지원금 목록 */
 const S = {q:'',ai:true,status:'all',realm:'',region:'',sort:'new',scope:'all',page:1};
@@ -510,7 +523,7 @@ function filtered(){
 function countBy(st){return FEED.items.filter(n=>{const s=statusOf(n);return st==='all'||(st==='open'?(s==='open'||s==='soon'):s===st)}).length}
 function fmtTime(iso){const d=new Date(iso);return `${d.getMonth()+1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
 function noticeCard(n){
-  const st=statusOf(n), id=n.pblancId.slice(-6), fav=favs.has(n.pblancId);
+  const st=statusOf(n), id=nid(n), fav=favs.has(n.pblancId);
   return `<article class="ncard">
     <div class="row1"><span class="dday ${st}">${ddayLabel(n)}</span><span class="reg">${esc(n.region)}</span><span class="realm">${esc(n.realm)}</span>
       <span class="icons"><button class="icon" type="button" data-fav="${n.pblancId}" aria-pressed="${fav}" aria-label="관심 공고">${svg('heart')}</button><button class="icon" type="button" data-share="${id}" aria-label="공유">${svg('share')}</button></span></div>
@@ -545,9 +558,9 @@ function viewSupport(){
   <details><summary>공고는 어떻게 업데이트되나요?</summary><p>기업마당 지원사업정보 API에서 신규 공고를 정기적으로 수집해 목록에 반영합니다. 마감·접수예정 상태는 신청 기간을 기준으로 매일 자동 계산됩니다.</p></details></div>`;
 }
 function viewNotice(id){
-  const n=FEED.items.find(x=>x.pblancId.endsWith(id));
+  const n=FEED.items.find(x=>nid(x)===id);
   if(!n) return `<a class="back" href="#support">← 목록으로</a><div class="empty">${FEED.items.length?'공고를 찾을 수 없어요.':'공고를 불러오는 중입니다.'}</div>`;
-  const st=statusOf(n), url='https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId='+n.pblancId, fav=favs.has(n.pblancId);
+  const st=statusOf(n), url=n.pblancUrl||'https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId='+n.pblancId, fav=favs.has(n.pblancId);
   const related=FEED.items.filter(x=>x!==n&&statusOf(x)!=='closed'&&(x.realm===n.realm||x.region===n.region)).slice(0,4);
   return `<a class="back" href="#support">← 정부지원금 목록</a>
   <div class="dgrid"><div style="min-width:0">
@@ -557,8 +570,9 @@ function viewNotice(id){
     <div class="ticket"><div><div class="k">접수 상태</div><div class="v">${ST_NAME[st==='soon'?'soon':st]}</div></div><div><div class="k">공고일</div><div class="v num">${n.creatPnttm}</div></div><div><div class="k">신청 기간</div><div class="v num" style="font-size:13px">${n.reqstBegin.slice(5)} ~ ${n.reqstEnd.slice(5)}</div></div><div><div class="k">소관 기관</div><div class="v">${esc(n.jrsdInsttNm)}</div></div></div>
     ${n.bsnsSumryCn?`<div class="dsec aisum"><h2>AI 한줄 요약</h2><p>${esc(n.bsnsSumryCn)}</p></div>`:`<div class="dsec aisum"><h2>AI 한줄 요약</h2><p class="note" style="font-size:14px">이 공고는 아직 요약이 생성되지 않았어요. 원문과 첨부 공고문에서 지원 내용을 확인해 주세요.</p></div>`}
     <div class="dsec"><h2>지원 대상</h2><p>${esc(n.trgetNm)} · 지원 가능 지역 ${esc(n.region)}</p></div>
-    <div class="dsec"><h2>신청 방법</h2><p>${esc(n.reqstMthPapersCn||'공고 원문의 신청 방법을 확인하세요.')}</p></div>
-    <div class="dsec"><h2>공고문 · 첨부 파일</h2>${(n.files&&n.files.length)?n.files.map(f=>`<div class="file"><span class="ext">${esc(f.split('.').pop().toUpperCase())}</span><span>${esc(f)}</span></div>`).join(''):'<p class="note" style="font-size:14px">첨부 파일은 기업마당 원문에서 내려받을 수 있습니다.</p>'}
+    <div class="dsec"><h2>신청 방법</h2><p>${esc(n.reqstMthPapersCn||'공고 원문의 신청 방법을 확인하세요.')}</p>${n.applyUrl?`<p style="margin-top:10px"><a class="btn primary" href="${esc(n.applyUrl)}" target="_blank" rel="noopener">온라인 신청 페이지</a></p>`:''}</div>
+    ${n.refrncNm?`<div class="dsec"><h2>문의처</h2><p>${esc(n.refrncNm)}</p></div>`:''}
+    <div class="dsec"><h2>공고문 · 첨부 파일</h2>${(n.files&&n.files.length)?n.files.map(f=>{const nm=typeof f==='string'?f:f.name, u=typeof f==='string'?null:f.url;return `<div class="file"><span class="ext">${esc(nm.split('.').pop().toUpperCase())}</span><span>${esc(nm)}</span>${u?`<a class="btn" style="margin-left:auto;padding:5px 10px" href="${esc(u)}" target="_blank" rel="noopener">내려받기</a>`:''}</div>`}).join(''):'<p class="note" style="font-size:14px">첨부 파일은 기업마당 원문에서 내려받을 수 있습니다.</p>'}
       <p style="margin-top:12px"><a class="btn" href="${url}" target="_blank" rel="noopener">${svg('link').replace('<svg','<svg style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8"')}기업마당 원문 보기</a></p></div>
   </div>
   <aside class="side">
@@ -659,7 +673,7 @@ $('#chatForm').addEventListener('submit',async e=>{
   samplePromise = samplePromise || (window.claude?.use ? window.claude.use('sample') : Promise.resolve(null));
   const sample=await samplePromise;
   if(!sample){out.textContent='AI 채팅은 준비 중이에요. 곧 연결될 예정입니다.';return}
-  const ctx='너는 부동산 플랫폼 "리얼픽"의 AI 상담원이다. 한국어로 4~6문장 이내로 간결하게 답한다. 투자 권유나 확정적 수익 예측은 하지 말고, 확인할 지표(호가·실거래가·AI 추정가 차이, 수익률, 금리, 공실, 권리관계)를 안내한다. 참고용 예시 매물: '+LISTINGS.map(l=>`${l.kind}/${l.area}/${l.title}/호가 ${won(l.ask)}/실거래 ${won(l.real)}/AI추정 ${won(l.avm)}`).join('; ')+'. 현재 접수 중인 정부지원 공고: '+FEED.items.filter(n=>statusOf(n)!=='closed').map(n=>`${n.pblancNm}(${n.reqstEnd} 마감)`).join('; ')+'. 최근 기준금리 3.00%, 주담대 4.88%.';
+  const ctx='너는 부동산 플랫폼 "리얼픽"의 AI 상담원이다. 한국어로 4~6문장 이내로 간결하게 답한다. 투자 권유나 확정적 수익 예측은 하지 말고, 확인할 지표(호가·실거래가·AI 추정가 차이, 수익률, 금리, 공실, 권리관계)를 안내한다. 참고용 예시 매물: '+LISTINGS.map(l=>`${l.kind}/${l.area}/${l.title}/호가 ${won(l.ask)}/실거래 ${won(l.real)}/AI추정 ${won(l.avm)}`).join('; ')+'. 현재 접수 중인 정부지원 공고: '+FEED.items.filter(n=>statusOf(n)!=='closed').map(n=>`${n.pblancNm}(${n.reqstEnd} 마감)`).join('; ')+'. 최근 금리: '+RATES.series.map(r=>`${r.label} ${r.points.at(-1).v}%(${ym(r.points.at(-1).t)})`).join(', ')+'.';
   history.push({role:'user',content:(history.length?'':ctx+'\n\n질문: ')+q});
   try{
     const r=await sample(history,{onText:({text})=>{out.textContent=text},cache:false});
