@@ -1,0 +1,43 @@
+name: 공고·금리 자동 갱신
+
+on:
+  schedule:
+    # 매일 오전 6시 17분(한국 시간) = 전날 21:17 UTC
+    - cron: "17 21 * * *"
+  workflow_dispatch: {}   # Actions 탭에서 'Run workflow'로 바로 실행
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 기업마당 공고·ECOS 금리 수집
+        env:
+          BIZINFO_API_KEY: ${{ secrets.BIZINFO_API_KEY }}
+          ECOS_API_KEY: ${{ secrets.ECOS_API_KEY }}
+        run: node scripts/update.mjs
+
+      - name: 바뀐 내용이 있으면 저장
+        if: always()
+        run: |
+          git config user.name "realpick-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add notices.json rates.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "변경 없음"
+          else
+            git commit -m "데이터 자동 갱신 $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M')"
+            git push
+          fi
