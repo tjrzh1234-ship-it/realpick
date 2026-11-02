@@ -141,11 +141,6 @@ section.block:first-child{margin-top:0}
 .rate svg{width:100%;height:56px;display:block}
 .rate .axis{display:flex;justify-content:space-between;font-size:11px;color:var(--faint);font-family:var(--mono)}
 
-/* lectures */
-.lec{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:8px;align-content:start}
-.lec .cover{height:92px;border-radius:9px;background:var(--sunk);display:flex;align-items:end;padding:10px;font-family:var(--display);font-weight:800;font-size:15px;line-height:1.3}
-.lec .who{font-size:13px;color:var(--muted)}
-.lec .p{font-weight:700}
 
 /* listings page */
 .mapwrap{display:grid;grid-template-columns:1fr 380px;gap:16px;align-items:start}
@@ -266,7 +261,6 @@ footer nav{display:flex;gap:16px;flex-wrap:wrap;font-weight:600}
     <nav class="gnb" aria-label="주요 메뉴">
       <a href="#home" data-nav="home">메인</a>
       <a href="#listings" data-nav="listings">매물 검색</a>
-      <a href="#lectures" data-nav="lectures">강의</a>
       <a href="#community" data-nav="community">커뮤니티</a>
       <a href="#insight" data-nav="insight">전문가 인사이트</a>
     </nav>
@@ -282,7 +276,7 @@ footer nav{display:flex;gap:16px;flex-wrap:wrap;font-weight:600}
 <footer>
   <div class="wrap">
     <nav><a href="#insight">전문가 인사이트</a><a href="#support">정부지원금</a><a href="#rates">금리 동향</a><a href="#community">커뮤니티</a></nav>
-    <div>리얼픽은 매물 검색, 실거래가·AI 추정 시세 비교, 커뮤니티와 전문가 인사이트를 한곳에서 제공하는 부동산 플랫폼 시안입니다. 매물·커뮤니티·강의·칼럼은 예시 데이터입니다.</div>
+    <div>리얼픽은 매물 검색, 실거래가·AI 추정 시세 비교, 커뮤니티와 전문가 인사이트를 한곳에서 제공하는 부동산 플랫폼 시안입니다. 매물·커뮤니티·칼럼은 예시 데이터입니다.</div>
   </div>
 </footer>
 
@@ -301,7 +295,7 @@ const won = n => n >= 10000 ? (Math.floor(n/10000)+'억' + (n%10000 ? ' '+(n%100
 function toast(t){const el=document.createElement('div');el.className='toast';el.textContent=t;document.body.appendChild(el);setTimeout(()=>el.remove(),1800)}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-toast]');if(b)toast(b.dataset.toast)});
 
-/* ---------- 예시 데이터 (매물·커뮤니티·강의·칼럼) ---------- */
+/* ---------- 예시 데이터 (매물·커뮤니티·칼럼) ---------- */
 const LISTINGS = [
   {id:1,kind:'꼬마빌딩',area:'대구 수성구 범어동',title:'범어역 도보 6분 5층 근생 꼬마빌딩',ask:385000,real:412000,avm:401000,size:'대지 182㎡ · 연 498㎡',x:.62,y:.38,hot:true},
   {id:2,kind:'상가',area:'대구 중구 동성로',title:'동성로 1층 코너 상가 (임차 중)',ask:62000,real:71000,avm:68500,size:'전용 66㎡',x:.42,y:.47,hot:true},
@@ -316,12 +310,6 @@ const POSTS = [
   {cat:'Q&A',t:'경매 낙찰 후 명도, 점유자가 연락을 안 받으면 어떻게 하나요?',ex:'다가구를 처음 낙찰받았는데 점유자 한 분이 연락이 닿지 않습니다. 인도명령 신청 시점이 궁금합니다.',v:3302,c:28,l:44},
   {cat:'투자후기',t:'옥상 통신 중계기 임대로 월 45만 원 추가 수익 만든 과정',ex:'통신사 담당자 연락부터 계약서 체크 포인트, 방수 공사 책임 범위까지 정리했습니다.',v:5520,c:36,l:131},
   {cat:'시장분석',t:'NPL 입문: 채권 매입과 배당 구조를 한 장으로',ex:'처음 접하는 분을 위해 근저당 채권 매입부터 배당까지 흐름을 도식으로 설명합니다.',v:4710,c:22,l:98}
-];
-const LECTURES = [
-  {t:'꼬마빌딩 첫 매입 8주 과정',who:'박정우 · 상업용 부동산 컨설턴트',p:'390,000원',tag:'모집중'},
-  {t:'다가구 경매로 월세 세팅하기',who:'민지현 · 경매 실전 투자자',p:'240,000원',tag:'마감임박'},
-  {t:'실거래가·AI 시세로 급매 판별하기',who:'리얼픽 데이터랩',p:'무료',tag:'상시'},
-  {t:'상가 임대차 계약 실무',who:'오세린 · 변호사',p:'120,000원',tag:'모집중'}
 ];
 const COLUMNS = [
   {who:'박정우',role:'상업용 부동산 컨설턴트',t:'캡레이트로 읽는 2026년 4분기 꼬마빌딩 시장',ex:'기준금리 3.00% 구간에서 수익률 4%대 매물이 왜 거래가 막히는지, 매도·매수 호가 차이를 데이터로 봅니다.',d:'2026.10.30'},
@@ -383,7 +371,7 @@ const ICON = {
   bell:'<path d="M6 16V11a6 6 0 0112 0v5l2 2H4z"/><path d="M10 20a2 2 0 004 0"/>',
   down:'<path d="M4 6l6 6 4-4 6 6"/><path d="M20 10v4h-4"/>',
   users:'<circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><path d="M16 4.5a3.5 3.5 0 010 7M21 20c0-3-1.6-5.2-4-5.8"/>',
-  book:'<path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 19V5M9 8h6"/>',
+  trend:'<path d="M3 20h18"/><path d="M4 16l5-5 4 3 7-8"/><path d="M15 6h5v5"/>',
   coin:'<circle cx="12" cy="12" r="8"/><path d="M9 9.5h4.5a2 2 0 010 4H9V9.5zM9 13.5h5a2 2 0 010 4H9M11 7.5v2M11 17.5v2"/>',
   heart:'<path d="M12 20s-7-4.4-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.6-7 10-7 10z"/>',
   share:'<circle cx="6" cy="12" r="2.5"/><circle cx="17" cy="6" r="2.5"/><circle cx="17" cy="18" r="2.5"/><path d="M8.2 10.8l6.6-3.6M8.2 13.2l6.6 3.6"/>',
@@ -414,7 +402,6 @@ function rateCard(r){
   <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${area}" fill="var(--accent-soft)"/><polyline points="${line}" fill="none" stroke="var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke"/><circle cx="${pts.at(-1)[0]}" cy="${pts.at(-1)[1]}" r="3.5" fill="var(--accent)"/></svg>
   <div class="axis"><span>${ym(pts6[0].t)}</span><span>${ym(pts6.at(-1).t)}</span></div>${r.basis?`<div class="note" style="margin-top:4px">${esc(r.basis)}</div>`:''}</div>`;
 }
-function lectureCard(l){return `<a class="lec" href="#lectures"><div class="cover">${esc(l.t)}</div><div class="who">${esc(l.who)}</div><div class="meta"><span class="p" style="color:var(--fg)">${esc(l.p)}</span><span>${esc(l.tag)}</span></div></a>`}
 const secHead=(eb,t,href,label='더보기')=>`<div class="sec-head"><div><div class="eyebrow">${eb}</div><h2>${t}</h2></div>${href?`<a class="more" href="${href}">${label} →</a>`:''}</div>`;
 
 /* ---------- 뷰 ---------- */
@@ -434,7 +421,7 @@ function viewHome(){
       <a href="#listings">${svg('bell')}급매알림</a>
       <a href="#listings">${svg('down')}손절매물</a>
       <a href="#community">${svg('users')}커뮤니티</a>
-      <a href="#lectures">${svg('book')}내 강의실</a>
+      <a href="#rates">${svg('trend')}금리 동향</a>
       <a href="#support" class="hl">${svg('coin')}정부지원금</a>
     </div></div></section>
 
@@ -452,9 +439,7 @@ function viewHome(){
 
   <section class="block">${secHead(ym(lastMonth())+' 기준','금리 동향','#rates','상세보기')}<div class="rates">${RATES.series.map(rateCard).join('')}</div><p class="note">${esc(rateSourceLine())}</p></section>
 
-  <section class="block">${secHead('전문가 인사이트','이번 주 칼럼','#insight')}<div class="cols">${COLUMNS.map(columnCard).join('')}</div></section>
-
-  <section class="block">${secHead('강의','지금 모집 중인 강의','#lectures')}<div class="rail">${LECTURES.map(lectureCard).join('')}</div></section>`;
+  <section class="block">${secHead('전문가 인사이트','이번 주 칼럼','#insight')}<div class="cols">${COLUMNS.map(columnCard).join('')}</div></section>`;
 }
 function columnCard(c){return `<article class="column"><div class="by"><i>${esc(c.who[0])}</i>${esc(c.who)} · ${esc(c.role)}</div><h3>${esc(c.t)}</h3><p class="note" style="font-size:14px;color:var(--muted);margin:0">${esc(c.ex)}</p><div class="meta"><span class="num">${c.d}</span></div></article>`}
 
@@ -476,7 +461,6 @@ function viewCommunity(){
     <div class="tabs" id="commTabs">${['전체','투자후기','Q&A','시장분석'].map(t=>`<button type="button" aria-pressed="${t===commCat}" data-cat="${t}">${t}</button>`).join('')}</div>
     <div class="panel">${rows.map(postItem).join('')}</div></section>`;
 }
-function viewLectures(){return `<section class="block">${secHead('강의','실전 투자 강의')}<div class="rail">${LECTURES.map(lectureCard).join('')}</div></section>`}
 
 function insightNav(cur){return `<nav class="subnav" aria-label="전문가 인사이트">
   <a href="#insight" ${cur==='insight'?'aria-current="page"':''}>전문가 칼럼</a>
@@ -601,7 +585,6 @@ function render(){
   let html, nav=r;
   if(r==='listings') html=viewListings();
   else if(r==='community') html=viewCommunity();
-  else if(r==='lectures') html=viewLectures();
   else if(r==='insight') html=viewInsight();
   else if(r==='rates'){html=viewRates();nav='insight'}
   else if(r==='support'){html=viewSupport();nav='insight'}
