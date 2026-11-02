@@ -5,7 +5,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 
 const ROOT = new URL("../", import.meta.url);
-const nowKST = () => new Date(Date.now() + 9 * 3600e3).toISOString().replace("Z", "+09:00").slice(0, 25);
+const nowKST = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 19) + "+09:00";
 const todayKST = () => nowKST().slice(0, 10);
 
 async function readJson(name, fallback) {
