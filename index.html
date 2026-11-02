@@ -209,6 +209,8 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--surface);bor
 .empty{background:var(--surface);border:1px dashed var(--line);border-radius:var(--r);padding:40px 16px;text-align:center;color:var(--muted)}
 .pager{display:flex;justify-content:center;gap:6px;margin-top:20px}
 .pager button{min-width:36px;height:36px;border:1px solid var(--line);background:var(--surface);border-radius:8px;font-family:var(--mono)}
+.pager button:disabled{opacity:.4;cursor:default}
+.pager{flex-wrap:wrap}
 .pager button[aria-current="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 .faq{margin-top:36px;display:grid;gap:10px}
 .faq details{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
@@ -521,7 +523,7 @@ function filtered(){
   return {rows,ai,realm,region,status};
 }
 function countBy(st){return FEED.items.filter(n=>{const s=statusOf(n);return st==='all'||(st==='open'?(s==='open'||s==='soon'):s===st)}).length}
-function fmtTime(iso){const d=new Date(iso);return `${d.getMonth()+1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
+function fmtTime(iso){const m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);if(m)return `${+m[2]}월 ${+m[3]}일 ${m[4]}:${m[5]}`;const d=new Date(iso);if(isNaN(d))return '';return `${d.getMonth()+1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
 function noticeCard(n){
   const st=statusOf(n), id=nid(n), fav=favs.has(n.pblancId);
   return `<article class="ncard">
@@ -533,7 +535,17 @@ function noticeCard(n){
     <div class="meta"><span>공고일 <span class="num">${n.creatPnttm}</span></span><span>조회 <span class="num">${n.inqireCo.toLocaleString()}</span></span></div>
   </article>`;
 }
-const PER=6;
+const PER=10;
+function pagerHtml(pages){
+  const cur=S.page, from=Math.max(1,Math.min(cur-2,pages-4)), to=Math.min(pages,from+4);
+  const btn=(n,label,dis)=>`<button type="button" data-pg="${n}" ${dis?'disabled':''} aria-current="${n===cur&&!label}" ${label?`aria-label="${label}"`:''}>${label?(label==='이전'?'‹':'›'):n}</button>`;
+  let h=btn(Math.max(1,cur-1),'이전',cur===1);
+  if(from>1) h+=btn(1)+(from>2?'<span class="note" style="align-self:center">…</span>':'');
+  for(let i=from;i<=to;i++) h+=btn(i);
+  if(to<pages) h+=(to<pages-1?'<span class="note" style="align-self:center">…</span>':'')+btn(pages);
+  h+=btn(Math.min(pages,cur+1),'다음',cur===pages);
+  return `<div class="pager">${h}</div><p class="note" style="text-align:center;margin-top:6px">${cur} / ${pages} 페이지</p>`;
+}
 function viewSupport(){
   const {rows,ai,realm,region,status}=filtered();
   const pages=Math.max(1,Math.ceil(rows.length/PER)); S.page=Math.min(S.page,pages);
@@ -552,7 +564,7 @@ function viewSupport(){
   <div class="status" id="stBar">${Object.keys(ST_NAME).map(k=>`<button type="button" data-st="${k}" aria-pressed="${S.status===k}">${ST_NAME[k]}<b>${countBy(k)}</b></button>`).join('')}</div>
   ${understood}
   ${FEED.items.length===0?'<div class="empty">공고 피드를 불러오는 중입니다. 잠시 후 새로고침해 주세요.</div>': slice.length?`<div class="ncards">${slice.map(noticeCard).join('')}</div>`:'<div class="empty">조건에 맞는 공고가 없어요. 상태를 ‘전체’로 바꾸거나 검색어를 줄여 보세요.</div>'}
-  ${pages>1?`<div class="pager">${Array.from({length:pages},(_,i)=>`<button type="button" data-pg="${i+1}" aria-current="${S.page===i+1}">${i+1}</button>`).join('')}</div>`:''}
+  ${pages>1?pagerHtml(pages):''}
   <div class="faq"><details><summary>지원사업 공고에서 무엇을 확인하나요?</summary><p>공고명, 지원 대상, 신청 기간, 수행 기관과 첨부 문서를 확인할 수 있습니다. 상태·분야·지역으로 좁혀 보세요.</p></details>
   <details><summary>AI 요약만 보고 신청해도 되나요?</summary><p>AI 요약은 공고를 빠르게 이해하기 위한 보조 정보입니다. 신청 전에는 반드시 원문과 첨부 공고문에서 지원 조건, 제출 서류, 최신 신청 기간을 확인하세요.</p></details>
   <details><summary>공고는 어떻게 업데이트되나요?</summary><p>기업마당 지원사업정보 API에서 신규 공고를 정기적으로 수집해 목록에 반영합니다. 마감·접수예정 상태는 신청 기간을 기준으로 매일 자동 계산됩니다.</p></details></div>`;
