@@ -717,8 +717,8 @@ function realCard(l){
 }
 const LF={kind:'전체',deal:'전체',sido:'전체',loss:false,q:''};
 function filteredMarket(){
-  const q=LF.q.trim();
-  return MARKET.items.filter(l=>(LF.kind==='전체'||l.kind===LF.kind)&&(LF.deal==='전체'||l.deal_type===LF.deal)&&(LF.sido==='전체'||l.sido===LF.sido)&&(!LF.loss||lossInfo(l))&&(!q||(l.title+' '+l.address+' '+l.sigungu+' '+(l.agent?.office_name||'')).includes(q)));
+  const {sidos,words}=splitRegionQuery(LF.q);
+  return MARKET.items.filter(l=>(LF.kind==='전체'||l.kind===LF.kind)&&(LF.deal==='전체'||l.deal_type===LF.deal)&&(LF.sido==='전체'||l.sido===LF.sido)&&(!sidos||sidos.includes(l.sido))&&(!LF.loss||lossInfo(l))&&(!words.length||textHit(l.title+' '+l.address+' '+l.sigungu+' '+(l.agent?.office_name||''),words)));
 }
 function viewMarket(){
   const rows=filteredMarket();
@@ -1074,6 +1074,17 @@ document.addEventListener('submit',async e=>{
   }
 },true);
 
+/* 검색어 속 지역 이름은 글자 검색이 아니라 지역 필터로 (해운대구 ⊃ 대구 같은 오인 방지) */
+const SIDO_WORDS={'서울':['서울'],'서울시':['서울'],'서울특별시':['서울'],'부산':['부산'],'부산시':['부산'],'부산광역시':['부산'],'대구':['대구'],'대구시':['대구'],'대구광역시':['대구'],'인천':['인천'],'인천시':['인천'],'인천광역시':['인천'],
+  '광주':['광주','전남광주'],'광주시':['광주','전남광주'],'광주광역시':['광주','전남광주'],'대전':['대전'],'대전시':['대전'],'대전광역시':['대전'],'울산':['울산'],'울산시':['울산'],'울산광역시':['울산'],'세종':['세종'],'세종시':['세종'],'세종특별자치시':['세종'],
+  '경기':['경기'],'경기도':['경기'],'강원':['강원'],'강원도':['강원'],'강원특별자치도':['강원'],'충북':['충북'],'충청북도':['충북'],'충남':['충남'],'충청남도':['충남'],'전북':['전북'],'전라북도':['전북'],'전북특별자치도':['전북'],
+  '전남':['전남','전남광주'],'전라남도':['전남','전남광주'],'전남광주':['전남광주','전남','광주'],'전남광주통합특별시':['전남광주','전남','광주'],'경북':['경북'],'경상북도':['경북'],'경남':['경남'],'경상남도':['경남'],'제주':['제주'],'제주도':['제주'],'제주특별자치도':['제주']};
+function splitRegionQuery(q){
+  let sidos=null; const rest=[];
+  for(const w of String(q||'').trim().split(/\s+/).filter(Boolean)){ if(SIDO_WORDS[w]&&!sidos) sidos=SIDO_WORDS[w]; else rest.push(w); }
+  return {sidos, words:rest};
+}
+const textHit=(hay,words)=>words.every(w=>hay.includes(w));
 /* ================= 경매·공매 (온비드 + 실거래 비교) ================= */
 let AUC={updatedAt:null,items:[],note:'',loaded:false};
 async function loadAuctions(){
@@ -1115,8 +1126,8 @@ function aucCard(it){
     </div></a>`;
 }
 function aucBase(){
-  const q=AF.q.trim();
-  return AUC.items.filter(it=>aucDday(it)[1]!=='closed'&&(AF.sido==='전체'||it.sido===AF.sido)&&(!AF.cheap||(it.compare&&it.compare.minVsEst<0))&&(!q||(it.title+' '+it.addr+' '+it.org).includes(q)));
+  const {sidos,words}=splitRegionQuery(AF.q);
+  return AUC.items.filter(it=>aucDday(it)[1]!=='closed'&&(AF.sido==='전체'||it.sido===AF.sido)&&(!sidos||sidos.includes(it.sido))&&(!AF.cheap||(it.compare&&it.compare.minVsEst<0))&&(!words.length||textHit(it.title+' '+it.addr+' '+it.org,words)));
 }
 function filteredAuc(){
   const cats=AUC_CATS.find(c=>c[0]===AF.cat)?.[1];
