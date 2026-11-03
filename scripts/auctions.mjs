@@ -26,13 +26,13 @@ export const RTMS = {
   indu: { url: `${RT}/RTMSDataSvcInduTrade/getRTMSDataSvcInduTrade`, label: "공장창고" }
 };
 const MONTHS = 12;            // 비교에 쓰는 기간
-const MAX_CALLS = 700;        // 한 번 실행에 쓰는 실거래가 호출 상한 (API별 하루 1,000회 한도 안쪽)
+const MAX_CALLS_PER_API = 900; // 실거래가 API마다 한 번 실행에 쓰는 호출 상한 (API별 하루 1,000회 한도 안쪽)
 
 const SIDO_FULL = [
   ["서울", ["서울특별시", "서울시"]], ["부산", ["부산광역시"]], ["대구", ["대구광역시"]], ["인천", ["인천광역시"]],
   ["광주", ["광주광역시"]], ["대전", ["대전광역시"]], ["울산", ["울산광역시"]], ["세종", ["세종특별자치시"]],
   ["경기", ["경기도"]], ["강원", ["강원특별자치도", "강원도"]], ["충북", ["충청북도"]], ["충남", ["충청남도"]],
-  ["전북", ["전북특별자치도", "전라북도"]], ["전남", ["전라남도"]], ["경북", ["경상북도"]], ["경남", ["경상남도"]],
+  ["전북", ["전북특별자치도", "전라북도"]], ["전남", ["전라남도"]], ["전남광주", ["전남광주통합특별시"]], ["경북", ["경상북도"]], ["경남", ["경상남도"]],
   ["제주", ["제주특별자치도"]]
 ];
 const SHORTS = SIDO_FULL.map(s => s[0]);
@@ -131,6 +131,13 @@ const STATUS_NAME = { "0001": "입찰준비중", "0002": "입찰진행중", "000
 
 // 회차 단위 행 → 물건 단위 (아직 끝나지 않은 가장 이른 회차)
 export function toAuctionItems(raw, sgg, nowDigits = nowKstDigits()) {
+  // 온비드가 준 필지코드(PNU)로 "시도 시군구 → 코드"를 배워 둔다 (2026년 새로 생긴 시·구도 처리)
+  const learned = {};
+  for (const r of raw) {
+    const p = digits(r.ltnoPnu); if (p.length < 5) continue;
+    const a = (r.zadrNm || r.cltrAdr || "").trim(), sd = sidoOf(r.lctnSdnm, a), sg = String(r.lctnSggnm || "").trim();
+    if (sd && sg) learned[`${sd} ${sg}`] = p.slice(0, 5);
+  }
   const groups = new Map();
   for (const r of raw) { const no = r.cltrMngNo; if (no) (groups.get(no) || groups.set(no, []).get(no)).push(r); }
   const out = [];
@@ -143,7 +150,7 @@ export function toAuctionItems(raw, sgg, nowDigits = nowKstDigits()) {
     const sido = sidoOf(cur.lctnSdnm, addr);
     const sggNm = String(cur.lctnSggnm || "").trim();
     const pnu = digits(cur.ltnoPnu);
-    const sggCd = pnu.length >= 5 ? pnu.slice(0, 5) : (sido === "세종" ? "36110" : (sgg[`${sido} ${sggNm}`] || sgg[`${sido} ${sggNm.split(" ")[0]}`] || null));
+    const sggCd = pnu.length >= 5 ? pnu.slice(0, 5) : (sido === "세종" ? "36110" : (learned[`${sido} ${sggNm}`] || sgg[`${sido} ${sggNm}`] || sgg[`${sido} ${sggNm.split(" ")[0]}`] || null));
     const usageM = cur.cltrUsgMclsCtgrNm || "", usageS = cur.cltrUsgSclsCtgrNm || "";
     const title = String(cur.onbidCltrNm || addr || no).trim();
     const landA = num(cur.landSqms), bldA = num(cur.bldSqms);
@@ -154,11 +161,14 @@ export function toAuctionItems(raw, sgg, nowDigits = nowKstDigits()) {
       id: String(no), title, addr, sido, sgg: sggNm, emd: String(cur.lctnEmdNm || "").trim(), sggCd, pnu: pnu || null,
       usage: [usageM, usageS].filter(Boolean).join(" > "), cat: categoryOf(usageM, usageS, title), jimok: LAND_JIMOK[String(usageS).trim()] || null,
       share: /지분/.test(title),
+      bundle: /외\s*\d*\s*필지|등\s*\d+\s*필지|\d+\s*필지|외\s*\d+\s*개|및\s*(지상)?\s*(건물|건축물)|토지\s*및\s*건물|일괄/.test(title),
       landArea: landA, bldArea: bldA,
       apsl, minp, ratio: apsl && minp ? Math.round(minp / apsl * 1000) / 10 : null,
       fails: num(cur.usbdNft) ?? 0, prpt: cur.prptDivNm || "", org: cur.orgNm || cur.rqstOrgNm || "",
       method: cur.dspsMthodNm || "", status,
-      bidStart: dt(cur.cltrBidBgngDt), bidEnd: dt(cur.cltrBidEndDt), url: detailUrl(cur)
+      bidStart: dt(cur.cltrBidBgngDt), bidEnd: dt(cur.cltrBidEndDt),
+      // 온비드 상세 주소 재료 (화면에서 주소를 만든다: 파일 크기 절약)
+      link: ["onbidCltrno", "onbidPbancNo", "pbctNo", "pbctCdtnNo"].every(k => cur[k]) ? [cur.onbidCltrno, cur.onbidPbancNo, cur.pbctNo, cur.pbctCdtnNo, cur.prptDivCd || cur.cltrPrptDivCd || ""].map(String) : null
     });
   }
   return out;
@@ -219,8 +229,10 @@ const sameDong = (deal, item) => {
 export function compareItem(item, deals) {
   if (!item.cat || !deals) return null;
   if (item.share) return { skip: "지분 물건은 면적 기준 비교에서 뺐어요" };
+  if (item.bundle) return { skip: "여러 필지·건물을 묶은 물건이라 면적 기준 비교에서 뺐어요" };
   const area = item.cat === "land" ? (item.landArea || null) : (item.bldArea || (item.cat === "sh" ? item.landArea : null));
   if (!area || !item.minp) return null;
+  if (!item.apsl) return { skip: "감정가가 없어 비교 결과를 검증할 수 없어 생략했어요" };
   const within = (d, lo, hi) => d[1] >= area * lo && d[1] <= area * hi;
   const tries = [];
   if (item.cat === "apt" || item.cat === "offi" || item.cat === "rh") {
@@ -243,6 +255,8 @@ export function compareItem(item, deals) {
   const [basis, list] = hit;
   const perM2 = median(list.map(d => d[2] * 10000 / d[1]));
   const est = Math.round(perM2 * area);
+  // 감정가와 3배 넘게 차이 나면 면적·용도 정보가 맞지 않는 경우가 대부분이라 숫자를 보여주지 않는다
+  if (item.apsl && (est > item.apsl * 3 || est < item.apsl / 3)) return { skip: "주변 실거래와 감정가 차이가 너무 커서 비교를 생략했어요" };
   const recent = [...list].sort((a, b) => b[4].localeCompare(a[4])).slice(0, 5)
     .map(d => ({ dong: d[0], area: d[1], amount: d[2] * 10000, tag: d[3] || null, date: d[4] }));
   return {
@@ -269,7 +283,7 @@ export async function buildAuctions(key, { readJson, writeJson, nowKST, log = co
   const need = new Map(); // "cat:sgg" -> 물건 수
   for (const it of items) if (it.cat && it.sggCd && !it.share) { const k = `${it.cat}:${it.sggCd}`; need.set(k, (need.get(k) || 0) + 1); }
   const order = [...need.entries()].sort((a, b) => b[1] - a[1]).map(([k]) => k);
-  let calls = 0; const failedApis = new Map();
+  let calls = 0; const failedApis = new Map(), callsByApi = {}, apiErrors = {};
   const tasks = [];
   for (const k of order) for (const ym of months) {
     const ck = `${k}:${ym}`, e = cache.entries[ck];
@@ -278,14 +292,15 @@ export async function buildAuctions(key, { readJson, writeJson, nowKST, log = co
   }
   let i = 0;
   async function worker() {
-    while (i < tasks.length && calls < MAX_CALLS) {
+    while (i < tasks.length) {
       const [k, ym, ck] = tasks[i++]; const [cat, sggCd] = k.split(":");
-      if (failedApis.has(cat)) continue;
+      if (failedApis.has(cat) || (callsByApi[cat] || 0) >= MAX_CALLS_PER_API) continue;
       try {
-        const r = await fetchRtmsMonth(key, cat, sggCd, ym); calls += r.calls;
+        const r = await fetchRtmsMonth(key, cat, sggCd, ym); calls += r.calls; callsByApi[cat] = (callsByApi[cat] || 0) + r.calls;
         cache.entries[ck] = { t: new Date().toISOString(), rows: r.rows };
       } catch (e) {
-        calls++;
+        calls++; callsByApi[cat] = (callsByApi[cat] || 0) + 1;
+        apiErrors[RTMS[cat].label] = String(e.message).slice(0, 160);
         if (/SERVICE_KEY|NOT_REGISTERED|ACCESS_DENIED|LIMITED_NUMBER|NO_OPENAPI|UNREGISTERED/i.test(e.message)) failedApis.set(cat, e.message);
       }
     }
@@ -306,12 +321,20 @@ export async function buildAuctions(key, { readJson, writeJson, nowKST, log = co
     if (it.compare && !it.compare.skip) compared++;
   }
   items.sort((a, b) => (a.bidEnd || "9").localeCompare(b.bidEnd || "9"));
-  await writeJson("rtms-cache.json", cache);
+  // 화면에 필요한 값만 남겨 파일을 가볍게
+  const slim = items.map(it => {
+    const o = { ...it, area: it.cat === "land" ? it.landArea : (it.bldArea ?? it.landArea) };
+    for (const k of ["pnu", "emd", "jimok", "landArea", "bldArea", "share", "bundle", "sggCd"]) delete o[k];
+    if (o.compare?.samples) o.compare = { ...o.compare, samples: o.compare.samples.slice(0, 3) };
+    if (o.compare?.pending) o.compare = { pending: true, skip: o.compare.skip };
+    return o;
+  });
+  await writeJson("rtms-cache.json", cache, true);
   await writeJson("auctions.json", {
     source: "한국자산관리공사 온비드 · 국토교통부 실거래가 (공공데이터포털)", updatedAt: nowKST(),
     note: `주변 시세 추정은 같은 동네·같은 종류의 최근 ${MONTHS}개월 실거래 ㎡당 중앙값에 물건 면적을 곱한 값입니다. 실제 시세나 낙찰가와 다를 수 있습니다.`,
-    stats: { items: items.length, compared, rtmsCalls: calls, pending },
-    items
-  });
+    stats: { items: items.length, compared, rtmsCalls: calls, callsByApi, pending, apiErrors },
+    items: slim
+  }, true);
   log(`auctions.json: 물건 ${items.length}건, 시세 비교 ${compared}건`);
 }

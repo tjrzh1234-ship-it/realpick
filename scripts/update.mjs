@@ -13,8 +13,8 @@ const todayKST = () => nowKST().slice(0, 10);
 async function readJson(name, fallback) {
   try { return JSON.parse(await readFile(new URL(name, ROOT), "utf8")); } catch { return fallback; }
 }
-async function writeJson(name, data) {
-  await writeFile(new URL(name, ROOT), JSON.stringify(data, null, 1) + "\n", "utf8");
+async function writeJson(name, data, compact = false) {
+  await writeFile(new URL(name, ROOT), (compact ? JSON.stringify(data) : JSON.stringify(data, null, 1)) + "\n", "utf8");
 }
 async function getJson(url) {
   const res = await fetch(url, { headers: { Accept: "application/json" } });
