@@ -246,6 +246,53 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--surface);bor
 .drawer form{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line)}
 .drawer input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:9px;padding:9px 10px;font:inherit}
 
+
+/* marketplace */
+.btn.sm{padding:5px 10px;font-size:13px}
+.formcard{max-width:520px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:24px;display:grid;gap:12px}
+.formcard.wide{max-width:860px}
+.formcard h1{font-size:22px;font-weight:800}
+.formcard .tabs{margin:0}
+.fgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;border:0;margin:0;padding:0;min-width:0}
+.fgrid .wide{grid-column:1/-1}
+@media (max-width:640px){.fgrid{grid-template-columns:1fr}}
+fieldset.sub{border:1px solid var(--line);border-radius:10px;padding:12px 14px 14px}
+fieldset.sub legend{font-weight:700;font-size:14px;padding:0 6px}
+fieldset.sub legend small,.fld small{font-weight:400;color:var(--faint)}
+.fld{display:grid;gap:5px;min-width:0}
+.fld>span{font-size:13px;font-weight:600;color:var(--muted)}
+.fld input,.fld select,.fld textarea,.note-in{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 10px;width:100%;min-width:0}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:transparent}
+.fld input[type=file]{padding:7px}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px}
+.chk input{width:18px;height:18px;accent-color:var(--accent)}
+.formmsg{margin:0;font-size:14px;color:var(--hot);min-height:1em}
+.linkbtn{border:0;background:none;color:var(--accent);font-weight:600;padding:0}
+.statusbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap}
+.thumbs .th{position:relative;width:88px;height:66px;border-radius:8px;overflow:hidden;background:var(--sunk)}
+.thumbs img{width:100%;height:100%;object-fit:cover}
+.thumbs .icon{position:absolute;right:2px;top:2px;width:22px;height:22px;background:var(--surface);color:var(--fg);font-size:12px}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:14px}
+.gallery img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;display:block;max-width:100%}
+.gallery a:first-child{grid-column:1/-1}
+.gallery a:first-child img{aspect-ratio:16/9}
+.tablewrap{overflow-x:auto}
+.mtable{width:100%;border-collapse:collapse;font-size:14px;min-width:680px}
+.mtable th{text-align:left;color:var(--faint);font-weight:600;font-size:12.5px;padding:8px 6px;border-bottom:1px solid var(--line)}
+.mtable td{padding:10px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+.mtable .r{text-align:right}
+.acts{display:flex;gap:6px;flex-wrap:wrap}
+.note-in{margin-top:6px;padding:6px 8px;font-size:13px}
+a.lcard:hover{border-color:var(--accent)}
+.acard .lbody{gap:7px}
+.cmp{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;border-radius:8px;padding:6px 9px;font-size:13px}
+.cmp b.num{font-size:14px}
+.cmp.cheap{background:var(--ok-soft);color:var(--ok)}
+.cmp.dear{background:var(--sunk);color:var(--muted)}
+.cmp span{color:var(--muted)}
+.cmp.big{padding:10px 12px;font-size:14px}
+.cmp.big b.num{font-size:20px}
 footer{border-top:1px solid var(--line);background:var(--surface);padding-block:28px;font-size:13px;color:var(--muted)}
 footer .wrap{display:grid;gap:8px}
 footer nav{display:flex;gap:16px;flex-wrap:wrap;font-weight:600}
@@ -261,12 +308,13 @@ footer nav{display:flex;gap:16px;flex-wrap:wrap;font-weight:600}
     <nav class="gnb" aria-label="주요 메뉴">
       <a href="#home" data-nav="home">메인</a>
       <a href="#listings" data-nav="listings">매물 검색</a>
+      <a href="#auctions" data-nav="auctions">경매·공매</a>
       <a href="#community" data-nav="community">커뮤니티</a>
       <a href="#insight" data-nav="insight">전문가 인사이트</a>
     </nav>
     <div class="top-actions">
-      <button class="btn" type="button" data-toast="로그인 기능은 준비 중이에요">로그인</button>
-      <button class="btn primary" type="button" data-toast="회원가입 기능은 준비 중이에요">무료 회원가입</button>
+      <a class="btn" href="#login">로그인</a>
+      <a class="btn primary" href="#signup">중개사 가입</a>
     </div>
   </div>
 </header>
@@ -276,7 +324,7 @@ footer nav{display:flex;gap:16px;flex-wrap:wrap;font-weight:600}
 <footer>
   <div class="wrap">
     <nav><a href="#insight">전문가 인사이트</a><a href="#support">정부지원금</a><a href="#rates">금리 동향</a><a href="#community">커뮤니티</a></nav>
-    <div>리얼픽은 매물 검색, 실거래가·AI 추정 시세 비교, 커뮤니티와 전문가 인사이트를 한곳에서 제공하는 부동산 플랫폼 시안입니다. 매물·커뮤니티·칼럼은 예시 데이터입니다.</div>
+    <div>리얼픽은 매물 검색, 실거래가·AI 추정 시세 비교, 커뮤니티와 전문가 인사이트를 한곳에서 제공하는 부동산 플랫폼 시안입니다. 매물은 등록 심사를 거친 개업공인중개사가 올리며, 커뮤니티·칼럼은 예시입니다.</div>
   </div>
 </footer>
 
@@ -287,8 +335,10 @@ footer nav{display:flex;gap:16px;flex-wrap:wrap;font-weight:600}
   <form id="chatForm"><input id="chatIn" placeholder="예: 대구 수성구 5억 이하 상가 투자 어때?" autocomplete="off"><button class="btn primary" type="submit">보내기</button></form>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
 <script>
-const TODAY = new Date('2026-11-02T00:00:00+09:00');
+const TODAY = new Date(new Date(Date.now()+9*3600e3).toISOString().slice(0,10)+'T00:00:00+09:00');
 const $ = (s, r=document) => r.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const won = n => n >= 10000 ? (Math.floor(n/10000)+'억' + (n%10000 ? ' '+(n%10000).toLocaleString()+'만' : '')) : n.toLocaleString()+'만';
@@ -416,17 +466,21 @@ function viewHome(){
     </div>
     <div class="quick">
       <a href="#listings">${svg('map')}지도검색</a>
-      <a href="#listings">${svg('gavel')}경매</a>
+      <a href="#auctions">${svg('gavel')}경매·공매</a>
       <a href="#" data-open-chat>${svg('chat')}AI 채팅</a>
       <a href="#listings">${svg('bell')}급매알림</a>
-      <a href="#listings">${svg('down')}손절매물</a>
+      <a href="#listings" data-goloss>${svg('down')}손절매물</a>
       <a href="#community">${svg('users')}커뮤니티</a>
       <a href="#rates">${svg('trend')}금리 동향</a>
       <a href="#support" class="hl">${svg('coin')}정부지원금</a>
     </div></div></section>
 
-  <section class="block">${secHead('대구 · 실시간','지금 눈여겨볼 급매물','#listings','지도에서 더 보기')}
-    <div class="rail">${LISTINGS.filter(l=>l.hot).slice(0,4).map(listingCard).join('')}</div></section>
+  ${MARKET.items.length?`<section class="block">${secHead('중개사 등록 매물','새로 올라온 매물','#listings','전체 매물 보기')}
+    <div class="rail">${MARKET.items.slice(0,4).map(realCard).join('')}</div></section>`:`<section class="block">${secHead('예시 매물','이런 매물을 볼 수 있어요','#listings','매물 검색')}
+    <div class="rail">${LISTINGS.filter(l=>l.hot).slice(0,4).map(listingCard).join('')}</div><p class="note">화면 구성을 보여주는 예시입니다. 중개사가 매물을 올리면 이 자리에 실제 매물이 보입니다.</p></section>`}
+
+  ${(()=>{const top=AUC.items.filter(i=>i.compare&&i.compare.minVsEst<0&&aucDday(i)[1]!=='closed').sort((a,b)=>a.compare.minVsEst-b.compare.minVsEst).slice(0,4);
+    return top.length?`<section class="block">${secHead('온비드 공매 · 실거래 비교','주변 시세보다 싸게 나온 공매','#auctions','전체 보기')}<div class="rail">${top.map(aucCard).join('')}</div></section>`:''})()}
 
   <section class="block"><div class="duo">
     <div class="panel">${secHead('커뮤니티','베스트 게시글','#community')}
@@ -578,12 +632,555 @@ function viewNotice(id){
   </aside></div>`;
 }
 
+let AFTER=[];
+/* ================= 매물: 중개사 회원 등록 (Supabase) ================= */
+const CFG = window.REALPICK_CONFIG || {};
+const sb = (CFG.supabaseUrl && CFG.supabaseAnonKey && window.supabase?.createClient)
+  ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey) : null;
+const AUTH = {session:null, agent:null, ready:!sb};
+const MARKET = {loaded:!sb, items:[], error:null};
+const KINDS=['아파트','오피스텔','상가','사무실','꼬마빌딩','다가구','단독주택','토지','공장·창고','기타'];
+const SIDOS=REGIONS.filter(r=>r!=='전국');
+const USES=['단독주택','공동주택','제1종근린생활시설','제2종근린생활시설','업무시설','숙박시설','판매시설','공장','창고시설','대지','전','답','임야'];
+const uid=()=>AUTH.session?.user?.id||null;
+const isAdmin=()=>!!AUTH.agent?.is_admin;
+const isApproved=()=>AUTH.agent?.status==='approved';
+const fresh=l=>Date.parse(l.refreshed_at)>Date.now()-30*864e5;
+const safeUrl=u=>/^https:\/\//.test(u||'')?u:'';
+const pyeong=m=>(m/3.3058).toFixed(1);
+function priceText(l){
+  if(l.deal_type==='월세') return `월세 ${won(+l.price)}/${(+l.monthly_rent).toLocaleString()}만`;
+  return `${l.deal_type} ${won(+l.price)}`;
+}
+function lossInfo(l){
+  if(l.deal_type!=='매매'||!l.recent_deal||!(+l.price<+l.recent_deal)) return null;
+  return {pct:Math.round((1-l.price/l.recent_deal)*100), ym:l.recent_deal_ym};
+}
+const kst=d=>{const x=new Date(Date.parse(d)+9*3600e3).toISOString();return `${x.slice(0,10)} ${x.slice(11,16)}`};
+const ago=d=>{const days=Math.floor((Date.now()-Date.parse(d))/864e5);return days<=0?'오늘':days+'일 전'};
+function errMsg(e){
+  const m=String(e?.message||e||'');
+  if(/Invalid login credentials/i.test(m)) return '이메일 또는 비밀번호가 맞지 않아요.';
+  if(/Email not confirmed/i.test(m)) return '메일함에서 가입 인증 링크를 먼저 눌러주세요.';
+  if(/already registered/i.test(m)) return '이미 가입된 이메일이에요. 로그인해 주세요.';
+  if(/Password should be/i.test(m)) return '비밀번호는 8자 이상으로 정해주세요.';
+  if(/row-level security|permission denied/i.test(m)) return '권한이 없어요. 중개사 승인 상태를 확인해 주세요.';
+  if(/reports_one_per_user/.test(m)) return '이미 신고한 매물이에요.';
+  if(/check constraint|violates/i.test(m)) return '입력값을 다시 확인해 주세요. 필수 항목이 비었거나 범위를 벗어났어요.';
+  return '처리하지 못했어요: '+m;
+}
+
+async function loadMarket(){
+  if(!sb) return;
+  const since=new Date(Date.now()-30*864e5).toISOString();
+  const {data,error}=await sb.from('listings')
+    .select('*, agent:agents(office_name,reg_no,ceo_name,address,phone)')
+    .eq('status','active').gt('refreshed_at',since)
+    .order('refreshed_at',{ascending:false}).limit(500);
+  MARKET.loaded=true; MARKET.error=error?errMsg(error):null; MARKET.items=(data||[]).filter(l=>l.agent);
+  softRender();
+}
+async function loadMe(){
+  if(!sb||!AUTH.session){AUTH.agent=null;return}
+  const {data}=await sb.rpc('my_agent'); AUTH.agent=(data&&data[0])||null;
+}
+async function initAuth(){
+  if(!sb){renderHeader();return}
+  const {data:{session}}=await sb.auth.getSession();
+  AUTH.session=session; await loadMe(); AUTH.ready=true; renderHeader(); render();
+  sb.auth.onAuthStateChange((ev,s)=>{
+    setTimeout(async()=>{
+      AUTH.session=s; await loadMe(); renderHeader();
+      if(ev==='SIGNED_IN' && ['home','login','signup'].includes(route())) location.hash='#agent'; else softRender();
+      if(ev==='SIGNED_OUT') loadMarket();
+    },0);
+  });
+}
+function renderHeader(){
+  const box=$('.top-actions'); if(!box) return;
+  if(!sb){box.innerHTML=`<a class="btn" href="#login">로그인</a><a class="btn primary" href="#signup">중개사 가입</a>`;return}
+  if(!AUTH.session){box.innerHTML=`<a class="btn" href="#login">로그인</a><a class="btn primary" href="#signup">중개사 가입</a>`;return}
+  box.innerHTML=`${isAdmin()?'<a class="btn" href="#admin">관리자</a>':''}<a class="btn primary" href="#agent">중개사 센터</a><button class="btn" type="button" id="logoutBtn">로그아웃</button>`;
+}
+
+/* ---------- 매물 카드·목록 ---------- */
+function realCard(l){
+  const loss=lossInfo(l), ph=safeUrl(l.photos?.[0]);
+  return `<a class="lcard" href="#l-${l.id}">
+    <div class="lthumb">${ph?`<img src="${esc(ph)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block">`:`<canvas data-art="${parseInt(l.id.slice(0,6),16)%97+1}"></canvas>`}${loss?`<span class="tag">직전 거래가 -${loss.pct}%</span>`:''}</div>
+    <div class="lbody">
+      <div class="kind">${esc(l.kind)} · ${esc(l.sido)} ${esc(l.sigungu)}</div>
+      <div class="ttl">${esc(l.title)}</div>
+      <div class="price"><b class="num">${esc(priceText(l))}</b></div>
+      <dl class="kv"><dt>면적</dt><dd class="num">${(+l.area_m2).toLocaleString()}㎡ (${pyeong(l.area_m2)}평)</dd><dt>입주</dt><dd>${esc(l.move_in)}</dd><dt>중개</dt><dd>${esc(l.agent?.office_name||'')}</dd></dl>
+    </div></a>`;
+}
+const LF={kind:'전체',deal:'전체',sido:'전체',loss:false,q:''};
+function filteredMarket(){
+  const q=LF.q.trim();
+  return MARKET.items.filter(l=>(LF.kind==='전체'||l.kind===LF.kind)&&(LF.deal==='전체'||l.deal_type===LF.deal)&&(LF.sido==='전체'||l.sido===LF.sido)&&(!LF.loss||lossInfo(l))&&(!q||(l.title+' '+l.address+' '+l.sigungu+' '+(l.agent?.office_name||'')).includes(q)));
+}
+function viewMarket(){
+  const rows=filteredMarket();
+  return `<section class="block">${secHead('매물 검색','중개사가 직접 올린 매물')}
+    <form class="search" id="mkForm">
+      <div class="sbox"><input id="mkQ" value="${esc(LF.q)}" placeholder="지역, 단지명, 중개사무소로 검색" autocomplete="off"><button class="btn primary" type="submit">검색</button></div>
+      <select id="mkSido" aria-label="지역"><option value="전체">지역 전체</option>${SIDOS.map(s=>`<option ${s===LF.sido?'selected':''}>${s}</option>`).join('')}</select>
+      <select id="mkDeal" aria-label="거래 형태">${['전체','매매','전세','월세'].map(s=>`<option value="${s}" ${s===LF.deal?'selected':''}>${s==='전체'?'거래 전체':s}</option>`).join('')}</select>
+    </form>
+    <div class="tabs" id="mkKinds">${['전체',...KINDS].map(k=>`<button type="button" aria-pressed="${k===LF.kind}" data-mkkind="${k}">${k}</button>`).join('')}<button type="button" aria-pressed="${LF.loss}" data-mkloss style="margin-left:auto">직전 거래가보다 싼 매물</button></div>
+    ${MARKET.error?`<div class="empty">${esc(MARKET.error)}</div>`:!MARKET.loaded?'<div class="empty">매물을 불러오는 중입니다.</div>':rows.length?`<div class="rail">${rows.map(realCard).join('')}</div>`:`<div class="empty">조건에 맞는 매물이 없어요.${MARKET.items.length?'':' 아직 등록된 매물이 없습니다.'}</div>`}
+    <p class="note">모든 매물은 등록 심사를 통과한 개업공인중개사가 올립니다. 30일 동안 갱신되지 않은 매물은 자동으로 내려갑니다. "직전 거래가"는 중개사가 입력한 같은 부동산의 최근 실거래가 기준입니다.</p></section>`;
+}
+
+/* ---------- 매물 상세 ---------- */
+const DETAIL={};
+function viewListingDetail(id){
+  let l=MARKET.items.find(x=>x.id===id)||DETAIL[id];
+  if(!l){
+    if(sb) AFTER.push(async()=>{const {data}=await sb.from('listings').select('*, agent:agents(office_name,reg_no,ceo_name,address,phone)').eq('id',id).maybeSingle();DETAIL[id]=data||{missing:true};render()});
+    return `<a class="back" href="#listings">← 매물 목록</a><div class="empty">${DETAIL[id]?.missing?'내려갔거나 없는 매물이에요.':'매물을 불러오는 중입니다.'}</div>`;
+  }
+  if(l.missing) return `<a class="back" href="#listings">← 매물 목록</a><div class="empty">거래가 끝났거나 내려간 매물이에요.</div>`;
+  AFTER.push(()=>{let seen={};try{seen=JSON.parse(sessionStorage.getItem('rp-seen')||'{}')}catch(e){} if(!seen[id]&&sb){sb.rpc('bump_listing_view',{p_id:id});seen[id]=1;try{sessionStorage.setItem('rp-seen',JSON.stringify(seen))}catch(e){}}});
+  const a=l.agent||{}, loss=lossInfo(l), mine=l.agent_id===uid();
+  const row=(k,v)=>v===null||v===undefined||v===''?'':`<dt>${k}</dt><dd>${v}</dd>`;
+  const facts=[
+    row('소재지',esc(l.address)),
+    row('종류',esc(l.kind)+' · '+esc(l.building_use)+(l.unregistered?' · <b style="color:var(--hot)">미등기 건물</b>':'')+(l.violation?' · <b style="color:var(--hot)">위반건축물</b>':'')),
+    row('거래 형태',esc(l.deal_type)),
+    row('가격',`<span class="num">${esc(priceText(l))}</span>`),
+    row('면적',`<span class="num">${(+l.area_m2).toLocaleString()}㎡ (${pyeong(l.area_m2)}평)</span>`),
+    l.land_m2?row('대지면적',`<span class="num">${(+l.land_m2).toLocaleString()}㎡ (${pyeong(l.land_m2)}평)</span>`):'',
+    l.kind!=='토지'?row('총 층수',l.total_floors!=null?`${l.total_floors}층${l.floor_desc?' (해당 층 '+esc(l.floor_desc)+')':''}`:''):'',
+    row('입주 가능일',esc(l.move_in)),
+    l.rooms!=null||l.baths!=null?row('방·욕실',`방 ${l.rooms??'-'} · 욕실 ${l.baths??'-'}`):'',
+    row('사용승인일',l.approval_date?`<span class="num">${esc(l.approval_date)}</span>`:''),
+    row('주차',esc(l.parking||'')),
+    row('관리비',esc(l.mgmt_fee||'')),
+    row('방향',esc(l.direction||''))
+  ].join('');
+  const photos=(l.photos||[]).map(safeUrl).filter(Boolean);
+  return `<a class="back" href="#listings">← 매물 목록</a>
+  <div class="dgrid"><div style="min-width:0">
+    ${photos.length?`<div class="gallery">${photos.map((p,i)=>`<a href="${esc(p)}" target="_blank" rel="noopener"><img src="${esc(p)}" alt="매물 사진 ${i+1}" loading="lazy"></a>`).join('')}</div>`:''}
+    <div class="dhead"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="reg" style="font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 7px">${esc(l.sido)} ${esc(l.sigungu)}</span><span style="font-size:12px;font-weight:700;color:var(--accent)">${esc(l.kind)}</span>${loss?`<span class="dday soon">직전 거래가 대비 -${loss.pct}%</span>`:''}${l.status!=='active'?`<span class="dday closed">${l.status==='contracted'?'거래완료':'비공개'}</span>`:''}</div>
+      <h1>${esc(l.title)}</h1>
+      <div class="price" style="margin-bottom:14px"><b class="num" style="font-size:26px">${esc(priceText(l))}</b>${loss?`<span class="note">직전 실거래 ${won(+l.recent_deal)}${l.recent_deal_ym?' ('+esc(l.recent_deal_ym)+')':''}</span>`:''}</div></div>
+    <div class="dsec"><h2>매물 정보</h2><dl class="facts" style="background:transparent;padding:0;gap:8px 16px">${facts}</dl></div>
+    ${l.description?`<div class="dsec"><h2>상세 설명</h2><p style="white-space:pre-wrap">${esc(l.description)}</p></div>`:''}
+    <div class="dsec" id="reportBox"><h2>허위매물 신고</h2>
+      ${!sb?'<p class="note" style="font-size:14px">신고 기능은 서버 연결 후 사용할 수 있어요.</p>':!AUTH.session?`<p class="note" style="font-size:14px">신고하려면 <a href="#login" style="color:var(--accent);font-weight:600">로그인</a>해 주세요. 서로 다른 회원의 신고가 3건 쌓이면 확인 전까지 매물이 내려갑니다.</p>`:
+      `<form id="reportForm" data-id="${l.id}" class="fgrid" style="grid-template-columns:1fr"><label class="fld"><span>사유</span><select name="reason" required>${['이미 거래됨','가격이 다름','매물 정보가 다름','존재하지 않는 매물','기타'].map(r=>`<option>${r}</option>`).join('')}</select></label><label class="fld"><span>자세한 내용 (선택)</span><textarea name="detail" maxlength="500" rows="2"></textarea></label><div><button class="btn" type="submit">신고하기</button></div></form>`}
+    </div>
+  </div>
+  <aside class="side">
+    <div class="panel"><div style="font-weight:800;margin-bottom:8px">중개사무소</div>
+      <dl class="facts" style="background:transparent;padding:0">
+        <dt>명칭</dt><dd>${esc(a.office_name)}</dd><dt>대표</dt><dd>${esc(a.ceo_name)}</dd><dt>등록번호</dt><dd class="num">${esc(a.reg_no)}</dd><dt>소재지</dt><dd>${esc(a.address)}</dd><dt>연락처</dt><dd class="num">${esc(a.phone)}</dd></dl>
+      <div class="copy" style="margin-top:12px"><code>${esc(a.phone)}</code><button class="btn" type="button" data-copy="${esc(a.phone)}">번호 복사</button></div></div>
+    <div class="panel note" style="font-size:13px">최근 확인 <span class="num">${kst(l.refreshed_at)}</span> · 조회 <span class="num">${(l.views||0).toLocaleString()}</span><br>${mine?`<a href="#edit-${l.id}" style="color:var(--accent);font-weight:700">내 매물 수정</a>`:'계약 전 등기부등본과 건축물대장을 꼭 확인하세요.'}</div>
+  </aside></div>`;
+}
+
+/* ---------- 로그인·가입 ---------- */
+function viewAuth(mode){
+  if(!sb) return notConnected();
+  if(AUTH.session) return `<div class="formcard"><h1>이미 로그인했어요</h1><p class="note">${esc(AUTH.session.user.email)}</p><a class="btn primary" href="#agent">중개사 센터로</a></div>`;
+  const signup=mode==='signup';
+  return `<div class="formcard">
+    <div class="tabs"><a class="btn ${signup?'':'primary'}" href="#login">로그인</a><a class="btn ${signup?'primary':''}" href="#signup">중개사 회원가입</a></div>
+    <h1>${signup?'중개사 회원가입':'로그인'}</h1>
+    <p class="note">${signup?'매물은 개업공인중개사만 올릴 수 있어요. 가입 후 중개사무소 정보를 제출하면 확인을 거쳐 승인됩니다.':'중개사 센터에서 매물을 올리고 관리할 수 있어요.'}</p>
+    <form id="${signup?'signupForm':'loginForm'}" data-keep class="fgrid" style="grid-template-columns:1fr">
+      <label class="fld"><span>이메일</span><input id="auEmail" name="email" type="email" required autocomplete="email"></label>
+      <label class="fld"><span>비밀번호${signup?' (8자 이상)':''}</span><input id="auPw" name="password" type="password" minlength="${signup?8:1}" required autocomplete="${signup?'new-password':'current-password'}"></label>
+      <p class="formmsg" id="authMsg" role="status"></p>
+      <button class="btn primary" type="submit">${signup?'가입하기':'로그인'}</button>
+    </form>${signup?'':`<p class="note"><button type="button" class="linkbtn" id="resetPw">비밀번호를 잊었어요</button></p>`}</div>`;
+}
+function notConnected(){return `<div class="formcard"><h1>서버 연결 준비 중</h1><p class="note">회원가입과 매물 등록은 서버(Supabase)가 연결되면 바로 열립니다. 관리자는 config.js에 연결 정보를 넣어주세요.</p></div>`}
+
+/* ---------- 중개사 센터 ---------- */
+const ST_AGENT={pending:['심사 중','upcoming'],approved:['승인됨','open'],rejected:['반려됨','soon'],suspended:['이용 정지','closed']};
+function agentFormHtml(a){
+  const v=k=>esc(a?.[k]||'');
+  return `<form id="agentForm" data-keep class="fgrid">
+    <label class="fld"><span>중개사무소 명칭 *</span><input name="office_name" value="${v('office_name')}" required maxlength="60" placeholder="등록증에 적힌 이름 그대로"></label>
+    <label class="fld"><span>중개사무소 등록번호 *</span><input name="reg_no" value="${v('reg_no')}" required maxlength="40" placeholder="예: 27260-2019-00012"></label>
+    <label class="fld"><span>개업공인중개사 성명 *</span><input name="ceo_name" value="${v('ceo_name')}" required maxlength="30" placeholder="법인은 대표자, 분사무소는 책임자"></label>
+    <label class="fld"><span>사무소 연락처 *</span><input name="phone" value="${v('phone')}" required maxlength="20" placeholder="등록관청에 신고한 번호"></label>
+    <label class="fld wide"><span>사무소 소재지 *</span><input name="address" value="${v('address')}" required maxlength="200" placeholder="등록증에 적힌 주소"></label>
+    <label class="fld wide"><span>중개사무소 등록증 사본 ${a?.license_path?'(새로 올릴 때만 선택)':'*'}</span><input name="license" type="file" accept="image/*,application/pdf" ${a?.license_path?'':'required'}><small>사진 또는 PDF, 5MB 이하. 관리자만 볼 수 있어요.</small></label>
+    <label class="chk wide"><input type="checkbox" required> 입력한 정보가 등록증과 같고, 의뢰받은 매물만 사실대로 올리겠습니다.</label>
+    <p class="formmsg wide" id="agentMsg" role="status"></p>
+    <div class="wide"><button class="btn primary" type="submit">${a?'수정해서 다시 제출':'승인 신청하기'}</button>${a?'<small class="note" style="margin-left:8px">정보를 바꾸면 다시 심사를 받아요.</small>':''}</div>
+  </form>`;
+}
+function viewAgent(){
+  if(!sb) return notConnected();
+  if(!AUTH.ready) return '<div class="empty">불러오는 중입니다.</div>';
+  if(!AUTH.session) return `<div class="formcard"><h1>중개사 센터</h1><p class="note">매물을 올리려면 로그인해 주세요.</p><a class="btn primary" href="#login">로그인</a> <a class="btn" href="#signup">회원가입</a></div>`;
+  const a=AUTH.agent;
+  if(!a) return `<div class="formcard wide"><h1>중개사무소 정보 제출</h1><p class="note">관리자가 등록증을 확인한 뒤 승인하면 매물을 올릴 수 있어요. 보통 1~2일 걸립니다.</p>${agentFormHtml(null)}</div>`;
+  const [label,cls]=ST_AGENT[a.status]||['-','closed'];
+  if(a.status!=='approved') return `<div class="formcard wide"><h1>중개사 센터</h1>
+    <div class="statusbar"><span class="dday ${cls}">${label}</span><b>${esc(a.office_name)}</b><span class="note">${a.status==='pending'?'등록증을 확인하고 있어요. 승인되면 매물 등록이 열립니다.':a.status==='rejected'?'아래 사유를 확인하고 정보를 고쳐 다시 제출해 주세요.':'관리자에게 문의해 주세요.'}</span></div>
+    ${a.admin_note?`<div class="dsec" style="margin-top:12px"><h2>관리자 메모</h2><p>${esc(a.admin_note)}</p></div>`:''}
+    ${a.status!=='suspended'?`<h2 style="font-size:16px;margin:20px 0 10px">제출한 정보</h2>${agentFormHtml(a)}`:''}</div>`;
+  AFTER.push(loadMyListings);
+  return `<section class="block"><div class="sec-head"><div><div class="eyebrow">중개사 센터 · <span class="dday open" style="padding:1px 6px">승인됨</span></div><h2>${esc(a.office_name)}</h2></div><a class="btn primary" href="#listing-new">+ 매물 등록</a></div>
+    <div class="panel" id="myListings"><div class="note">내 매물을 불러오는 중입니다.</div></div>
+    <p class="note">공개 매물은 30일마다 "거래 가능 확인"을 눌러야 계속 보입니다. 계약이 끝난 매물은 바로 "거래완료"로 바꿔주세요. 거래된 매물을 계속 광고하면 공인중개사법상 부당 광고가 될 수 있어요.</p>
+    <details class="panel" style="margin-top:12px"><summary style="font-weight:700;cursor:pointer">중개사무소 정보 수정</summary><div style="margin-top:12px">${agentFormHtml(a)}</div></details></section>`;
+}
+async function loadMyListings(){
+  const box=$('#myListings'); if(!box) return;
+  const {data,error}=await sb.from('listings').select('*').eq('agent_id',uid()).order('created_at',{ascending:false});
+  if(error){box.innerHTML=`<div class="empty">${esc(errMsg(error))}</div>`;return}
+  if(!data.length){box.innerHTML='<div class="empty">아직 올린 매물이 없어요. 오른쪽 위 "매물 등록"으로 첫 매물을 올려보세요.</div>';return}
+  box.innerHTML=`<div class="tablewrap"><table class="mtable"><thead><tr><th>매물</th><th>가격</th><th>상태</th><th>최근 확인</th><th class="r">조회</th><th>관리</th></tr></thead><tbody>${data.map(l=>{
+    const st=l.status==='contracted'?['거래완료','closed']:l.status==='hidden'?['비공개','soon']:fresh(l)?['공개 중','open']:['기간 만료','upcoming'];
+    return `<tr><td><a href="#l-${l.id}" style="font-weight:600">${esc(l.title)}</a><div class="note">${esc(l.kind)} · ${esc(l.sigungu)}${l.status==='hidden'&&l.hidden_reason?' · '+esc(l.hidden_reason):''}</div></td>
+      <td class="num">${esc(priceText(l))}</td><td><span class="dday ${st[1]}">${st[0]}</span></td><td class="num">${ago(l.refreshed_at)}</td><td class="num r">${l.views}</td>
+      <td><div class="acts">${l.status==='active'?`<button class="btn sm" type="button" data-lact="refresh" data-id="${l.id}">거래 가능 확인</button><button class="btn sm" type="button" data-lact="contract" data-id="${l.id}">거래완료</button>`:''}${l.status==='contracted'?`<button class="btn sm" type="button" data-lact="reopen" data-id="${l.id}">다시 공개</button>`:''}<a class="btn sm" href="#edit-${l.id}">수정</a><button class="btn sm" type="button" data-lact="delete" data-id="${l.id}">삭제</button></div></td></tr>`}).join('')}</tbody></table></div>`;
+}
+
+/* ---------- 매물 등록·수정 폼 ---------- */
+let FORM_PHOTOS=[];
+function viewListingForm(id){
+  if(!sb) return notConnected();
+  if(!AUTH.ready) return '<div class="empty">불러오는 중입니다.</div>';
+  if(!AUTH.session||!isApproved()) return `<div class="formcard"><h1>매물 등록</h1><p class="note">승인된 중개사만 매물을 올릴 수 있어요.</p><a class="btn primary" href="#agent">중개사 센터로</a></div>`;
+  if(id&&!DETAIL['edit-'+id]){
+    AFTER.push(async()=>{const {data}=await sb.from('listings').select('*').eq('id',id).eq('agent_id',uid()).maybeSingle();DETAIL['edit-'+id]=data||{missing:true};FORM_PHOTOS=[...(data?.photos||[])];render()});
+    return '<div class="empty">매물을 불러오는 중입니다.</div>';
+  }
+  const l=id?DETAIL['edit-'+id]:null;
+  if(l?.missing) return '<div class="empty">수정할 수 없는 매물이에요.</div>';
+  if(!id) FORM_PHOTOS=[];
+  const v=k=>esc(l?.[k]??''), sel=(k,val)=>l?.[k]===val?'selected':'';
+  const land=l?.kind==='토지';
+  AFTER.push(syncFormKind);
+  return `<a class="back" href="#agent">← 중개사 센터</a><div class="formcard wide"><h1>${id?'매물 수정':'매물 등록'}</h1>
+  <p class="note">* 표시는 공인중개사법상 인터넷 광고에 꼭 적어야 하는 항목이에요. 중개사무소 정보(명칭·소재지·연락처·등록번호·성명)는 자동으로 붙습니다.</p>
+  <form id="listingForm" data-keep data-id="${id||''}" class="fgrid">
+    <label class="fld wide"><span>매물 제목 *</span><input name="title" value="${v('title')}" required minlength="4" maxlength="80" placeholder="예: 범어역 도보 5분 1층 코너 상가"></label>
+    <label class="fld"><span>종류 *</span><select name="kind" id="fKind" required>${KINDS.map(k=>`<option ${sel('kind',k)}>${k}</option>`).join('')}</select></label>
+    <label class="fld"><span>건축법상 용도 * <small>(토지는 지목)</small></span><input name="building_use" value="${v('building_use')}" required maxlength="40" list="usesList" placeholder="예: 제1종근린생활시설"><datalist id="usesList">${USES.map(u=>`<option value="${u}">`).join('')}</datalist></label>
+    <label class="fld"><span>거래 형태 *</span><select name="deal_type" id="fDeal" required>${['매매','전세','월세'].map(k=>`<option ${sel('deal_type',k)}>${k}</option>`).join('')}</select></label>
+    <label class="fld"><span id="fPriceLbl">매매가 (만원) *</span><input name="price" type="number" min="0" step="1" value="${v('price')}" required inputmode="numeric" placeholder="예: 52000 (5억 2천)"></label>
+    <label class="fld" id="fRentWrap"><span>월세 (만원) *</span><input name="monthly_rent" type="number" min="0" step="1" value="${v('monthly_rent')}" inputmode="numeric"></label>
+    <label class="fld"><span>시·도 *</span><select name="sido" required>${SIDOS.map(s=>`<option ${l?(sel('sido',s)):(s==='대구'?'selected':'')}>${s}</option>`).join('')}</select></label>
+    <label class="fld"><span>시·군·구 *</span><input name="sigungu" value="${v('sigungu')}" required maxlength="20" placeholder="예: 수성구"></label>
+    <label class="fld wide"><span>소재지 *</span><input name="address" value="${v('address')}" required minlength="4" maxlength="200" placeholder="예: 대구 수성구 범어동 123-4 (공동주택은 동·층 대신 저·중·고층 표기 가능)"></label>
+    <label class="fld"><span>면적 ㎡ * <small>(전용 또는 연면적)</small></span><input name="area_m2" type="number" min="0.01" step="0.01" value="${v('area_m2')}" required></label>
+    <label class="fld"><span>대지면적 ㎡</span><input name="land_m2" type="number" min="0.01" step="0.01" value="${v('land_m2')}"></label>
+    <label class="fld"><span>입주 가능일 *</span><input name="move_in" value="${v('move_in')||'즉시입주'}" required maxlength="20" placeholder="즉시입주 또는 2026-12-01"></label>
+    <fieldset class="wide fgrid sub" id="fBuilding"><legend>건축물 정보 <small>(토지는 비워두세요)</small></legend>
+      <label class="fld"><span>총 층수 *</span><input name="total_floors" type="number" min="0" max="200" value="${v('total_floors')}" data-bld></label>
+      <label class="fld"><span>해당 층</span><input name="floor_desc" value="${v('floor_desc')}" maxlength="20" placeholder="예: 1층, 중층"></label>
+      <label class="fld"><span>사용승인일 * <small>(건축물대장)</small></span><input name="approval_date" type="date" value="${v('approval_date')}" data-bld></label>
+      <label class="fld"><span>방향 *</span><input name="direction" value="${v('direction')}" maxlength="30" placeholder="주거용: 거실 기준 / 그 외: 주출입구 기준" data-bld></label>
+      <label class="fld"><span>주차 *</span><input name="parking" value="${v('parking')}" maxlength="30" placeholder="예: 총 4대, 세대당 1대" data-bld></label>
+      <label class="fld"><span>관리비</span><input name="mgmt_fee" value="${v('mgmt_fee')}" maxlength="120" placeholder="예: 월 12만원 (공용관리비 8, 수도 4)"></label>
+      <label class="fld"><span>방 수</span><input name="rooms" type="number" min="0" max="99" value="${v('rooms')}"></label>
+      <label class="fld"><span>욕실 수</span><input name="baths" type="number" min="0" max="99" value="${v('baths')}"></label>
+      <label class="chk"><input type="checkbox" name="unregistered" ${l?.unregistered?'checked':''}> 미등기 건물</label>
+      <label class="chk"><input type="checkbox" name="violation" ${l?.violation?'checked':''}> 위반건축물</label>
+    </fieldset>
+    <fieldset class="wide fgrid sub"><legend>직전 실거래가 <small>(선택 · 같은 부동산의 최근 매매가. 입력하면 "직전 거래가 대비" 표시)</small></legend>
+      <label class="fld"><span>직전 매매가 (만원)</span><input name="recent_deal" type="number" min="0" value="${v('recent_deal')}"></label>
+      <label class="fld"><span>거래 연월</span><input name="recent_deal_ym" type="month" value="${v('recent_deal_ym')}"></label>
+    </fieldset>
+    <label class="fld wide"><span>상세 설명</span><textarea name="description" rows="6" maxlength="3000" placeholder="임차 현황, 수익률, 주변 환경 등">${v('description')}</textarea></label>
+    <div class="fld wide"><span>사진 (최대 10장, 첫 장이 대표)</span>
+      <div class="thumbs" id="fThumbs">${FORM_PHOTOS.map((p,i)=>`<div class="th"><img src="${esc(safeUrl(p))}" alt=""><button type="button" class="icon" data-rmphoto="${i}" aria-label="사진 빼기">✕</button></div>`).join('')}</div>
+      <input name="photos" id="fPhotos" type="file" accept="image/jpeg,image/png,image/webp" multiple></div>
+    <p class="formmsg wide" id="listingMsg" role="status"></p>
+    <div class="wide" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="submit">${id?'저장하기':'매물 올리기'}</button><a class="btn" href="#agent">취소</a></div>
+  </form></div>`;
+}
+function syncFormKind(){
+  const f=$('#listingForm'); if(!f) return;
+  const land=f.kind.value==='토지', rent=f.deal_type.value==='월세';
+  $('#fBuilding').hidden=land; f.querySelectorAll('[data-bld]').forEach(i=>i.required=!land);
+  $('#fRentWrap').hidden=!rent; f.monthly_rent.required=rent;
+  $('#fPriceLbl').textContent=(f.deal_type.value==='매매'?'매매가':'보증금')+' (만원) *';
+}
+async function shrinkImage(file){
+  if(file.size<1.5e6) return file;
+  try{
+    const bmp=await createImageBitmap(file), s=Math.min(1,1600/Math.max(bmp.width,bmp.height));
+    const c=document.createElement('canvas'); c.width=Math.round(bmp.width*s); c.height=Math.round(bmp.height*s);
+    c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);
+    return await new Promise(r=>c.toBlob(b=>r(b||file),'image/jpeg',.85));
+  }catch(e){return file}
+}
+async function submitListing(f){
+  const msg=$('#listingMsg'), btn=f.querySelector('[type=submit]'); btn.disabled=true; msg.textContent='저장하는 중…';
+  try{
+    const fd=new FormData(f), num=k=>fd.get(k)===''||fd.get(k)===null?null:Number(fd.get(k)), txt=k=>(fd.get(k)||'').toString().trim()||null;
+    const land=fd.get('kind')==='토지';
+    const files=[...f.photos.files].slice(0,Math.max(0,10-FORM_PHOTOS.length));
+    const urls=[];
+    for(const [i,file] of files.entries()){
+      msg.textContent=`사진 올리는 중… (${i+1}/${files.length})`;
+      const blob=await shrinkImage(file), ext=blob.type==='image/png'?'png':blob.type==='image/webp'?'webp':'jpg';
+      const path=`${uid()}/${Date.now()}-${i}.${ext}`;
+      const up=await sb.storage.from('listing-photos').upload(path,blob,{contentType:blob.type||'image/jpeg'});
+      if(up.error) throw up.error;
+      urls.push(sb.storage.from('listing-photos').getPublicUrl(path).data.publicUrl);
+    }
+    const row={
+      title:txt('title'), kind:fd.get('kind'), building_use:txt('building_use'), deal_type:fd.get('deal_type'),
+      price:num('price'), monthly_rent:fd.get('deal_type')==='월세'?num('monthly_rent'):null,
+      sido:fd.get('sido'), sigungu:txt('sigungu'), address:txt('address'), area_m2:num('area_m2'), land_m2:num('land_m2'),
+      move_in:txt('move_in'),
+      total_floors:land?null:num('total_floors'), floor_desc:land?null:txt('floor_desc'), approval_date:land?null:txt('approval_date'),
+      direction:land?null:txt('direction'), parking:land?null:txt('parking'), mgmt_fee:land?null:txt('mgmt_fee'),
+      rooms:land?null:num('rooms'), baths:land?null:num('baths'),
+      unregistered:!land&&fd.get('unregistered')==='on', violation:!land&&fd.get('violation')==='on',
+      recent_deal:num('recent_deal'), recent_deal_ym:txt('recent_deal_ym'), description:txt('description'),
+      photos:[...FORM_PHOTOS,...urls].filter(safeUrl).slice(0,10)
+    };
+    const id=f.dataset.id;
+    const res=id?await sb.from('listings').update(row).eq('id',id):await sb.from('listings').insert(row);
+    if(res.error) throw res.error;
+    delete DETAIL['edit-'+id]; if(id) delete DETAIL[id]; FORM_PHOTOS=[];
+    toast(id?'저장했어요':'매물을 올렸어요'); loadMarket(); location.hash='#agent';
+  }catch(e){msg.textContent=errMsg(e); btn.disabled=false}
+}
+
+/* ---------- 관리자 ---------- */
+let ADMIN_TAB='agents';
+function viewAdmin(){
+  if(!sb) return notConnected();
+  if(!AUTH.ready) return '<div class="empty">불러오는 중입니다.</div>';
+  if(!isAdmin()) return '<div class="empty">관리자만 볼 수 있어요.</div>';
+  AFTER.push(loadAdmin);
+  return `<h1 style="font-size:26px;font-weight:800;margin-bottom:14px">관리자</h1>
+  <nav class="subnav">${[['agents','중개사 심사'],['reports','허위매물 신고'],['hidden','비공개 매물']].map(([k,t])=>`<a href="#admin" data-atab="${k}" ${ADMIN_TAB===k?'aria-current="page"':''}>${t}</a>`).join('')}</nav>
+  <div class="panel" id="adminBox"><div class="note">불러오는 중입니다.</div></div>`;
+}
+async function loadAdmin(){
+  const box=$('#adminBox'); if(!box) return;
+  if(ADMIN_TAB==='agents'){
+    const {data,error}=await sb.rpc('admin_agents'); if(error){box.innerHTML=esc(errMsg(error));return}
+    const order={pending:0,rejected:1,approved:2,suspended:3};
+    data.sort((a,b)=>order[a.status]-order[b.status]);
+    box.innerHTML=data.length?`<div class="tablewrap"><table class="mtable"><thead><tr><th>중개사무소</th><th>등록번호 · 연락처</th><th>상태</th><th>처리</th></tr></thead><tbody>${data.map(a=>{const [lb,cl]=ST_AGENT[a.status];return `<tr>
+      <td><b>${esc(a.office_name)}</b><div class="note">${esc(a.ceo_name)} · ${esc(a.address)}</div><div class="note">신청 ${kst(a.created_at)}</div></td>
+      <td class="num">${esc(a.reg_no)}<div class="note">${esc(a.phone)}</div></td>
+      <td><span class="dday ${cl}">${lb}</span>${a.admin_note?`<div class="note">${esc(a.admin_note)}</div>`:''}</td>
+      <td><div class="acts">${a.license_path?`<button class="btn sm" type="button" data-lic="${esc(a.license_path)}">등록증 보기</button>`:''}
+        ${a.status!=='approved'?`<button class="btn sm primary" type="button" data-aact="approved" data-id="${a.id}">승인</button>`:''}
+        ${a.status!=='rejected'&&a.status!=='approved'?`<button class="btn sm" type="button" data-aact="rejected" data-id="${a.id}">반려</button>`:''}
+        ${a.status==='approved'&&!a.is_admin?`<button class="btn sm" type="button" data-aact="suspended" data-id="${a.id}">이용 정지</button>`:''}</div>
+        <input class="note-in" id="note-${a.id}" placeholder="반려·정지 사유 (중개사에게 보여요)" maxlength="200"></td></tr>`}).join('')}</tbody></table></div>
+      <p class="note">승인 전에 국가공간정보포털이나 시·군·구청에서 등록번호와 대표자 이름이 맞는지 확인하세요.</p>`:'<div class="empty">가입 신청이 없어요.</div>';
+  } else if(ADMIN_TAB==='reports'){
+    const {data,error}=await sb.from('reports').select('*, listing:listings(id,title,status,hidden_reason)').eq('status','open').order('created_at',{ascending:false});
+    if(error){box.innerHTML=esc(errMsg(error));return}
+    const by={}; data.forEach(r=>{(by[r.listing_id]=by[r.listing_id]||{l:r.listing,rs:[]}).rs.push(r)});
+    const groups=Object.entries(by);
+    box.innerHTML=groups.length?groups.map(([lid,g])=>`<div class="post"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><a href="#l-${lid}" class="t">${esc(g.l?.title||'(삭제된 매물)')}</a><span class="dday ${g.l?.status==='hidden'?'soon':'open'}">${g.l?.status==='hidden'?'자동 비공개':'공개 중'}</span><span class="note">신고 ${g.rs.length}건</span></div>
+      ${g.rs.map(r=>`<div class="note">· ${esc(r.reason)}${r.detail?' — '+esc(r.detail):''} <span class="num">(${kst(r.created_at)})</span></div>`).join('')}
+      <div class="acts" style="margin-top:6px"><button class="btn sm primary" type="button" data-ract="accept" data-id="${lid}">허위 확인 · 매물 내림</button><button class="btn sm" type="button" data-ract="dismiss" data-id="${lid}">문제 없음${g.l?.status==='hidden'?' · 다시 공개':''}</button></div></div>`).join(''):'<div class="empty">처리할 신고가 없어요.</div>';
+  } else {
+    const {data,error}=await sb.from('listings').select('id,title,hidden_reason,refreshed_at, agent:agents(office_name)').eq('status','hidden').order('refreshed_at',{ascending:false});
+    if(error){box.innerHTML=esc(errMsg(error));return}
+    box.innerHTML=data.length?data.map(l=>`<div class="post"><a class="t" href="#l-${l.id}">${esc(l.title)}</a><div class="note">${esc(l.agent?.office_name||'')} · ${esc(l.hidden_reason||'')}</div><div class="acts"><button class="btn sm" type="button" data-hact="${l.id}">다시 공개</button></div></div>`).join(''):'<div class="empty">비공개 매물이 없어요.</div>';
+  }
+}
+
+/* ---------- 이벤트 ---------- */
+const confirmArm={};
+function armed(key,btn,label){
+  if(confirmArm[key]&&Date.now()-confirmArm[key]<4000){delete confirmArm[key];return true}
+  confirmArm[key]=Date.now(); const old=btn.textContent; btn.textContent=label; setTimeout(()=>{if(btn.isConnected)btn.textContent=old},4000); return false;
+}
+document.addEventListener('click',async e=>{
+  const t=e.target;
+  if(t.closest('#logoutBtn')){await sb.auth.signOut();toast('로그아웃했어요');location.hash='#home';return}
+  if(t.closest('#resetPw')){const em=$('#auEmail')?.value.trim();const m=$('#authMsg');if(!em){m.textContent='위에 이메일을 먼저 적어주세요.';return}const {error}=await sb.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname});m.textContent=error?errMsg(error):'비밀번호 재설정 메일을 보냈어요.';return}
+  const mk=t.closest('[data-mkkind]'); if(mk){LF.kind=mk.dataset.mkkind;render();return}
+  if(t.closest('[data-mkloss]')){LF.loss=!LF.loss;render();return}
+  const rm=t.closest('[data-rmphoto]'); if(rm){FORM_PHOTOS.splice(+rm.dataset.rmphoto,1);const th=$('#fThumbs');if(th)th.innerHTML=FORM_PHOTOS.map((p,i)=>`<div class="th"><img src="${esc(safeUrl(p))}" alt=""><button type="button" class="icon" data-rmphoto="${i}" aria-label="사진 빼기">✕</button></div>`).join('');return}
+  const la=t.closest('[data-lact]');
+  if(la){
+    const id=la.dataset.id, act=la.dataset.lact; let res;
+    if(act==='delete'){if(!armed('del'+id,la,'한 번 더 누르면 삭제'))return; res=await sb.from('listings').delete().eq('id',id)}
+    else if(act==='contract'){if(!armed('ct'+id,la,'한 번 더 눌러 확정'))return; res=await sb.from('listings').update({status:'contracted'}).eq('id',id)}
+    else if(act==='reopen') res=await sb.from('listings').update({status:'active',refreshed_at:new Date().toISOString()}).eq('id',id);
+    else res=await sb.from('listings').update({refreshed_at:new Date().toISOString()}).eq('id',id);
+    if(res.error){toast(errMsg(res.error));return}
+    toast({delete:'삭제했어요',contract:'거래완료로 바꿨어요',reopen:'다시 공개했어요',refresh:'30일 연장했어요'}[act]); delete DETAIL[id]; loadMyListings(); loadMarket(); return;
+  }
+  const at=t.closest('[data-atab]'); if(at){e.preventDefault();ADMIN_TAB=at.dataset.atab;render();return}
+  const lic=t.closest('[data-lic]'); if(lic){const {data,error}=await sb.storage.from('agent-licenses').createSignedUrl(lic.dataset.lic,120);if(error){toast(errMsg(error));return}const a=document.createElement('a');a.href=data.signedUrl;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();return}
+  const aa=t.closest('[data-aact]'); if(aa){const id=aa.dataset.id,st=aa.dataset.aact,note=$('#note-'+id)?.value.trim()||null;
+    if(st!=='approved'&&!note){toast('사유를 적어주세요');$('#note-'+id)?.focus();return}
+    const {error}=await sb.from('agents').update({status:st,admin_note:st==='approved'?null:note}).eq('id',id);
+    if(error){toast(errMsg(error));return} toast('처리했어요'); loadAdmin(); return}
+  const ra=t.closest('[data-ract]'); if(ra){const lid=ra.dataset.id, acc=ra.dataset.ract==='accept';
+    const r1=await sb.from('reports').update({status:acc?'accepted':'dismissed'}).eq('listing_id',lid).eq('status','open');
+    const r2=await sb.from('listings').update(acc?{status:'hidden',hidden_reason:'허위매물 신고 확인'}:{status:'active',hidden_reason:null}).eq('id',lid).in('status',acc?['active','hidden']:['hidden']);
+    if(r1.error||r2.error){toast(errMsg(r1.error||r2.error));return} toast('처리했어요'); loadAdmin(); loadMarket(); return}
+  const ha=t.closest('[data-hact]'); if(ha){const {error}=await sb.from('listings').update({status:'active',hidden_reason:null,refreshed_at:new Date().toISOString()}).eq('id',ha.dataset.hact);if(error){toast(errMsg(error));return}toast('다시 공개했어요');loadAdmin();loadMarket();return}
+});
+document.addEventListener('change',e=>{
+  const id=e.target.id;
+  if(id==='mkSido'){LF.sido=e.target.value;render()}
+  else if(id==='mkDeal'){LF.deal=e.target.value;render()}
+  else if(id==='fKind'||id==='fDeal') syncFormKind();
+});
+document.addEventListener('submit',async e=>{
+  const f=e.target; e.preventDefault();
+  if(f.id==='mkForm'){LF.q=$('#mkQ').value;render();return}
+  if(f.id==='loginForm'||f.id==='signupForm'){
+    const m=$('#authMsg'), btn=f.querySelector('[type=submit]'); btn.disabled=true; m.textContent='처리 중…';
+    const email=f.email.value.trim(), password=f.password.value;
+    const res=f.id==='loginForm'?await sb.auth.signInWithPassword({email,password}):await sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}});
+    btn.disabled=false;
+    if(res.error){m.textContent=errMsg(res.error);return}
+    if(f.id==='signupForm'&&!res.data.session){m.textContent=`${email}로 인증 메일을 보냈어요. 메일의 링크를 누르면 가입이 끝납니다.`;return}
+    return;
+  }
+  if(f.id==='agentForm'){
+    const m=$('#agentMsg'), btn=f.querySelector('[type=submit]'); btn.disabled=true; m.textContent='제출하는 중…';
+    try{
+      const row={office_name:f.office_name.value.trim(),reg_no:f.reg_no.value.trim(),ceo_name:f.ceo_name.value.trim(),phone:f.phone.value.trim(),address:f.address.value.trim()};
+      const file=f.license.files[0];
+      if(file){
+        if(file.size>5*1024*1024) throw new Error('등록증 파일은 5MB 이하로 올려주세요.');
+        const ext=(file.name.split('.').pop()||'jpg').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,5)||'jpg';
+        const path=`${uid()}/license-${Date.now()}.${ext}`;
+        const up=await sb.storage.from('agent-licenses').upload(path,file,{contentType:file.type||undefined});
+        if(up.error) throw up.error; row.license_path=path;
+      }
+      const res=AUTH.agent?await sb.from('agents').update(row).eq('id',uid()):await sb.from('agents').insert({id:uid(),...row});
+      if(res.error) throw res.error;
+      await loadMe(); renderHeader(); toast('제출했어요. 승인되면 매물을 올릴 수 있어요.'); render();
+    }catch(err){m.textContent=err.message?.startsWith('등록증')?err.message:errMsg(err); btn.disabled=false}
+    return;
+  }
+  if(f.id==='listingForm'){submitListing(f);return}
+  if(f.id==='reportForm'){
+    const btn=f.querySelector('[type=submit]'); btn.disabled=true;
+    const {error}=await sb.from('reports').insert({listing_id:f.dataset.id,reason:f.reason.value,detail:f.detail.value.trim()||null});
+    if(error){toast(errMsg(error));btn.disabled=false;return}
+    $('#reportBox').innerHTML='<h2>허위매물 신고</h2><p>신고가 접수됐어요. 관리자가 확인합니다.</p>';
+  }
+},true);
+
+/* ================= 경매·공매 (온비드 + 실거래 비교) ================= */
+let AUC={updatedAt:null,items:[],note:'',loaded:false};
+async function loadAuctions(){
+  try{const r=await fetch('auctions.json',{cache:'no-store'});if(r.ok){const j=await r.json();if(Array.isArray(j.items))AUC={...j,loaded:true}}}catch(e){}
+  AUC.loaded=true; softRender();
+}
+const wonKRW=n=>n==null?'-':won(Math.round(n/10000));
+const AUC_CATS=[['전체',null],['토지',['land']],['주거',['apt','rh','sh','offi']],['상가·업무',['nrg']],['공장·창고',['indu']]];
+const AF={sido:'전체',cat:'전체',sort:'end',cheap:false,q:'',shown:24};
+function aucDday(it){
+  if(!it.bidEnd) return ['일정 확인','closed'];
+  const end=Date.parse(it.bidEnd.replace(' ','T')+':00+09:00'), start=it.bidStart?Date.parse(it.bidStart.replace(' ','T')+':00+09:00'):0, now=Date.now();
+  if(start&&start>now) return ['입찰 예정','upcoming'];
+  const d=Math.floor((Date.parse(it.bidEnd.slice(0,10)+'T00:00:00+09:00')-TODAY)/864e5);
+  if(end<now) return ['마감','closed'];
+  return [d<=0?'오늘 마감':'D-'+d, d<=2?'soon':'open'];
+}
+function compareBadge(c,big){
+  if(!c) return '';
+  if(c.skip) return `<div class="note">${esc(c.skip)}</div>`;
+  const p=c.minVsEst, cheap=p<0;
+  return `<div class="cmp ${cheap?'cheap':'dear'}${big?' big':''}"><b class="num">${cheap?'▼':'▲'} ${Math.abs(p).toFixed(1)}%</b><span>주변 시세 추정 <b class="num">${wonKRW(c.est)}</b> 대비 최저가</span></div>`;
+}
+function aucCard(it){
+  const [dl,dc]=aucDday(it);
+  return `<a class="lcard acard" href="#auc-${esc(it.id)}">
+    <div class="lbody">
+      <div class="row1" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="dday ${dc}">${dl}</span><span class="kind">${esc(it.sido||'-')} · ${esc(it.usage||'-')}</span></div>
+      <div class="ttl">${esc(it.title)}</div>
+      <div class="price"><b class="num">${wonKRW(it.minp)}</b>${it.ratio?`<span class="drop" style="color:var(--muted)">감정가의 ${it.ratio}%</span>`:''}</div>
+      <dl class="kv"><dt>감정가</dt><dd class="num">${wonKRW(it.apsl)}</dd><dt>유찰</dt><dd class="num">${it.fails||0}회</dd><dt>입찰 마감</dt><dd class="num">${esc(it.bidEnd||'-')}</dd></dl>
+      ${compareBadge(it.compare)}
+    </div></a>`;
+}
+function filteredAuc(){
+  const cats=AUC_CATS.find(c=>c[0]===AF.cat)?.[1], q=AF.q.trim();
+  let rows=AUC.items.filter(it=>aucDday(it)[1]!=='closed'&&(AF.sido==='전체'||it.sido===AF.sido)&&(!cats||cats.includes(it.cat))&&(!AF.cheap||(it.compare&&it.compare.minVsEst<0))&&(!q||(it.title+' '+it.addr+' '+it.org).includes(q)));
+  const v=x=>x??Infinity;
+  if(AF.sort==='disc') rows.sort((a,b)=>v(a.compare?.minVsEst)-v(b.compare?.minVsEst));
+  else if(AF.sort==='ratio') rows.sort((a,b)=>v(a.ratio)-v(b.ratio));
+  else if(AF.sort==='fails') rows.sort((a,b)=>(b.fails||0)-(a.fails||0));
+  else rows.sort((a,b)=>(a.bidEnd||'9').localeCompare(b.bidEnd||'9'));
+  return rows;
+}
+function viewAuctions(){
+  const rows=filteredAuc(), sidos=[...new Set(AUC.items.map(i=>i.sido).filter(Boolean))].sort();
+  return `<section class="block">${secHead('온비드 공매 · 매일 자동 갱신','경매·공매 물건')}
+    <div class="feed"><span class="dot"></span><span>한국자산관리공사 온비드 공매 물건</span><span>·</span><span>${AUC.updatedAt?'마지막 동기화 '+fmtTime(AUC.updatedAt):'동기화 대기 중'}</span><span>·</span><span>진행 중 <b class="num">${AUC.items.filter(i=>aucDday(i)[1]!=='closed').length}</b>건</span></div>
+    <form class="search" id="aucForm">
+      <div class="sbox"><input id="aucQ" value="${esc(AF.q)}" placeholder="주소, 물건명, 기관으로 검색" autocomplete="off"><button class="btn primary" type="submit">검색</button></div>
+      <select id="aucSido" aria-label="지역"><option value="전체">지역 전체</option>${sidos.map(s=>`<option ${s===AF.sido?'selected':''}>${s}</option>`).join('')}</select>
+      <select id="aucSort" aria-label="정렬">${[['end','마감 임박순'],['disc','시세 대비 싼 순'],['ratio','감정가 대비 낮은 순'],['fails','유찰 많은 순']].map(([k,t])=>`<option value="${k}" ${AF.sort===k?'selected':''}>${t}</option>`).join('')}</select>
+    </form>
+    <div class="tabs">${AUC_CATS.map(([k])=>`<button type="button" aria-pressed="${k===AF.cat}" data-auccat="${k}">${k}</button>`).join('')}<button type="button" aria-pressed="${AF.cheap}" data-auccheap style="margin-left:auto">주변 시세보다 싼 물건만</button></div>
+    ${!AUC.loaded?'<div class="empty">공매 물건을 불러오는 중입니다.</div>':!AUC.items.length?'<div class="empty">아직 수집된 공매 물건이 없어요. 공공데이터포털 인증키를 등록하면 매일 자동으로 채워집니다.</div>':rows.length?`<div class="rail">${rows.slice(0,AF.shown).map(aucCard).join('')}</div>${rows.length>AF.shown?`<div style="text-align:center;margin-top:16px"><button class="btn" type="button" data-aucmore>더 보기 (${rows.length-AF.shown}건 남음)</button></div>`:''}`:'<div class="empty">조건에 맞는 물건이 없어요.</div>'}
+    <p class="note">${esc(AUC.note||'')} 입찰 전에는 온비드 원문, 감정평가서, 등기부등본을 꼭 확인하세요.</p>
+    <div class="panel" style="margin-top:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>법원경매 물건</b><div class="note">대법원 법원경매는 아직 공식 오픈 API가 없어 자동 수집하지 않아요. 법원경매정보 사이트에서 직접 확인하세요.</div></div><a class="btn" href="https://www.courtauction.go.kr" target="_blank" rel="noopener">법원경매정보 바로가기</a></div>
+  </section>`;
+}
+function viewAuction(id){
+  const it=AUC.items.find(x=>x.id===id);
+  if(!it) return `<a class="back" href="#auctions">← 경매·공매 목록</a><div class="empty">${AUC.loaded?'마감됐거나 없는 물건이에요.':'불러오는 중입니다.'}</div>`;
+  const [dl,dc]=aucDday(it), c=it.compare;
+  const per=a=>a?Math.round(a/10000).toLocaleString()+'만/㎡':'-';
+  return `<a class="back" href="#auctions">← 경매·공매 목록</a>
+  <div class="dgrid"><div style="min-width:0">
+    <div class="dhead"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="dday ${dc}">${dl}</span><span class="reg" style="font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 7px">${esc(it.sido)} ${esc(it.sgg)}</span><span style="font-size:12px;font-weight:700;color:var(--accent)">${esc(it.usage)}</span>${it.share?'<span class="dday soon">지분</span>':''}</div>
+      <h1>${esc(it.title)}</h1></div>
+    <div class="ticket"><div><div class="k">최저입찰가</div><div class="v num">${wonKRW(it.minp)}</div></div><div><div class="k">감정가</div><div class="v num">${wonKRW(it.apsl)}</div></div><div><div class="k">감정가 대비</div><div class="v num">${it.ratio?it.ratio+'%':'-'}</div></div><div><div class="k">유찰</div><div class="v num">${it.fails||0}회</div></div></div>
+    <div class="dsec aisum"><h2>주변 실거래 비교</h2>
+      ${!c?'<p class="note" style="font-size:14px">이 종류의 물건은 실거래가 비교 대상이 아니에요.</p>':c.skip?`<p class="note" style="font-size:14px">${esc(c.skip)}</p>`:`
+      ${compareBadge(c,true)}
+      <dl class="facts" style="margin-top:12px"><dt>비교 기준</dt><dd>${esc(c.basis)}</dd><dt>㎡당 중앙값</dt><dd class="num">${per(c.perM2)}</dd><dt>물건 면적</dt><dd class="num">${(+c.area).toLocaleString()}㎡ (${pyeong(c.area)}평)</dd><dt>주변 시세 추정</dt><dd class="num">${wonKRW(c.est)}</dd>${c.apslVsEst!=null?`<dt>감정가와 비교</dt><dd class="num">감정가가 추정 시세보다 ${Math.abs(c.apslVsEst).toFixed(1)}% ${c.apslVsEst<0?'낮음':'높음'}</dd>`:''}</dl>
+      ${c.samples?.length?`<div class="tablewrap" style="margin-top:12px"><table class="mtable" style="min-width:480px"><thead><tr><th>거래일</th><th>동</th><th class="r">면적</th><th class="r">거래가</th><th class="r">㎡당</th></tr></thead><tbody>${c.samples.map(s=>`<tr><td class="num">${esc(s.date)}</td><td>${esc(s.dong)}${s.tag?` <span class="note">${esc(s.tag)}</span>`:''}</td><td class="num r">${(+s.area).toLocaleString()}㎡</td><td class="num r">${wonKRW(s.amount)}</td><td class="num r">${per(s.amount/s.area)}</td></tr>`).join('')}</tbody></table></div>`:''}
+      <p class="note" style="margin-top:10px">국토부 실거래가는 지번 일부가 가려져 있어 이 물건 자체의 직전 거래가는 알 수 없어요. 위 비교는 같은 동네·같은 종류 거래의 ㎡당 중앙값으로 계산한 참고치이고, 땅 모양·도로 조건·건물 상태는 반영하지 못합니다.</p>`}
+    </div>
+    <div class="dsec"><h2>입찰 정보</h2><dl class="facts" style="background:transparent;padding:0;gap:8px 16px"><dt>소재지</dt><dd>${esc(it.addr)}</dd><dt>입찰 기간</dt><dd class="num">${esc(it.bidStart||'-')} ~ ${esc(it.bidEnd||'-')}</dd><dt>진행 상태</dt><dd>${esc(it.status||'-')}</dd><dt>처분 방식</dt><dd>${esc(it.method||'-')}</dd><dt>재산 유형</dt><dd>${esc(it.prpt||'-')}</dd><dt>공고 기관</dt><dd>${esc(it.org||'-')}</dd><dt>물건관리번호</dt><dd class="num">${esc(it.id)}</dd></dl></div>
+  </div>
+  <aside class="side"><div class="panel"><div style="font-weight:800;margin-bottom:8px">입찰은 온비드에서</div><p class="note" style="font-size:13px;margin:0 0 12px">감정평가서, 공매재산명세서, 입찰 참가는 온비드 원문에서 확인하세요.</p><a class="btn primary" style="width:100%;justify-content:center" href="${esc(safeUrl(it.url))}" target="_blank" rel="noopener">온비드 원문 보기</a></div>
+    <div class="panel note" style="font-size:13px">자료: 한국자산관리공사 온비드, 국토교통부 실거래가${AUC.updatedAt&&fmtTime(AUC.updatedAt)?'<br>'+fmtTime(AUC.updatedAt)+' 갱신':''}</div></aside></div>`;
+}
+document.addEventListener('click',e=>{
+  const t=e.target;
+  const ac=t.closest('[data-auccat]'); if(ac){AF.cat=ac.dataset.auccat;AF.shown=24;render();return}
+  if(t.closest('[data-auccheap]')){AF.cheap=!AF.cheap;AF.shown=24;render();return}
+  if(t.closest('[data-aucmore]')){AF.shown+=24;render();return}
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='aucSido'){AF.sido=e.target.value;AF.shown=24;render()}
+  else if(e.target.id==='aucSort'){AF.sort=e.target.value;render()}
+});
+document.addEventListener('submit',e=>{ if(e.target.id==='aucForm'){e.preventDefault();AF.q=$('#aucQ').value;AF.shown=24;render()} });
+
 /* ---------- 라우터 ---------- */
 function route(){return (location.hash||'#home').slice(1)||'home'}
 function render(){
   const r=route(); const app=$('#app');
   let html, nav=r;
-  if(r==='listings') html=viewListings();
+  if(r==='listings'){html=sb?viewMarket():viewListings()}
+  else if(r==='login'||r==='signup'){html=viewAuth(r);nav=''}
+  else if(r==='agent'){html=viewAgent();nav=''}
+  else if(r==='listing-new'){html=viewListingForm(null);nav=''}
+  else if(r.startsWith('edit-')){html=viewListingForm(r.slice(5));nav=''}
+  else if(r.startsWith('l-')){html=viewListingDetail(r.slice(2));nav='listings'}
+  else if(r==='admin'){html=viewAdmin();nav=''}
+  else if(r==='auctions') html=viewAuctions();
+  else if(r.startsWith('auc-')){html=viewAuction(r.slice(4));nav='auctions'}
   else if(r==='community') html=viewCommunity();
   else if(r==='insight') html=viewInsight();
   else if(r==='rates'){html=viewRates();nav='insight'}
@@ -591,9 +1188,12 @@ function render(){
   else if(r.startsWith('notice-')){html=viewNotice(r.slice(7));nav='insight'}
   else {html=viewHome();nav='home'}
   app.innerHTML=`<div class="view">${html}</div>`;
+  const run=AFTER; AFTER=[]; run.forEach(fn=>{try{fn()}catch(e){console.error(e)}});
   document.querySelectorAll('[data-nav]').forEach(a=>{a.dataset.nav===nav?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current')});
   paintArt(); if(r==='listings') paintMap();
 }
+// 배경 갱신(매물 새로고침, 로그인 토큰 갱신)이 작성 중인 폼을 지우지 않게
+function softRender(){ if(document.querySelector('#app form[data-keep]')&&route()===lastRoute) return; render(); }
 let lastRoute=route();
 addEventListener('hashchange',()=>{const r=route();render();if(r!==lastRoute)scrollTo({top:0});lastRoute=r});
 
@@ -602,6 +1202,7 @@ document.addEventListener('click',async e=>{
   const t=e.target;
   const ask=t.closest('[data-ask]'); if(ask){openChat(ask.dataset.ask);return}
   if(t.closest('[data-open-chat]')){e.preventDefault();openChat();return}
+  if(t.closest('[data-goloss]')){LF.loss=true}
   const ht=t.closest('#homeTabs [data-cat]'); if(ht){const c=ht.dataset.cat;document.querySelectorAll('#homeTabs button').forEach(b=>b.setAttribute('aria-pressed',b===ht));$('#homePosts').innerHTML=POSTS.filter(p=>c==='전체'||p.cat===c).slice(0,4).map(postItem).join('');return}
   const ct=t.closest('#commTabs [data-cat]'); if(ct){commCat=ct.dataset.cat;render();return}
   const kt=t.closest('#kindTabs [data-kind]'); if(kt){listingKind=kt.dataset.kind;render();return}
@@ -611,7 +1212,7 @@ document.addEventListener('click',async e=>{
   if(t.closest('#aiTog')){S.ai=!S.ai;render();return}
   const fv=t.closest('[data-fav]'); if(fv){const id=fv.dataset.fav;favs.has(id)?favs.delete(id):favs.add(id);saveFavs();fv.setAttribute('aria-pressed',favs.has(id));toast(favs.has(id)?'관심 공고에 담았어요':'관심 공고에서 뺐어요');return}
   const sh=t.closest('[data-share]'); if(sh){copyText(location.href.split('#')[0]+'#notice-'+sh.dataset.share,'링크를 복사했어요');return}
-  const cp=t.closest('[data-copy]'); if(cp){copyText(cp.dataset.copy,'이메일 주소를 복사했어요');return}
+  const cp=t.closest('[data-copy]'); if(cp){copyText(cp.dataset.copy,'복사했어요');return}
 });
 async function copyText(s,msg){try{await navigator.clipboard.writeText(s);toast(msg)}catch(err){toast(s)}}
 document.addEventListener('submit',e=>{
@@ -668,7 +1269,7 @@ $('#chatForm').addEventListener('submit',async e=>{
   samplePromise = samplePromise || (window.claude?.use ? window.claude.use('sample') : Promise.resolve(null));
   const sample=await samplePromise;
   if(!sample){out.textContent='AI 채팅은 준비 중이에요. 곧 연결될 예정입니다.';return}
-  const ctx='너는 부동산 플랫폼 "리얼픽"의 AI 상담원이다. 한국어로 4~6문장 이내로 간결하게 답한다. 투자 권유나 확정적 수익 예측은 하지 말고, 확인할 지표(호가·실거래가·AI 추정가 차이, 수익률, 금리, 공실, 권리관계)를 안내한다. 참고용 예시 매물: '+LISTINGS.map(l=>`${l.kind}/${l.area}/${l.title}/호가 ${won(l.ask)}/실거래 ${won(l.real)}/AI추정 ${won(l.avm)}`).join('; ')+'. 현재 접수 중인 정부지원 공고: '+FEED.items.filter(n=>statusOf(n)!=='closed').map(n=>`${n.pblancNm}(${n.reqstEnd} 마감)`).join('; ')+'. 최근 금리: '+RATES.series.map(r=>`${r.label} ${r.points.at(-1).v}%(${ym(r.points.at(-1).t)})`).join(', ')+'.';
+  const ctx='너는 부동산 플랫폼 "리얼픽"의 AI 상담원이다. 한국어로 4~6문장 이내로 간결하게 답한다. 투자 권유나 확정적 수익 예측은 하지 말고, 확인할 지표(호가·실거래가·AI 추정가 차이, 수익률, 금리, 공실, 권리관계)를 안내한다. '+(MARKET.items.length?'현재 등록 매물: '+MARKET.items.slice(0,40).map(l=>`${l.kind}/${l.sido} ${l.sigungu}/${l.title}/${priceText(l)}/${l.area_m2}㎡`).join('; '):'아직 등록된 매물이 없음')+'. 진행 중인 온비드 공매(주변 시세 대비): '+AUC.items.slice(0,30).map(i=>`${i.title}/최저가 ${wonKRW(i.minp)}/감정가 대비 ${i.ratio??'-'}%/${i.compare&&!i.compare.skip?'추정 시세 대비 '+i.compare.minVsEst+'%':'비교 없음'}`).join('; ')+'. 현재 접수 중인 정부지원 공고: '+FEED.items.filter(n=>statusOf(n)!=='closed').map(n=>`${n.pblancNm}(${n.reqstEnd} 마감)`).join('; ')+'. 최근 금리: '+RATES.series.map(r=>`${r.label} ${r.points.at(-1).v}%(${ym(r.points.at(-1).t)})`).join(', ')+'.';
   history.push({role:'user',content:(history.length?'':ctx+'\n\n질문: ')+q});
   try{
     const r=await sample(history,{onText:({text})=>{out.textContent=text},cache:false});
@@ -679,7 +1280,7 @@ $('#chatForm').addEventListener('submit',async e=>{
   }
 });
 
-render(); loadFeed();
+render(); loadFeed(); loadAuctions(); initAuth(); loadMarket();
 </script>
 
 </body>
