@@ -1,8 +1,10 @@
 // 리얼픽 데이터 자동 수집 스크립트
 // - 기업마당 지원사업정보 API  → notices.json  (환경변수 BIZINFO_API_KEY)
 // - 한국은행 ECOS Open API      → rates.json    (환경변수 ECOS_API_KEY)
+// - 온비드 공매 + 국토부 실거래가 → auctions.json (환경변수 DATA_GO_KR_KEY, 공공데이터포털 인증키)
 // 키가 없는 쪽은 건너뛰고, 기존 파일은 그대로 둔다. Node 18 이상, 외부 패키지 없음.
 import { readFile, writeFile } from "node:fs/promises";
+import { buildAuctions } from "./auctions.mjs";
 
 const ROOT = new URL("../", import.meta.url);
 const nowKST = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 19) + "+09:00";
@@ -179,7 +181,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   let failed = false;
   const tasks = [
     ["BIZINFO_API_KEY", "기업마당 공고", updateNotices],
-    ["ECOS_API_KEY", "ECOS 금리", updateRates]
+    ["ECOS_API_KEY", "ECOS 금리", updateRates],
+    ["DATA_GO_KR_KEY", "온비드 공매·실거래 비교", key => buildAuctions(key, { readJson, writeJson, nowKST })]
   ];
   for (const [env, name, fn] of tasks) {
     const key = process.env[env];
