@@ -300,8 +300,10 @@ export async function buildAuctions(key, { readJson, writeJson, nowKST, log = co
         cache.entries[ck] = { t: new Date().toISOString(), rows: r.rows };
       } catch (e) {
         calls++; callsByApi[cat] = (callsByApi[cat] || 0) + 1;
-        apiErrors[RTMS[cat].label] = String(e.message).slice(0, 160);
-        if (/SERVICE_KEY|NOT_REGISTERED|ACCESS_DENIED|LIMITED_NUMBER|NO_OPENAPI|UNREGISTERED/i.test(e.message)) failedApis.set(cat, e.message);
+        const m = String(e.message);
+        const why = /LIMITED_NUMBER|HTTP 429/i.test(m) ? "quota" : /SERVICE_KEY|NOT_REGISTERED|ACCESS_DENIED|NO_OPENAPI|UNREGISTERED/i.test(m) ? "auth" : null;
+        apiErrors[RTMS[cat].label] = (m.match(/[A-Z_]{8,}_ERROR|[A-Z_]{8,}/)?.[0] || m).slice(0, 80);
+        if (why) failedApis.set(cat, why);
       }
     }
   }
@@ -315,7 +317,7 @@ export async function buildAuctions(key, { readJson, writeJson, nowKST, log = co
   for (const it of items) {
     if (!it.cat || !it.sggCd) { it.compare = it.cat ? { skip: "시군구 코드를 찾지 못했어요" } : null; continue; }
     const keys = months.map(ym => `${it.cat}:${it.sggCd}:${ym}`);
-    if (failedApis.has(it.cat) && keys.some(k => !cache.entries[k])) { it.compare = { skip: `${RTMS[it.cat].label} 실거래가 자료를 쓸 수 없어요 (활용신청 확인)` }; continue; }
+    if (failedApis.get(it.cat) === "auth" && keys.some(k => !cache.entries[k])) { it.compare = { skip: `${RTMS[it.cat].label} 실거래가 자료를 쓸 수 없어요 (활용신청 확인)` }; continue; }
     if (keys.some(k => !cache.entries[k])) { it.compare = { pending: true, skip: "주변 실거래 시세를 모으는 중이에요" }; continue; }
     it.compare = compareItem(it, keys.flatMap(k => cache.entries[k].rows));
     if (it.compare && !it.compare.skip) compared++;
