@@ -23,10 +23,11 @@ jobs:
         with:
           node-version: 20
 
-      - name: 기업마당 공고·ECOS 금리 수집
+      - name: 공고·금리·공매 수집
         env:
           BIZINFO_API_KEY: ${{ secrets.BIZINFO_API_KEY }}
           ECOS_API_KEY: ${{ secrets.ECOS_API_KEY }}
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
         run: node scripts/update.mjs
 
       - name: 바뀐 내용이 있으면 저장
@@ -34,7 +35,9 @@ jobs:
         run: |
           git config user.name "realpick-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add notices.json rates.json 2>/dev/null || true
+          for f in notices.json rates.json auctions.json rtms-cache.json; do
+            if [ -f "$f" ]; then git add "$f"; fi
+          done
           if git diff --cached --quiet; then
             echo "변경 없음"
           else
