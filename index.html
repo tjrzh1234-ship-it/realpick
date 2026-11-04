@@ -293,6 +293,30 @@ a.lcard:hover{border-color:var(--accent)}
 .cmp span{color:var(--muted)}
 .cmp.big{padding:10px 12px;font-size:14px}
 .cmp.big b.num{font-size:20px}
+.trustbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:-8px 0 14px}
+.tchip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:600;color:var(--muted)}
+.tchip .num{opacity:.6;margin-left:2px}
+.tchip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.advpanel{margin:4px 0 14px}
+.advpanel summary{cursor:pointer;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.advgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px;margin-top:14px}
+.advgrid .wide{grid-column:1/-1}
+@media (max-width:900px){.advgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.advgrid{grid-template-columns:1fr}}
+.range{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.range>select,.range>input{flex:1;min-width:90px;font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 9px}
+.range i{font-style:normal;color:var(--faint)}
+.chkrow{display:flex;gap:14px;flex-wrap:wrap;padding-top:4px}
+.reshead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:6px 0 12px}
+.viewtog{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+.viewtog button{border:0;background:var(--surface);padding:6px 12px;font-size:13px;font-weight:600;color:var(--muted)}
+.viewtog button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.chips-s{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.chip-s{font-size:11.5px;font-weight:700;border-radius:5px;padding:1px 6px;background:var(--sunk);color:var(--muted)}
+.chip-s.trust{background:var(--accent-soft);color:var(--accent)}
+.chip-s.warn{background:var(--hot-soft);color:var(--hot)}
+.auctable{min-width:860px}
+.auctable td:first-child{max-width:380px}
 footer{border-top:1px solid var(--line);background:var(--surface);padding-block:28px;font-size:13px;color:var(--muted)}
 footer .wrap{display:grid;gap:8px}
 footer nav{display:flex;gap:16px;flex-wrap:wrap;font-weight:600}
@@ -1099,7 +1123,134 @@ function onbidUrl(it){
 }
 const wonKRW=n=>n==null?'-':won(Math.round(n/10000));
 const AUC_CATS=[['전체',null],['아파트',['apt']],['오피스텔',['offi']],['빌라',['rh']],['단독·다가구',['sh']],['토지',['land']],['상가·업무',['nrg']],['공장·창고',['indu']]];
-const AF={sido:'전체',cat:'전체',sort:'end',cheap:false,q:'',shown:24};
+const AF_DEFAULT=()=>({mode:'all',trust:'전체',sido:'전체',sgg:'전체',cat:'전체',sort:'end',cheap:false,q:'',shown:24,view:'card',
+  no:'',org:'',prpt:[],usage:'',status:'',apMin:'',apMax:'',mpMin:'',mpMax:'',rMin:'',rMax:'',laMin:'',laMax:'',baMin:'',baMax:'',unit:'m2',dFrom:'',dTo:'',fails:'',share:'all',adv:false});
+let AF=AF_DEFAULT();
+try{const v=localStorage.getItem('rp-aucview');if(v==='list'||v==='card')AF.view=v}catch(e){}
+/* 신탁회사 이름 정리: '주식회사 무궁화신탁' → '무궁화신탁', '케이비부동산신탁주식회사' → 'KB부동산신탁' */
+function trustOf(org){
+  if(!/신탁/.test(org||'')) return null;
+  let n=String(org).replace(/주식회사|\(주\)|㈜|\s/g,'');
+  n=n.replace(/^케이비/,'KB');
+  return n||null;
+}
+const isKdic=it=>/예금보험|케이알앤씨|정리금융|파산재단|파산관재/.test(it.org||'');
+const areaOf=it=>it.cat==='land'?(it.landArea??it.area):(it.bldArea??it.area??it.landArea);
+const AMOUNTS=[[1e7,'1천만'],[3e7,'3천만'],[5e7,'5천만'],[1e8,'1억'],[2e8,'2억'],[3e8,'3억'],[5e8,'5억'],[1e9,'10억'],[2e9,'20억'],[5e9,'50억'],[1e10,'100억']];
+const amtSel=(id,val,ph)=>`<select id="${id}" name="${id}" aria-label="${ph}"><option value="">${ph}</option>${AMOUNTS.map(([v,t])=>`<option value="${v}" ${String(v)===String(val)?'selected':''}>${t}</option>`).join('')}</select>`;
+const ymdKST=d=>new Date(d.getTime()+9*3600e3).toISOString().slice(0,10);
+function aucModeBase(){
+  return AUC.items.filter(it=>aucDday(it)[1]!=='closed'&&(AF.mode==='all'||(AF.mode==='trust'?!!trustOf(it.org):isKdic(it))));
+}
+function aucBase(){
+  const {sidos,words}=splitRegionQuery(AF.q);
+  const num=v=>v===''||v==null?null:Number(v), py=AF.unit==='py'?3.3058:1;
+  const apMin=num(AF.apMin),apMax=num(AF.apMax),mpMin=num(AF.mpMin),mpMax=num(AF.mpMax),rMin=num(AF.rMin),rMax=num(AF.rMax),fails=num(AF.fails);
+  const laMin=num(AF.laMin),laMax=num(AF.laMax),baMin=num(AF.baMin),baMax=num(AF.baMax);
+  const no=AF.no.trim(), org=AF.org.trim();
+  return aucModeBase().filter(it=>{
+    if(AF.mode==='trust'&&AF.trust!=='전체'&&trustOf(it.org)!==AF.trust) return false;
+    if(no) return it.id.includes(no);                       // 물건관리번호를 넣으면 다른 조건은 보지 않음
+    if(AF.sido!=='전체'&&it.sido!==AF.sido) return false;
+    if(AF.sgg!=='전체'&&it.sgg!==AF.sgg) return false;
+    if(sidos&&!sidos.includes(it.sido)) return false;
+    if(words.length&&!textHit(it.title+' '+it.addr+' '+it.org,words)) return false;
+    if(org&&!(it.org||'').includes(org)) return false;
+    if(AF.prpt.length&&!AF.prpt.includes(it.prpt)) return false;
+    if(AF.usage&&!(it.usage||'').endsWith(AF.usage)) return false;
+    if(AF.status&&it.status!==AF.status) return false;
+    if(apMin!=null&&!(it.apsl>=apMin)) return false; if(apMax!=null&&!(it.apsl<=apMax)) return false;
+    if(mpMin!=null&&!(it.minp>=mpMin)) return false; if(mpMax!=null&&!(it.minp<=mpMax)) return false;
+    if(rMin!=null&&!(it.ratio>=rMin)) return false; if(rMax!=null&&!(it.ratio<=rMax)) return false;
+    const la=it.landArea??(it.cat==='land'?it.area:null), ba=it.bldArea??(it.cat!=='land'?it.area:null);
+    if(laMin!=null&&!(la>=laMin*py)) return false; if(laMax!=null&&!(la<=laMax*py)) return false;
+    if(baMin!=null&&!(ba>=baMin*py)) return false; if(baMax!=null&&!(ba<=baMax*py)) return false;
+    if(AF.dFrom&&!((it.bidEnd||'').slice(0,10)>=AF.dFrom)) return false;
+    if(AF.dTo&&!((it.bidEnd||'').slice(0,10)<=AF.dTo)) return false;
+    if(fails!=null&&!((it.fails||0)>=fails)) return false;
+    const share=!!it.share||/지분/.test(it.title);
+    if(AF.share==='ex'&&share) return false; if(AF.share==='only'&&!share) return false;
+    if(AF.cheap&&!(it.compare&&it.compare.minVsEst<0)) return false;
+    return true;
+  });
+}
+const AUC_SORTS=[['end','입찰 마감 임박순'],['disc','주변 시세 대비 싼 순'],['ratio','감정가 대비 낮은 순'],['fails','유찰 많은 순'],['mpAsc','최저가 낮은 순'],['mpDesc','최저가 높은 순'],['apDesc','감정가 높은 순'],['no','물건관리번호순']];
+function filteredAuc(){
+  const cats=AUC_CATS.find(c=>c[0]===AF.cat)?.[1];
+  let rows=aucBase().filter(it=>!cats||cats.includes(it.cat));
+  const v=x=>x??Infinity, s=AF.sort;
+  if(s==='disc') rows.sort((a,b)=>v(a.compare?.minVsEst)-v(b.compare?.minVsEst));
+  else if(s==='ratio') rows.sort((a,b)=>v(a.ratio)-v(b.ratio));
+  else if(s==='fails') rows.sort((a,b)=>(b.fails||0)-(a.fails||0));
+  else if(s==='mpAsc') rows.sort((a,b)=>v(a.minp)-v(b.minp));
+  else if(s==='mpDesc') rows.sort((a,b)=>(b.minp||0)-(a.minp||0));
+  else if(s==='apDesc') rows.sort((a,b)=>(b.apsl||0)-(a.apsl||0));
+  else if(s==='no') rows.sort((a,b)=>a.id.localeCompare(b.id));
+  else rows.sort((a,b)=>(a.bidEnd||'9').localeCompare(b.bidEnd||'9'));
+  return rows;
+}
+function aucRow(it){
+  const [dl,dc]=aucDday(it), c=it.compare, tr=trustOf(it.org);
+  return `<tr>
+    <td><a href="#auc-${esc(it.id)}" class="t" style="font-weight:700">${esc(it.title)}</a>
+      <div class="note"><span class="num">${esc(it.id)}</span> · ${esc(it.usage||'-')}</div>
+      <div class="chips-s"><span class="chip-s">${esc(it.prpt||'-')}</span>${tr?`<span class="chip-s trust">${esc(tr)}</span>`:''}${it.share||/지분/.test(it.title)?'<span class="chip-s warn">지분</span>':''}</div></td>
+    <td class="num r"><div class="note">${wonKRW(it.apsl)}</div><b>${wonKRW(it.minp)}</b><div class="note">${it.ratio?it.ratio+'%':'-'}</div></td>
+    <td class="r">${c&&!c.skip?`<span class="num" style="font-weight:700;color:${c.minVsEst<0?'var(--ok)':'var(--muted)'}">${c.minVsEst<0?'▼':'▲'}${Math.abs(c.minVsEst).toFixed(1)}%</span>`:'<span class="note">-</span>'}</td>
+    <td><span class="dday ${dc}">${dl}</span><div class="note">${esc(it.status||'')}</div></td>
+    <td class="num"><div>${esc((it.bidStart||'-').slice(5))}</div><div>${esc((it.bidEnd||'-').slice(5))}</div></td>
+    <td class="num r">${it.fails||0}회</td></tr>`;
+}
+function viewAuctions(){
+  const modeItems=aucModeBase(), rows=filteredAuc();
+  const sidos=[...new Set(modeItems.map(i=>i.sido).filter(Boolean))].sort();
+  const sggs=AF.sido==='전체'?[]:[...new Set(modeItems.filter(i=>i.sido===AF.sido).map(i=>i.sgg).filter(Boolean))].sort();
+  const trusts=(()=>{const c={};AUC.items.forEach(i=>{if(aucDday(i)[1]==='closed')return;const t=trustOf(i.org);if(t)c[t]=(c[t]||0)+1});return Object.entries(c).sort((a,b)=>b[1]-a[1])})();
+  const kdicN=AUC.items.filter(i=>isKdic(i)&&aucDday(i)[1]!=='closed').length;
+  const prpts=[...new Set(AUC.items.map(i=>i.prpt).filter(Boolean))].sort();
+  const usages=(()=>{const cats=AUC_CATS.find(c=>c[0]===AF.cat)?.[1];const c={};modeItems.filter(i=>!cats||cats.includes(i.cat)).forEach(i=>{const u=(i.usage||'').split(' > ').pop();if(u)c[u]=(c[u]||0)+1});return Object.entries(c).sort((a,b)=>b[1]-a[1])})();
+  const statuses=[...new Set(AUC.items.map(i=>i.status).filter(Boolean))];
+  const advCount=['no','org','usage','status','apMin','apMax','mpMin','mpMax','rMin','rMax','laMin','laMax','baMin','baMax','dFrom','dTo','fails'].filter(k=>AF[k]!=='').length+(AF.prpt.length?1:0)+(AF.share!=='all'?1:0);
+  const u=AF.unit==='py'?'평':'㎡';
+  return `<section class="block">${secHead('온비드 공매 · 매일 자동 갱신','경매·공매 물건')}
+    <nav class="subnav" aria-label="공매 구분">${[['all','공매 전체',AUC.items.filter(i=>aucDday(i)[1]!=='closed').length],['trust','신탁공매',trusts.reduce((s,[,n])=>s+n,0)],['kdic','예보공매',kdicN]].map(([k,t,n])=>`<a href="#auctions" data-aucmode="${k}" ${AF.mode===k?'aria-current="page"':''}>${t} <span class="num" style="opacity:.55;font-weight:600">${n.toLocaleString()}</span></a>`).join('')}</nav>
+    ${AF.mode==='trust'?`<div class="trustbar"><span class="note" style="font-weight:700">신탁회사</span>${[['전체',trusts.reduce((s,[,n])=>s+n,0)],...trusts].map(([t,n])=>`<button type="button" class="tchip" aria-pressed="${AF.trust===t}" data-auctrust="${esc(t)}">${esc(t)} <span class="num">${n}</span></button>`).join('')}</div>`:''}
+    ${AF.mode==='kdic'&&!kdicN?'<div class="empty" style="margin-bottom:14px">지금 온비드에 올라온 예금보험공사 공매 물건이 없어요. 새로 올라오면 자동으로 여기에 모입니다.</div>':''}
+    <div class="feed"><span class="dot"></span><span>한국자산관리공사 온비드 공매</span><span>·</span><span>${AUC.updatedAt?'마지막 동기화 '+fmtTime(AUC.updatedAt):'동기화 대기 중'}</span></div>
+    <form class="search" id="aucForm">
+      <div class="sbox"><input id="aucQ" value="${esc(AF.q)}" placeholder="주소, 물건명으로 검색 (예: 대구 수성구, 범어동)" autocomplete="off"><button class="btn primary" type="submit">검색</button></div>
+      <select id="aucSido" aria-label="시·도"><option value="전체">시·도 전체</option>${sidos.map(s=>`<option ${s===AF.sido?'selected':''}>${s}</option>`).join('')}</select>
+      <select id="aucSgg" aria-label="시·군·구" ${AF.sido==='전체'?'disabled':''}><option value="전체">시·군·구 전체</option>${sggs.map(s=>`<option ${s===AF.sgg?'selected':''}>${esc(s)}</option>`).join('')}</select>
+      <select id="aucSort" aria-label="정렬">${AUC_SORTS.map(([k,t])=>`<option value="${k}" ${AF.sort===k?'selected':''}>${t}</option>`).join('')}</select>
+    </form>
+    <div class="tabs">${(()=>{const base=aucBase();return AUC_CATS.map(([k,c])=>{const n=c?base.filter(i=>c.includes(i.cat)).length:base.length;return `<button type="button" aria-pressed="${k===AF.cat}" data-auccat="${k}">${k} <span class="num" style="opacity:.6">${n.toLocaleString()}</span></button>`}).join('')})()}<button type="button" aria-pressed="${AF.cheap}" data-auccheap style="margin-left:auto">주변 시세보다 싼 물건만</button></div>
+    <details class="panel advpanel" id="aucAdvBox" ${AF.adv?'open':''}><summary><b>상세 검색</b>${advCount?` <span class="dday open">${advCount}개 조건 적용 중</span>`:' <span class="note">물건번호 · 자산구분 · 금액 · 면적 · 입찰일 · 유찰 · 지분</span>'}</summary>
+      <form id="aucAdv" class="advgrid">
+        <label class="fld"><span>물건관리번호</span><input name="no" value="${esc(AF.no)}" placeholder="입력하면 다른 조건은 무시해요" autocomplete="off"></label>
+        <label class="fld"><span>공고기관</span><input name="org" value="${esc(AF.org)}" placeholder="예: 대구광역시, 무궁화신탁" autocomplete="off"></label>
+        <div class="fld wide"><span>자산구분</span><div class="chkrow">${prpts.map(p=>`<label class="chk"><input type="checkbox" name="prpt" value="${esc(p)}" ${AF.prpt.includes(p)?'checked':''}> ${esc(p)}</label>`).join('')}</div></div>
+        <label class="fld"><span>세부 용도</span><select name="usage"><option value="">전체</option>${usages.map(([x,n])=>`<option value="${esc(x)}" ${AF.usage===x?'selected':''}>${esc(x)} (${n})</option>`).join('')}</select></label>
+        <label class="fld"><span>진행 상태</span><select name="status"><option value="">전체</option>${statuses.map(x=>`<option ${AF.status===x?'selected':''}>${esc(x)}</option>`).join('')}</select></label>
+        <div class="fld"><span>감정가</span><div class="range">${amtSel('apMin',AF.apMin,'최소')}<i>~</i>${amtSel('apMax',AF.apMax,'최대')}</div></div>
+        <div class="fld"><span>최저입찰가</span><div class="range">${amtSel('mpMin',AF.mpMin,'최소')}<i>~</i>${amtSel('mpMax',AF.mpMax,'최대')}</div></div>
+        <div class="fld"><span>감정가 대비 최저가 (%)</span><div class="range"><input name="rMin" type="number" min="0" max="200" value="${esc(AF.rMin)}" placeholder="예: 30"><i>~</i><input name="rMax" type="number" min="0" max="200" value="${esc(AF.rMax)}" placeholder="예: 70"></div></div>
+        <div class="fld"><span>유찰 횟수</span><select name="fails"><option value="">전체</option>${[1,2,3,5,10].map(n=>`<option value="${n}" ${String(AF.fails)===String(n)?'selected':''}>${n}회 이상</option>`).join('')}</select></div>
+        <div class="fld"><span>토지 면적 (${u})</span><div class="range"><input name="laMin" type="number" min="0" value="${esc(AF.laMin)}"><i>~</i><input name="laMax" type="number" min="0" value="${esc(AF.laMax)}"></div></div>
+        <div class="fld"><span>건물 면적 (${u}) <button type="button" class="linkbtn" data-aucunit>${AF.unit==='py'?'㎡로 보기':'평으로 보기'}</button></span><div class="range"><input name="baMin" type="number" min="0" value="${esc(AF.baMin)}"><i>~</i><input name="baMax" type="number" min="0" value="${esc(AF.baMax)}"></div></div>
+        <div class="fld wide"><span>입찰 마감일</span><div class="range"><input name="dFrom" type="date" value="${esc(AF.dFrom)}"><i>~</i><input name="dTo" type="date" value="${esc(AF.dTo)}"><span class="acts">${[[0,'오늘'],[7,'+7일'],[14,'+14일']].map(([n,t])=>`<button type="button" class="btn sm" data-aucdays="${n}">${t}</button>`).join('')}<button type="button" class="btn sm" data-aucdays="x">지우기</button></span></div></div>
+        <div class="fld wide"><span>지분 물건</span><div class="chkrow">${[['all','포함'],['ex','제외'],['only','지분만']].map(([k,t])=>`<label class="chk"><input type="radio" name="share" value="${k}" ${AF.share===k?'checked':''}> ${t}</label>`).join('')}</div></div>
+        <div class="wide acts" style="justify-content:center;margin-top:4px"><button type="button" class="btn" data-aucreset>다시</button><button type="submit" class="btn primary">검색</button></div>
+      </form>
+      <p class="note" style="margin:10px 0 0">역세권, 유치권·맹지·법정지상권 같은 특수조건은 온비드 공개 API에 없는 정보라 검색할 수 없어요. 감정평가서와 공매재산명세서에서 확인하세요.</p>
+    </details>
+    <div class="reshead"><b>검색된 물건 <span class="num" style="color:var(--accent)">${rows.length.toLocaleString()}</span>건</b><div class="viewtog" role="group" aria-label="보기 방식"><button type="button" data-aucview="card" aria-pressed="${AF.view==='card'}">카드형</button><button type="button" data-aucview="list" aria-pressed="${AF.view==='list'}">목록형</button></div></div>
+    ${!AUC.loaded?'<div class="empty">공매 물건을 불러오는 중입니다.</div>':!AUC.items.length?'<div class="empty">아직 수집된 공매 물건이 없어요. 공공데이터포털 인증키를 등록하면 매일 자동으로 채워집니다.</div>':!rows.length?'<div class="empty">조건에 맞는 물건이 없어요. 상세 검색 조건을 줄여 보세요.</div>':
+      AF.view==='list'?`<div class="panel" style="padding:6px 12px"><div class="tablewrap"><table class="mtable auctable"><thead><tr><th>물건</th><th class="r">감정가 / 최저가</th><th class="r">시세 대비</th><th>상태</th><th>입찰 시작 / 마감</th><th class="r">유찰</th></tr></thead><tbody>${rows.slice(0,AF.shown).map(aucRow).join('')}</tbody></table></div></div>`:`<div class="rail">${rows.slice(0,AF.shown).map(aucCard).join('')}</div>`}
+    ${rows.length>AF.shown?`<div style="text-align:center;margin-top:16px"><button class="btn" type="button" data-aucmore>더 보기 (${(rows.length-AF.shown).toLocaleString()}건 남음)</button></div>`:''}
+    <p class="note">${esc(AUC.note||'')} 입찰 전에는 온비드 원문, 감정평가서, 등기부등본을 꼭 확인하세요.</p>
+    <div class="panel" style="margin-top:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>법원경매 물건</b><div class="note">대법원 법원경매는 아직 공식 오픈 API가 없어 자동 수집하지 않아요. 법원경매정보 사이트에서 직접 확인하세요.</div></div><a class="btn" href="https://www.courtauction.go.kr" target="_blank" rel="noopener">법원경매정보 바로가기</a></div>
+  </section>`;
+}
 function aucDday(it){
   if(!it.bidEnd) return ['일정 확인','closed'];
   const end=Date.parse(it.bidEnd.replace(' ','T')+':00+09:00'), start=it.bidStart?Date.parse(it.bidStart.replace(' ','T')+':00+09:00'):0, now=Date.now();
@@ -1118,41 +1269,12 @@ function aucCard(it){
   const [dl,dc]=aucDday(it);
   return `<a class="lcard acard" href="#auc-${esc(it.id)}">
     <div class="lbody">
-      <div class="row1" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="dday ${dc}">${dl}</span><span class="kind">${esc(it.sido||'-')} · ${esc(it.usage||'-')}</span></div>
+      <div class="row1" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="dday ${dc}">${dl}</span><span class="kind">${esc(it.sido||'-')} · ${esc((it.usage||'-').split(' > ').pop())}</span>${trustOf(it.org)?`<span class="chip-s trust">${esc(trustOf(it.org))}</span>`:''}</div>
       <div class="ttl">${esc(it.title)}</div>
       <div class="price"><b class="num">${wonKRW(it.minp)}</b>${it.ratio?`<span class="drop" style="color:var(--muted)">감정가의 ${it.ratio}%</span>`:''}</div>
       <dl class="kv"><dt>감정가</dt><dd class="num">${wonKRW(it.apsl)}</dd><dt>유찰</dt><dd class="num">${it.fails||0}회</dd><dt>입찰 마감</dt><dd class="num">${esc(it.bidEnd||'-')}</dd></dl>
       ${compareBadge(it.compare)}
     </div></a>`;
-}
-function aucBase(){
-  const {sidos,words}=splitRegionQuery(AF.q);
-  return AUC.items.filter(it=>aucDday(it)[1]!=='closed'&&(AF.sido==='전체'||it.sido===AF.sido)&&(!sidos||sidos.includes(it.sido))&&(!AF.cheap||(it.compare&&it.compare.minVsEst<0))&&(!words.length||textHit(it.title+' '+it.addr+' '+it.org,words)));
-}
-function filteredAuc(){
-  const cats=AUC_CATS.find(c=>c[0]===AF.cat)?.[1];
-  let rows=aucBase().filter(it=>!cats||cats.includes(it.cat));
-  const v=x=>x??Infinity;
-  if(AF.sort==='disc') rows.sort((a,b)=>v(a.compare?.minVsEst)-v(b.compare?.minVsEst));
-  else if(AF.sort==='ratio') rows.sort((a,b)=>v(a.ratio)-v(b.ratio));
-  else if(AF.sort==='fails') rows.sort((a,b)=>(b.fails||0)-(a.fails||0));
-  else rows.sort((a,b)=>(a.bidEnd||'9').localeCompare(b.bidEnd||'9'));
-  return rows;
-}
-function viewAuctions(){
-  const rows=filteredAuc(), sidos=[...new Set(AUC.items.map(i=>i.sido).filter(Boolean))].sort();
-  return `<section class="block">${secHead('온비드 공매 · 매일 자동 갱신','경매·공매 물건')}
-    <div class="feed"><span class="dot"></span><span>한국자산관리공사 온비드 공매 물건</span><span>·</span><span>${AUC.updatedAt?'마지막 동기화 '+fmtTime(AUC.updatedAt):'동기화 대기 중'}</span><span>·</span><span>진행 중 <b class="num">${AUC.items.filter(i=>aucDday(i)[1]!=='closed').length}</b>건</span></div>
-    <form class="search" id="aucForm">
-      <div class="sbox"><input id="aucQ" value="${esc(AF.q)}" placeholder="주소, 물건명, 기관으로 검색" autocomplete="off"><button class="btn primary" type="submit">검색</button></div>
-      <select id="aucSido" aria-label="지역"><option value="전체">지역 전체</option>${sidos.map(s=>`<option ${s===AF.sido?'selected':''}>${s}</option>`).join('')}</select>
-      <select id="aucSort" aria-label="정렬">${[['end','마감 임박순'],['disc','시세 대비 싼 순'],['ratio','감정가 대비 낮은 순'],['fails','유찰 많은 순']].map(([k,t])=>`<option value="${k}" ${AF.sort===k?'selected':''}>${t}</option>`).join('')}</select>
-    </form>
-    <div class="tabs">${(()=>{const base=aucBase();return AUC_CATS.map(([k,c])=>{const n=c?base.filter(i=>c.includes(i.cat)).length:base.length;return `<button type="button" aria-pressed="${k===AF.cat}" data-auccat="${k}">${k} <span class="num" style="opacity:.6">${n.toLocaleString()}</span></button>`}).join('')})()}<button type="button" aria-pressed="${AF.cheap}" data-auccheap style="margin-left:auto">주변 시세보다 싼 물건만</button></div>
-    ${!AUC.loaded?'<div class="empty">공매 물건을 불러오는 중입니다.</div>':!AUC.items.length?'<div class="empty">아직 수집된 공매 물건이 없어요. 공공데이터포털 인증키를 등록하면 매일 자동으로 채워집니다.</div>':rows.length?`<div class="rail">${rows.slice(0,AF.shown).map(aucCard).join('')}</div>${rows.length>AF.shown?`<div style="text-align:center;margin-top:16px"><button class="btn" type="button" data-aucmore>더 보기 (${rows.length-AF.shown}건 남음)</button></div>`:''}`:'<div class="empty">조건에 맞는 물건이 없어요.</div>'}
-    <p class="note">${esc(AUC.note||'')} 입찰 전에는 온비드 원문, 감정평가서, 등기부등본을 꼭 확인하세요.</p>
-    <div class="panel" style="margin-top:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>법원경매 물건</b><div class="note">대법원 법원경매는 아직 공식 오픈 API가 없어 자동 수집하지 않아요. 법원경매정보 사이트에서 직접 확인하세요.</div></div><a class="btn" href="https://www.courtauction.go.kr" target="_blank" rel="noopener">법원경매정보 바로가기</a></div>
-  </section>`;
 }
 function viewAuction(id){
   const it=AUC.items.find(x=>x.id===id);
@@ -1171,22 +1293,40 @@ function viewAuction(id){
       ${c.samples?.length?`<div class="tablewrap" style="margin-top:12px"><table class="mtable" style="min-width:480px"><thead><tr><th>거래일</th><th>동</th><th class="r">면적</th><th class="r">거래가</th><th class="r">㎡당</th></tr></thead><tbody>${c.samples.map(s=>`<tr><td class="num">${esc(s.date)}</td><td>${esc(s.dong)}${s.tag?` <span class="note">${esc(s.tag)}</span>`:''}</td><td class="num r">${(+s.area).toLocaleString()}㎡</td><td class="num r">${wonKRW(s.amount)}</td><td class="num r">${per(s.amount/s.area)}</td></tr>`).join('')}</tbody></table></div>`:''}
       <p class="note" style="margin-top:10px">국토부 실거래가는 지번 일부가 가려져 있어 이 물건 자체의 직전 거래가는 알 수 없어요. 위 비교는 같은 동네·같은 종류 거래의 ㎡당 중앙값으로 계산한 참고치이고, 땅 모양·도로 조건·건물 상태는 반영하지 못합니다.</p>`}
     </div>
-    <div class="dsec"><h2>입찰 정보</h2><dl class="facts" style="background:transparent;padding:0;gap:8px 16px"><dt>소재지</dt><dd>${esc(it.addr)}</dd>${it.area?`<dt>면적</dt><dd class="num">${(+it.area).toLocaleString()}㎡ (${pyeong(it.area)}평)</dd>`:''}<dt>입찰 기간</dt><dd class="num">${esc(it.bidStart||'-')} ~ ${esc(it.bidEnd||'-')}</dd><dt>진행 상태</dt><dd>${esc(it.status||'-')}</dd><dt>처분 방식</dt><dd>${esc(it.method||'-')}</dd><dt>재산 유형</dt><dd>${esc(it.prpt||'-')}</dd><dt>공고 기관</dt><dd>${esc(it.org||'-')}</dd><dt>물건관리번호</dt><dd class="num">${esc(it.id)}</dd></dl></div>
+    <div class="dsec"><h2>입찰 정보</h2><dl class="facts" style="background:transparent;padding:0;gap:8px 16px"><dt>소재지</dt><dd>${esc(it.addr)}</dd>${it.landArea?`<dt>토지 면적</dt><dd class="num">${(+it.landArea).toLocaleString()}㎡ (${pyeong(it.landArea)}평)</dd>`:''}${it.bldArea?`<dt>건물 면적</dt><dd class="num">${(+it.bldArea).toLocaleString()}㎡ (${pyeong(it.bldArea)}평)</dd>`:''}${!it.landArea&&!it.bldArea&&it.area?`<dt>면적</dt><dd class="num">${(+it.area).toLocaleString()}㎡ (${pyeong(it.area)}평)</dd>`:''}<dt>입찰 기간</dt><dd class="num">${esc(it.bidStart||'-')} ~ ${esc(it.bidEnd||'-')}</dd><dt>진행 상태</dt><dd>${esc(it.status||'-')}</dd><dt>처분 방식</dt><dd>${esc(it.method||'-')}</dd><dt>재산 유형</dt><dd>${esc(it.prpt||'-')}</dd><dt>공고 기관</dt><dd>${esc(it.org||'-')}${trustOf(it.org)?' <span class="chip-s trust">신탁공매</span>':''}</dd><dt>물건관리번호</dt><dd class="num">${esc(it.id)}</dd></dl></div>
   </div>
   <aside class="side"><div class="panel"><div style="font-weight:800;margin-bottom:8px">입찰은 온비드에서</div><p class="note" style="font-size:13px;margin:0 0 12px">감정평가서, 공매재산명세서, 입찰 참가는 온비드 원문에서 확인하세요.</p><a class="btn primary" style="width:100%;justify-content:center" href="${esc(onbidUrl(it))}" target="_blank" rel="noopener">온비드 원문 보기</a></div>
     <div class="panel note" style="font-size:13px">자료: 한국자산관리공사 온비드, 국토교통부 실거래가${AUC.updatedAt&&fmtTime(AUC.updatedAt)?'<br>'+fmtTime(AUC.updatedAt)+' 갱신':''}</div></aside></div>`;
 }
 document.addEventListener('click',e=>{
   const t=e.target;
-  const ac=t.closest('[data-auccat]'); if(ac){AF.cat=ac.dataset.auccat;AF.shown=24;render();return}
+  const md=t.closest('[data-aucmode]'); if(md){e.preventDefault();AF.mode=md.dataset.aucmode;AF.trust='전체';AF.sido='전체';AF.sgg='전체';AF.shown=24;render();return}
+  const tr=t.closest('[data-auctrust]'); if(tr){AF.trust=tr.dataset.auctrust;AF.shown=24;render();return}
+  const ac=t.closest('[data-auccat]'); if(ac){AF.cat=ac.dataset.auccat;AF.usage='';AF.shown=24;render();return}
   if(t.closest('[data-auccheap]')){AF.cheap=!AF.cheap;AF.shown=24;render();return}
   if(t.closest('[data-aucmore]')){AF.shown+=24;render();return}
+  const vw=t.closest('[data-aucview]'); if(vw){AF.view=vw.dataset.aucview;try{localStorage.setItem('rp-aucview',AF.view)}catch(e){}render();return}
+  if(t.closest('[data-aucreset]')){const keep={mode:AF.mode,trust:AF.trust,view:AF.view};AF=Object.assign(AF_DEFAULT(),keep,{adv:true});render();return}
+  if(t.closest('[data-aucunit]')){readAdv();AF.unit=AF.unit==='py'?'m2':'py';AF.adv=true;render();return}
+  const dd=t.closest('[data-aucdays]'); if(dd){const f=$('#aucAdv');if(!f)return;const v=dd.dataset.aucdays;
+    if(v==='x'){f.dFrom.value='';f.dTo.value=''}else{const now=new Date();f.dFrom.value=ymdKST(now);f.dTo.value=ymdKST(new Date(now.getTime()+(+v)*864e5))}return}
 });
+document.addEventListener('toggle',e=>{if(e.target.id==='aucAdvBox')AF.adv=e.target.open},true);
+function readAdv(){
+  const f=$('#aucAdv'); if(!f) return;
+  const fd=new FormData(f);
+  for(const k of ['no','org','usage','status','apMin','apMax','mpMin','mpMax','rMin','rMax','laMin','laMax','baMin','baMax','dFrom','dTo','fails']) AF[k]=(fd.get(k)||'').toString().trim();
+  AF.prpt=fd.getAll('prpt'); AF.share=fd.get('share')||'all';
+}
 document.addEventListener('change',e=>{
-  if(e.target.id==='aucSido'){AF.sido=e.target.value;AF.shown=24;render()}
+  if(e.target.id==='aucSido'){AF.sido=e.target.value;AF.sgg='전체';AF.shown=24;render()}
+  else if(e.target.id==='aucSgg'){AF.sgg=e.target.value;AF.shown=24;render()}
   else if(e.target.id==='aucSort'){AF.sort=e.target.value;render()}
 });
-document.addEventListener('submit',e=>{ if(e.target.id==='aucForm'){e.preventDefault();AF.q=$('#aucQ').value;AF.shown=24;render()} });
+document.addEventListener('submit',e=>{
+  if(e.target.id==='aucForm'){e.preventDefault();AF.q=$('#aucQ').value;AF.shown=24;render()}
+  else if(e.target.id==='aucAdv'){e.preventDefault();readAdv();AF.adv=true;AF.shown=24;render();$('.reshead')?.scrollIntoView({block:'start'})}
+});
 
 /* ---------- 라우터 ---------- */
 function route(){return (location.hash||'#home').slice(1)||'home'}
