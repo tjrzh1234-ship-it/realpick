@@ -21,7 +21,7 @@ export const RTMS = {
   land: { url: `${RT}/RTMSDataSvcLandTrade/getRTMSDataSvcLandTrade`, label: "토지" },
   nrg:  { url: `${RT}/RTMSDataSvcNrgTrade/getRTMSDataSvcNrgTrade`,   label: "상업업무용" },
   apt:  { url: `${RT}/RTMSDataSvcAptTrade/getRTMSDataSvcAptTrade`,   label: "아파트" },
-  rh:   { url: `${RT}/RTMSDataSvcRHTrade/getRTMSDataSvcRHTrade`,     label: "연립다세대" },
+  rh:   { url: `${RT}/RTMSDataSvcRHTrade2/getRTMSDataSvcRHTrade`,    label: "연립다세대" }, // 2026년 새 주소 (끝에 2)
   sh:   { url: `${RT}/RTMSDataSvcSHTrade/getRTMSDataSvcSHTrade`,     label: "단독다가구" },
   offi: { url: `${RT}/RTMSDataSvcOffiTrade/getRTMSDataSvcOffiTrade`, label: "오피스텔" },
   indu: { url: `${RT}/RTMSDataSvcInduTrade/getRTMSDataSvcInduTrade`, label: "공장창고" }
@@ -208,12 +208,30 @@ function ymList(n) {
   for (let i = 0; i < n; i++) { const x = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - i, 1)); out.push(`${x.getUTCFullYear()}${String(x.getUTCMonth() + 1).padStart(2, "0")}`); }
   return out;
 }
+// 주소가 새 버전(…2)으로 바뀌는 경우가 있어, 안 되면 다른 이름을 차례로 시도하고 되는 주소를 기억한다
+function urlCandidates(cat) {
+  const m = RTMS[cat].url.match(/^(.*\/)(RTMSDataSvc\w+?)(2?)\/(get\w+?)(2?)$/);
+  if (!m) return [RTMS[cat].url];
+  const [, root, svc, , op] = m, list = [RTMS[cat].url];
+  for (const s of [svc + "2", svc]) for (const o of [op, op + "2"]) list.push(`${root}${s}/${o}`);
+  return [...new Set(list)];
+}
+const workingUrl = {};
+async function rtmsCall(key, cat, params) {
+  const cands = workingUrl[cat] ? [workingUrl[cat]] : urlCandidates(cat);
+  let lastErr;
+  for (const base of cands) {
+    const u = new URL(base);
+    Object.entries({ serviceKey: key, ...params }).forEach(([k, v]) => u.searchParams.set(k, v));
+    try { const r = parseRtmsXml(await fetchText(u.href)); workingUrl[cat] = base; return r; }
+    catch (e) { lastErr = e; if (/LIMITED_NUMBER|HTTP 429/i.test(e.message) || workingUrl[cat]) throw e; }
+  }
+  throw lastErr;
+}
 async function fetchRtmsMonth(key, cat, sggCd, ym) {
   const rows = [];
   for (let page = 1; page <= 20; page++) {
-    const u = new URL(RTMS[cat].url);
-    Object.entries({ serviceKey: key, LAWD_CD: sggCd, DEAL_YMD: ym, pageNo: page, numOfRows: 1000 }).forEach(([k, v]) => u.searchParams.set(k, v));
-    const { total, items } = parseRtmsXml(await fetchText(u.href));
+    const { total, items } = await rtmsCall(key, cat, { LAWD_CD: sggCd, DEAL_YMD: ym, pageNo: page, numOfRows: 1000 });
     for (const it of items) { const c = compactDeal(cat, it); if (c) rows.push(c); }
     if (page * 1000 >= total) return { rows, calls: page };
   }
