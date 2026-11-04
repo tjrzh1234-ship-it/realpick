@@ -13,7 +13,8 @@ import { readFile } from "node:fs/promises";
 const ONBID = "https://apis.data.go.kr/B010003/OnbidRlstListSrvc2/getRlstCltrList2";
 const ONBID_DETAIL = "https://www.onbid.co.kr/op/cltrpbancinf/cltrdtl/CltrDtlController/mvmnCltrDtl.do";
 const ONBID_SEARCH = "https://www.onbid.co.kr/op/cltrpbancinf/clbtcltrclg/cltrclbtcltrclg/CltrClbtCltrClgController/mvmnCltrRlstClg.do";
-const PRPT_DIVS = ["0007", "0005", "0010", "0002", "0008"]; // 압류·기타일반·국유·공유 등 (목록 API에 실제 자료가 있는 코드)
+// 재산유형 코드: 압류·기타일반·국유·공유 등. 자료가 없는 코드는 NO_DATA로 바로 넘어간다 (예보·수탁 재산 확인용으로 넓게 조회)
+const PRPT_DIVS = ["0007", "0005", "0010", "0002", "0008", "0001", "0003", "0004", "0006", "0009", "0011"];
 
 const RT = "https://apis.data.go.kr/1613000";
 export const RTMS = {
@@ -326,7 +327,8 @@ export async function buildAuctions(key, { readJson, writeJson, nowKST, log = co
   // 화면에 필요한 값만 남겨 파일을 가볍게
   const slim = items.map(it => {
     const o = { ...it, area: it.cat === "land" ? it.landArea : (it.bldArea ?? it.landArea) };
-    for (const k of ["pnu", "emd", "jimok", "landArea", "bldArea", "share", "bundle", "sggCd"]) delete o[k];
+    for (const k of ["pnu", "emd", "jimok", "bundle", "sggCd"]) delete o[k];
+    if (!o.share) delete o.share;
     if (o.compare?.samples) o.compare = { ...o.compare, samples: o.compare.samples.slice(0, 3) };
     if (o.compare?.pending) o.compare = { pending: true, skip: o.compare.skip };
     return o;
