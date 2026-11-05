@@ -273,6 +273,16 @@ fieldset.sub legend small,.fld small{font-weight:400;color:var(--faint)}
 .chk input{width:18px;height:18px;accent-color:var(--accent)}
 .formmsg{margin:0;font-size:14px;color:var(--hot);min-height:1em}
 .fld.err>span{color:var(--hot)}
+.inscard{color:inherit}
+.inscard h3{font-size:16.5px}
+.inscard:hover h3{color:var(--accent)}
+.inslines{margin:0;padding-left:16px;display:grid;gap:4px;font-size:13.5px;color:var(--muted);line-height:1.55}
+.inslines.big{font-size:15px;color:var(--fg);gap:6px}
+.aitag{font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:999px;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent-2,#7b5cff))}
+.aibox{margin-top:18px;padding:18px 20px;border-radius:16px;background:linear-gradient(120deg,var(--accent-soft),color-mix(in srgb,var(--accent-2,#7b5cff) 8%,var(--surface)))}
+.aibox-h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.aibox .take{margin:12px 0 0;font-size:14.5px;line-height:1.7}
+.aibox .take b{color:var(--accent);margin-right:6px}
 .ubadge{display:inline-block;font-size:11px;font-weight:700;padding:1px 6px;border-radius:5px;background:var(--accent-soft);color:var(--accent);margin-left:5px;vertical-align:1px}
 .ubadge.adm{background:var(--fg);color:var(--bg)}
 .ubadge.op{background:var(--sunk);color:var(--muted);margin-left:0}
@@ -526,7 +536,7 @@ footer{background:var(--sunk);border-top:0}
 <footer>
   <div class="wrap">
     <nav><a href="#insight">전문가 인사이트</a><a href="#support">정부지원금</a><a href="#rates">금리 동향</a><a href="#community">커뮤니티</a></nav>
-    <div>리얼픽은 매물 검색, 실거래가·AI 추정 시세 비교, 커뮤니티와 전문가 인사이트를 한곳에서 제공하는 부동산 플랫폼 시안입니다. 매물은 등록 심사를 거친 개업공인중개사가 올리며, 전문가 칼럼은 예시입니다.</div>
+    <div>리얼픽은 매물 검색, 실거래가·AI 추정 시세 비교, 커뮤니티와 전문가 인사이트를 한곳에서 제공하는 부동산 플랫폼 시안입니다. 매물은 등록 심사를 거친 개업공인중개사가 올리며, 정책 해설은 정책브리핑(공공누리 제1유형) 자료를 AI가 요약한 참고용입니다.</div>
   </div>
 </footer>
 
@@ -584,6 +594,7 @@ const nid = n => n.pblancId.toLowerCase().replace(/_/g,'-');
 
 /* ---------- 정부지원금: 기업마당 API 구조 데이터 ---------- */
 let FEED = {updatedAt:null,items:[]};
+let INS = {updatedAt:null,items:[],loaded:false};
 const REGIONS=['전국','서울','부산','대구','인천','광주','대전','울산','세종','경기','강원','충북','충남','전북','전남','경북','경남','제주'];
 const REALMS=['기술','경영','수출','내수','창업','인력','금융','기타'];
 const day = s => new Date(s+'T00:00:00+09:00');
@@ -612,6 +623,10 @@ async function loadFeed(){
   try{
     const r=await fetch('rates.json',{cache:'no-store'});
     if(r.ok){const j=await r.json(); if(j.series&&j.series.length) RATES=j;}
+  }catch(e){}
+  try{
+    const r=await fetch('insight.json',{cache:'no-store'});
+    if(r.ok){const j=await r.json(); if(Array.isArray(j.items)) INS={...j,loaded:true};}
   }catch(e){}
   render();
 }
@@ -715,7 +730,7 @@ function viewHome(){
 
   <section class="block">${secHead(ym(lastMonth())+' 기준','금리 동향','#rates','상세보기')}<div class="rates">${RATES.series.map(rateCard).join('')}</div><p class="note">${esc(rateSourceLine())}</p></section>
 
-  <section class="block">${secHead('전문가 인사이트','이번 주 칼럼','#insight')}<div class="cols">${COLUMNS.map(columnCard).join('')}</div></section>`;
+  <section class="block">${INS.items.length?`${secHead('전문가 인사이트 · 정책 해설','이번 주 부동산 정책','#insight','전체 보기')}<div class="cols">${INS.items.slice(0,3).map(insCard).join('')}</div>`:`${secHead('전문가 인사이트','이번 주 칼럼','#insight')}<div class="cols">${COLUMNS.map(columnCard).join('')}</div>`}</section>`;
 }
 function columnCard(c){return `<article class="column"><div class="by"><i>${esc(c.who[0])}</i>${esc(c.who)} · ${esc(c.role)}</div><h3>${esc(c.t)}</h3><p class="note" style="font-size:14px;color:var(--muted);margin:0">${esc(c.ex)}</p><div class="meta"><span class="num">${c.d}</span></div></article>`}
 
@@ -731,10 +746,62 @@ function viewListings(){
     </div><p class="note">지도와 매물은 화면 구성을 보여주는 예시입니다. AI 추정 시세는 참고 지표이며 실제 거래가와 다를 수 있습니다.</p></section>`;
 }
 function insightNav(cur){return `<nav class="subnav" aria-label="전문가 인사이트">
-  <a href="#insight" ${cur==='insight'?'aria-current="page"':''}>전문가 칼럼</a>
+  <a href="#insight" ${cur==='insight'?'aria-current="page"':''}>정책 해설</a>
   <a href="#rates" ${cur==='rates'?'aria-current="page"':''}>금리 동향</a>
   <a href="#support" ${cur==='support'?'aria-current="page"':''}>정부지원금</a></nav>`}
-function viewInsight(){return `<h1 style="font-size:26px;font-weight:800;margin-bottom:14px">전문가 인사이트</h1>${insightNav('insight')}<div class="cols">${COLUMNS.map(columnCard).join('')}</div>`}
+/* 정책 해설: 정책브리핑 정책뉴스 중 부동산 글 + AI 요약 (매일 자동 수집) */
+const IF={q:'',min:'전체',n:24};
+const insDate=d=>d?d.slice(0,10).replace(/-/g,'.'):'';
+function insCard(i){
+  const lines=i.ai?.summary?.length?i.ai.summary:[i.subtitle||i.body.slice(0,120)];
+  return `<a class="column inscard" href="#ins-${esc(i.id)}">
+    <div class="by"><span class="chip-s trust">${esc(i.ministry||'정부')}</span><span class="num">${insDate(i.date)}</span>${i.ai?'<span class="aitag">AI 요약</span>':''}</div>
+    <h3>${esc(i.title)}</h3>
+    <ul class="inslines">${lines.slice(0,3).map(l=>`<li>${esc(l)}</li>`).join('')}</ul>
+    ${i.ai?.tags?.length?`<div class="chips-s">${i.ai.tags.map(t=>`<span class="chip-s">#${esc(t)}</span>`).join('')}</div>`:''}</a>`;
+}
+function insFiltered(){
+  const q=IF.q.trim();
+  return INS.items.filter(i=>(IF.min==='전체'||i.ministry===IF.min)&&(!q||(i.title+' '+i.subtitle+' '+i.body+' '+(i.ai?.tags||[]).join(' ')).includes(q)));
+}
+function viewInsight(){
+  const head=`<h1 style="font-size:26px;font-weight:800;margin-bottom:14px">전문가 인사이트</h1>${insightNav('insight')}`;
+  if(!INS.items.length) return head+`<p class="note" style="margin-bottom:14px">${INS.loaded?'아직 모인 부동산 정책 글이 없어요.':'정책 해설은 매일 아침 자동으로 모입니다. 아래는 화면 구성을 보여주는 예시 칼럼이에요.'}</p><div class="cols">${COLUMNS.map(columnCard).join('')}</div>`;
+  const mins=[...new Set(INS.items.map(i=>i.ministry).filter(Boolean))];
+  const rows=insFiltered();
+  return head+`<div class="ctool">
+      <div class="tabs" style="margin:0">${['전체',...mins.slice(0,6)].map(m=>`<button type="button" aria-pressed="${m===IF.min}" data-insmin="${esc(m)}">${esc(m)}</button>`).join('')}</div>
+      <form id="insSearch" class="csearch" role="search"><input id="insQ" value="${esc(IF.q)}" placeholder="예: 청약, 전세사기, 공급" maxlength="30" aria-label="정책 해설 검색"><button class="btn" type="submit">검색</button></form></div>
+    <p class="note" style="margin:0 0 14px">정부 정책브리핑의 부동산 관련 정책 뉴스를 매일 모아 AI가 3줄로 요약했어요 · ${INS.updatedAt?fmtTime(INS.updatedAt)+' 갱신':''} · 전체 ${INS.items.length.toLocaleString()}건</p>
+    ${rows.length?`<div class="cols">${rows.slice(0,IF.n).map(insCard).join('')}</div>${rows.length>IF.n?`<div style="text-align:center;margin-top:18px"><button class="btn" type="button" data-insmore>더 보기 (${(rows.length-IF.n).toLocaleString()}건 더)</button></div>`:''}`:'<div class="empty">조건에 맞는 글이 없어요.</div>'}`;
+}
+function viewIns(id){
+  const back='<a class="back" href="#insight">← 정책 해설</a>';
+  const i=INS.items.find(x=>x.id===id);
+  if(!i) return back+`<div class="empty">${INS.loaded?'찾을 수 없는 글이에요. 보관 기간(약 4개월)이 지났을 수 있어요.':'불러오는 중입니다.'}</div>`;
+  const a=i.ai;
+  return `${back}<div class="dgrid"><article style="min-width:0">
+    <div class="panel cdetail">
+      <div class="ctop"><span class="chip-s trust">${esc(i.ministry||'정부')}</span><span class="note num">${esc(insDate(i.date))}</span></div>
+      <h1>${esc(i.title)}</h1>${i.subtitle?`<p class="note" style="font-size:15px;margin:0">${esc(i.subtitle)}</p>`:''}
+      ${a?`<div class="aibox"><div class="aibox-h"><span class="aitag">AI 요약·해설</span><span class="note">원문을 바탕으로 AI가 정리한 참고용 내용이에요</span></div>
+        <ul class="inslines big">${a.summary.map(l=>`<li>${esc(l)}</li>`).join('')}</ul>
+        ${a.take?`<p class="take"><b>투자자 관점</b> ${esc(a.take)}</p>`:''}</div>`:''}
+      <h2 style="font-size:16px;font-weight:800;margin:22px 0 8px">원문</h2>
+      <div class="cbody" style="margin-top:0">${esc(i.body)}</div>
+    </div></article>
+    <aside class="side"><div class="panel note" style="font-size:13px;line-height:1.7">
+      <b style="color:var(--fg)">출처</b><br>정책브리핑(www.korea.kr)${i.ministry?' · '+esc(i.ministry):''}<br>공공누리 제1유형(출처표시) 자료입니다.<br>
+      <a class="btn sm" style="margin-top:10px" href="${esc(safeUrl(i.url)||'https://www.korea.kr')}" target="_blank" rel="noopener">정책브리핑 원문 보기</a><br>
+      <a href="https://www.korea.kr/guide/copyRight.do" target="_blank" rel="noopener" style="text-decoration:underline;display:inline-block;margin-top:8px">정책브리핑 저작권 정책</a></div>
+      ${(()=>{const rel=INS.items.filter(x=>x.id!==i.id&&(x.ai?.tags||[]).some(t=>(a?.tags||[]).includes(t))).slice(0,4);return rel.length?`<div class="panel"><b style="font-size:14px">관련 정책</b>${rel.map(x=>`<a class="nmini" style="grid-template-columns:1fr" href="#ins-${esc(x.id)}"><span><span class="t">${esc(x.title)}</span><br><span class="s">${esc(insDate(x.date))}</span></span></a>`).join('')}</div>`:''})()}
+    </aside></div>`;
+}
+document.addEventListener('click',e=>{
+  const m=e.target.closest('[data-insmin]'); if(m){IF.min=m.dataset.insmin;IF.n=24;render();return}
+  if(e.target.closest('[data-insmore]')){IF.n+=24;render();return}
+});
+document.addEventListener('submit',e=>{if(e.target.id==='insSearch'){e.preventDefault();e.stopImmediatePropagation();IF.q=$('#insQ').value;IF.n=24;render()}},true);
 function viewRates(){
   const months=RATES.series[0].points.slice(-6).map(p=>p.t);
   const cell='padding:8px 6px;text-align:right';
@@ -1750,7 +1817,7 @@ function footerInfo(){
   const c=COMPANY, parts=[['상호',c.name],['대표',c.ceo],['사업자등록번호',c.bizNo],['통신판매업 신고',c.mailOrderNo],['주소',c.address],['이메일',c.email],['전화',c.phone]].filter(([,v])=>v);
   return `<nav><a href="#terms">이용약관</a><a href="#privacy"><b>개인정보처리방침</b></a><a href="#insight">전문가 인사이트</a><a href="#support">정부지원금</a><a href="#auctions">경매·공매</a></nav>
     ${parts.length?`<div class="bizinfo">${parts.map(([k,v])=>`<span>${k} ${esc(v)}</span>`).join('')}</div>`:''}
-    <div>리얼픽은 매물 검색, 경매·공매와 실거래가 비교, 지원사업 공고, 금리 정보를 한곳에서 제공합니다. 매물은 등록 심사를 거친 개업공인중개사가 올리며, 전문가 칼럼은 예시입니다. 공매·실거래·공고 정보는 공공기관 공개 자료이고, 시세 추정과 AI 답변은 참고용입니다.</div>`;
+    <div>리얼픽은 매물 검색, 경매·공매와 실거래가 비교, 지원사업 공고, 금리 정보를 한곳에서 제공합니다. 매물은 등록 심사를 거친 개업공인중개사가 올리며, 정책 해설은 정책브리핑(공공누리 제1유형) 자료를 AI가 요약한 참고용입니다. 공매·실거래·공고 정보는 공공기관 공개 자료이고, 시세 추정과 AI 답변은 참고용입니다.</div>`;
 }
 
 /* ---------- 관리자: 회원 ---------- */
@@ -2144,6 +2211,7 @@ function render(){
   else if(r.startsWith('write-')){html=viewWrite(r.slice(6));nav='community'}
   else if(r.startsWith('post-')){if(lastRoute!==r)delete POSTD[r.slice(5)];html=viewPost(r.slice(5));nav='community'}
   else if(r==='insight') html=viewInsight();
+  else if(r.startsWith('ins-')){html=viewIns(r.slice(4));nav='insight'}
   else if(r==='rates'){html=viewRates();nav='insight'}
   else if(r==='support'){html=viewSupport();nav='insight'}
   else if(r.startsWith('notice-')){html=viewNotice(r.slice(7));nav='insight'}
