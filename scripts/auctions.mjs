@@ -216,7 +216,7 @@ function urlCandidates(cat) {
   for (const s of [svc + "2", svc]) for (const o of [op, op + "2"]) list.push(`${root}${s}/${o}`);
   return [...new Set(list)];
 }
-const workingUrl = {};
+const workingUrl = {}, urlErrors = {};
 async function rtmsCall(key, cat, params) {
   const cands = workingUrl[cat] ? [workingUrl[cat]] : urlCandidates(cat);
   let lastErr;
@@ -224,7 +224,10 @@ async function rtmsCall(key, cat, params) {
     const u = new URL(base);
     Object.entries({ serviceKey: key, ...params }).forEach(([k, v]) => u.searchParams.set(k, v));
     try { const r = parseRtmsXml(await fetchText(u.href)); workingUrl[cat] = base; return r; }
-    catch (e) { lastErr = e; if (/LIMITED_NUMBER|HTTP 429/i.test(e.message) || workingUrl[cat]) throw e; }
+    catch (e) {
+      lastErr = e; (urlErrors[cat] ||= {})[base.replace(/^.*1613000\//, "")] = String(e.message).slice(0, 60);
+      if (/LIMITED_NUMBER|HTTP 429/i.test(e.message) || workingUrl[cat]) throw e;
+    }
   }
   throw lastErr;
 }
@@ -355,7 +358,7 @@ export async function buildAuctions(key, { readJson, writeJson, nowKST, log = co
   await writeJson("auctions.json", {
     source: "한국자산관리공사 온비드 · 국토교통부 실거래가 (공공데이터포털)", updatedAt: nowKST(),
     note: `주변 시세 추정은 같은 동네·같은 종류의 최근 ${MONTHS}개월 실거래 ㎡당 중앙값에 물건 면적을 곱한 값입니다. 실제 시세나 낙찰가와 다를 수 있습니다.`,
-    stats: { items: items.length, compared, rtmsCalls: calls, callsByApi, pending, apiErrors },
+    stats: { items: items.length, compared, rtmsCalls: calls, callsByApi, pending, apiErrors, urlErrors: Object.fromEntries(Object.entries(urlErrors).filter(([c]) => !workingUrl[c])), workingUrl },
     items: slim
   }, true);
   log(`auctions.json: 물건 ${items.length}건, 시세 비교 ${compared}건`);
