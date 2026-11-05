@@ -243,6 +243,10 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--surface);bor
 .msg{max-width:88%;padding:9px 12px;border-radius:12px;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
 .msg.me{justify-self:end;background:var(--accent);color:var(--accent-ink)}
 .msg.ai{background:var(--sunk)}
+.msg.ai a{color:var(--accent);font-weight:600}
+.chatlink{display:inline-block;background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:1px 7px;margin:1px 0;text-decoration:none;font-size:13px}
+.chatquota{font-size:12px;color:var(--faint);padding:6px 12px 0}
+.chatquota a{color:var(--accent);font-weight:600}
 .drawer form{display:flex;gap:6px;padding:10px;border-top:1px solid var(--line)}
 .drawer input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:9px;padding:9px 10px;font:inherit}
 
@@ -373,7 +377,8 @@ footer nav{display:flex;gap:16px;flex-wrap:wrap;font-weight:600}
 <button class="fab" id="fab" type="button">AI 채팅</button>
 <div class="drawer" id="drawer" hidden>
   <header>리얼픽 AI <button class="icon" id="closeChat" type="button" aria-label="닫기"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
-  <div class="msgs" id="msgs"><div class="msg ai">지역, 예산, 유형을 말씀해 주시면 매물 후보와 체크할 점을 정리해 드려요. 지원사업 공고에 대해 물어보셔도 됩니다.</div></div>
+  <div class="msgs" id="msgs"><div class="msg ai">지역, 예산, 종류를 말씀해 주시면 지금 진행 중인 공매와 등록 매물에서 후보를 골라 체크할 점과 함께 정리해 드려요. 정부지원사업 공고나 금리도 물어보세요.<br><span class="note">예: 대구 수성구 3억 이하 아파트 공매 있어? · 감정가보다 많이 떨어진 토지 공매 알려줘</span></div></div>
+  <div id="chatQuota" class="chatquota"></div>
   <form id="chatForm"><input id="chatIn" placeholder="예: 대구 수성구 5억 이하 상가 투자 어때?" autocomplete="off"><button class="btn primary" type="submit">보내기</button></form>
 </div>
 
@@ -734,7 +739,7 @@ async function initAuth(){
   AUTH.session=session; await loadMe(); AUTH.ready=true; renderHeader(); render();
   sb.auth.onAuthStateChange((ev,s)=>{
     setTimeout(async()=>{
-      AUTH.session=s; await loadMe(); renderHeader();
+      AUTH.session=s; await loadMe(); renderHeader(); refreshQuota(); if(ev==='SIGNED_OUT') chatHistory=[];
       if(ev==='SIGNED_IN' && ['home','login','signup'].includes(route())) location.hash=(s?.user?.user_metadata?.signup_type==='agent'&&!AUTH.agent)?'#agent':'#my'; else softRender();
       if(ev==='SIGNED_OUT') loadMarket();
     },0);
@@ -1629,29 +1634,102 @@ addEventListener('resize',()=>{paintArt();paintMap()});
 matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{paintArt();paintMap()});
 new MutationObserver(()=>{paintArt();paintMap()}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 
-/* ---------- AI 채팅 ---------- */
-let samplePromise=null, history=[];
-function openChat(prefill){$('#drawer').hidden=false;$('#chatIn').focus();if(prefill){$('#chatIn').value=prefill;$('#chatForm').requestSubmit()}}
-$('#fab').onclick=()=>{const d=$('#drawer');d.hidden=!d.hidden;if(!d.hidden)$('#chatIn').focus()};
+/* ---------- AI 채팅 (Supabase 서버 함수 → Claude) ---------- */
+let chatHistory=[], chatBusy=false;
+function openChat(prefill){$('#drawer').hidden=false;refreshQuota();$('#chatIn').focus();if(prefill){$('#chatIn').value=prefill;$('#chatForm').requestSubmit()}}
+$('#fab').onclick=()=>{const d=$('#drawer');d.hidden=!d.hidden;if(!d.hidden){refreshQuota();$('#chatIn').focus()}};
 $('#closeChat').onclick=()=>{$('#drawer').hidden=true};
-function addMsg(cls,text){const m=document.createElement('div');m.className='msg '+cls;m.textContent=text;$('#msgs').appendChild(m);$('#msgs').scrollTop=1e9;return m}
+function addMsg(cls,html){const m=document.createElement('div');m.className='msg '+cls;m.innerHTML=html;$('#msgs').appendChild(m);$('#msgs').scrollTop=1e9;return m}
+async function refreshQuota(){
+  const el=$('#chatQuota'); if(!el) return;
+  if(!sb){el.textContent='';return}
+  if(!AUTH.session){el.innerHTML='<a href="#login">로그인</a>하면 AI 상담을 쓸 수 있어요';return}
+  const {data}=await sb.rpc('ai_quota_status'); if(data?.ok) el.textContent=`오늘 남은 질문 ${Math.max(0,data.limit-data.used)}회`;
+}
+
+/* 질문에 맞는 사이트 데이터만 골라 함께 보낸다 */
+const AI_CATS=[[/아파트/,'apt'],[/오피스텔/,'offi'],[/빌라|다세대|연립/,'rh'],[/단독|다가구|전원주택/,'sh'],[/토지|땅|대지|임야|농지|논|밭/,'land'],[/상가|사무실|근린|업무|꼬마빌딩|건물|빌딩/,'nrg'],[/공장|창고/,'indu']];
+const AI_STOP=/^(이하|미만|이상|정도|근처|주변|추천|추천해줘|알려줘|찾아줘|보여줘|있어|있나요|어때|어떄|투자|공매|경매|매물|물건|싼|저렴한|급매|요즘|지금|최근|좀|가능|해줘|뭐|있어\?|어때\?|원|만원)$/;
+function aiBudget(q){
+  const m=q.match(/(\d+(?:\.\d+)?)\s*억(?:\s*(\d{1,4})\s*천?만?)?/); if(!m) { const c=q.match(/(\d{1,4})\s*천\s*만?/); return c?Number(c[1])*1e7:null; }
+  return Number(m[1])*1e8 + (m[2]?Number(m[2])*(m[2].length<=1?1e7:1e4):0);
+}
+function buildAiContext(q){
+  const {sidos,words}=splitRegionQuery(q.replace(/[?!.,]/g,' '));
+  const cats=AI_CATS.filter(([re])=>re.test(q)).map(([,c])=>c);
+  const budget=aiBudget(q);
+  const kw=words.filter(w=>w.length>=2&&!AI_STOP.test(w)&&!AI_CATS.some(([re])=>re.test(w))&&!/\d/.test(w));
+  const lines=[];
+  // 공매
+  let au=AUC.items.filter(i=>aucDday(i)[1]!=='closed');
+  if(sidos) au=au.filter(i=>sidos.includes(i.sido));
+  if(cats.length) au=au.filter(i=>cats.includes(i.cat));
+  if(budget) au=au.filter(i=>i.minp&&i.minp<=budget*1.05);
+  const auKw=kw.length?au.filter(i=>kw.some(w=>(i.title+' '+i.addr).includes(w))):[];
+  if(auKw.length) au=auKw;
+  const cheapFirst=/싼|저렴|할인|급매|시세보다/.test(q);
+  au.sort((a,b)=>cheapFirst?((a.compare?.minVsEst??99)-(b.compare?.minVsEst??99)):((a.bidEnd||'9').localeCompare(b.bidEnd||'9')));
+  const aucLine=i=>{const c=i.compare;return `[[auc:${i.id}]] ${i.title} | ${i.addr} | ${(i.usage||'').split(' > ').pop()} | 최저가 ${wonKRW(i.minp)} (감정가 ${wonKRW(i.apsl)}, ${i.ratio??'-'}%) | 유찰 ${i.fails||0}회 | 입찰마감 ${i.bidEnd||'-'}${i.landArea?` | 토지 ${i.landArea}㎡`:''}${i.bldArea?` | 건물 ${i.bldArea}㎡`:''}${c&&!c.skip?` | 주변시세추정 ${wonKRW(c.est)} 대비 최저가 ${c.minVsEst}% (${c.basis})`:''}${trustOf(i.org)?' | 신탁공매':''}`};
+  const wantAuc=/공매|경매|입찰|낙찰|유찰|감정가/.test(q)||!/매물|중개|전세|월세|지원|공고|보조금|정책자금|금리/.test(q);
+  if(wantAuc&&au.length){ lines.push(`# 진행 중인 온비드 공매 (조건에 맞는 ${au.length.toLocaleString()}건 중 ${Math.min(20,au.length)}건)`); au.slice(0,20).forEach(i=>lines.push(aucLine(i))); }
+  // 매물
+  let ls=MARKET.items.slice();
+  if(sidos) ls=ls.filter(l=>sidos.includes(l.sido));
+  if(budget) ls=ls.filter(l=>+l.price<=budget/1e4*1.05);
+  if(kw.length){const k=ls.filter(l=>kw.some(w=>(l.title+' '+l.address+' '+l.sigungu).includes(w)));if(k.length)ls=k;}
+  if(ls.length){ lines.push(`# 중개사 등록 매물 (${ls.length}건 중 ${Math.min(10,ls.length)}건)`); ls.slice(0,10).forEach(l=>{const loss=lossInfo(l);lines.push(`[[l:${l.id}]] ${l.title} | ${l.sido} ${l.sigungu} | ${l.kind} | ${priceText(l)} | ${l.area_m2}㎡ | 입주 ${l.move_in}${loss?` | 직전 실거래가 대비 -${loss.pct}%`:''} | 중개 ${l.agent?.office_name||''}`)}); }
+  else lines.push('# 중개사 등록 매물: 조건에 맞는 매물 없음 (아직 등록 매물이 적음)');
+  // 지원사업
+  if(/지원|공고|보조금|정책자금|창업|소상공인|중소기업|사업자|바우처/.test(q)){
+    let ns=FEED.items.filter(n=>statusOf(n)!=='closed');
+    if(sidos) ns=ns.filter(n=>sidos.includes(n.region)||n.region==='전국');
+    if(kw.length){const k=ns.filter(n=>kw.some(w=>(n.pblancNm+' '+(n.bsnsSumryCn||'')).includes(w)));if(k.length)ns=k;}
+    lines.push(`# 신청 가능한 정부지원사업 공고 (${ns.length}건 중 ${Math.min(10,ns.length)}건)`);
+    ns.slice(0,10).forEach(n=>lines.push(`[[n:${n.pblancId}]] ${n.pblancNm} | ${n.region} | ${n.realm} | ${n.budgetBased?'예산 소진 시까지':n.reqstBegin+' ~ '+n.reqstEnd} | 대상 ${n.trgetNm} | ${n.excInsttNm}`));
+  }
+  // 금리
+  if(RATES.series?.length) lines.push(`# 금리 (${RATES.source||'참고값'}): `+RATES.series.map(r=>`${r.label} ${r.points.at(-1).v}% (${ym(r.points.at(-1).t)})`).join(', '));
+  return lines.join('\n').slice(0,15000);
+}
+
+/* 답변 표시: 안전하게 이스케이프한 뒤 굵게·목록·물건 링크만 살린다 */
+function renderAnswer(text){
+  let h=esc(text);
+  h=h.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+  h=h.replace(/^#{1,4}\s*(.+)$/gm,'<b>$1</b>');
+  h=h.replace(/^\s*[-*]\s+/gm,'• ');
+  h=h.replace(/\[\[(auc|l|n):([A-Za-z0-9_\-]+)\]\]/g,(m,k,id)=>{
+    if(k==='auc'){const it=AUC.items.find(i=>i.id===id);return it?`<a class="chatlink" href="#auc-${esc(id)}">공매 ${esc(it.title.slice(0,24))}${it.title.length>24?'…':''}</a>`:''}
+    if(k==='l'){const l=MARKET.items.find(x=>x.id===id);return l?`<a class="chatlink" href="#l-${esc(id)}">매물 ${esc(l.title.slice(0,24))}</a>`:''}
+    const n=FEED.items.find(x=>x.pblancId===id);return n?`<a class="chatlink" href="#notice-${nid(n)}">공고 ${esc(n.pblancNm.slice(0,24))}…</a>`:'';
+  });
+  return h;
+}
 $('#chatForm').addEventListener('submit',async e=>{
   e.preventDefault(); e.stopPropagation();
-  const q=$('#chatIn').value.trim(); if(!q) return; $('#chatIn').value='';
-  addMsg('me',q); const out=addMsg('ai','생각하는 중…');
-  samplePromise = samplePromise || (window.claude?.use ? window.claude.use('sample') : Promise.resolve(null));
-  const sample=await samplePromise;
-  if(!sample){out.textContent='AI 채팅은 준비 중이에요. 곧 연결될 예정입니다.';return}
-  const ctx='너는 부동산 플랫폼 "리얼픽"의 AI 상담원이다. 한국어로 4~6문장 이내로 간결하게 답한다. 투자 권유나 확정적 수익 예측은 하지 말고, 확인할 지표(호가·실거래가·AI 추정가 차이, 수익률, 금리, 공실, 권리관계)를 안내한다. '+(MARKET.items.length?'현재 등록 매물: '+MARKET.items.slice(0,40).map(l=>`${l.kind}/${l.sido} ${l.sigungu}/${l.title}/${priceText(l)}/${l.area_m2}㎡`).join('; '):'아직 등록된 매물이 없음')+'. 진행 중인 온비드 공매(주변 시세 대비): '+AUC.items.slice(0,30).map(i=>`${i.title}/최저가 ${wonKRW(i.minp)}/감정가 대비 ${i.ratio??'-'}%/${i.compare&&!i.compare.skip?'추정 시세 대비 '+i.compare.minVsEst+'%':'비교 없음'}`).join('; ')+'. 현재 접수 중인 정부지원 공고: '+FEED.items.filter(n=>statusOf(n)!=='closed').map(n=>`${n.pblancNm}(${n.reqstEnd} 마감)`).join('; ')+'. 최근 금리: '+RATES.series.map(r=>`${r.label} ${r.points.at(-1).v}%(${ym(r.points.at(-1).t)})`).join(', ')+'.';
-  history.push({role:'user',content:(history.length?'':ctx+'\n\n질문: ')+q});
+  if(chatBusy) return;
+  const q=$('#chatIn').value.trim(); if(!q) return;
+  if(!sb){addMsg('ai','AI 상담은 서버 연결 후 열려요.');return}
+  if(!AUTH.session){addMsg('me',esc(q));addMsg('ai','AI 상담은 회원 전용이에요. <a href="#login">로그인</a>하거나 <a href="#signup">회원가입</a>하면 바로 쓸 수 있어요.');return}
+  $('#chatIn').value=''; chatBusy=true; $('#chatForm [type=submit]').disabled=true;
+  addMsg('me',esc(q)); const out=addMsg('ai','<span class="note">자료를 찾고 답을 쓰는 중…</span>');
+  chatHistory.push({role:'user',content:q});
   try{
-    const r=await sample(history,{onText:({text})=>{out.textContent=text},cache:false});
-    out.textContent=r.text; history.push({role:'assistant',content:r.text});
-  }catch(err){
-    history.pop();
-    out.textContent = err?.code==='not_granted' ? 'AI 사용 권한이 허용되지 않았어요.' : err?.code==='rate_limited' ? '요청이 많아요. 잠시 후 다시 시도해 주세요.' : '답변을 가져오지 못했어요. 다시 시도해 주세요.';
-  }
+    const res=await fetch(`${CFG.supabaseUrl}/functions/v1/ai-chat`,{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+AUTH.session.access_token,'apikey':CFG.supabaseAnonKey},
+      body:JSON.stringify({messages:chatHistory.slice(-12),context:buildAiContext(q)})});
+    if(!res.ok){let msg='답변을 받지 못했어요. 잠시 후 다시 시도해 주세요.';try{const j=await res.json();if(j.message)msg=j.message}catch(_){}
+      if(res.status===404) msg='AI 서버 기능(ai-chat)이 아직 배포되지 않았어요.';
+      out.textContent=msg; chatHistory.pop(); return}
+    const left=res.headers.get('x-ai-remaining'); if(left!==null&&$('#chatQuota')) $('#chatQuota').textContent=`오늘 남은 질문 ${left}회`;
+    const reader=res.body.getReader(), dec=new TextDecoder(); let text='';
+    for(;;){const {done,value}=await reader.read(); if(done)break; text+=dec.decode(value,{stream:true}); out.innerHTML=renderAnswer(text); $('#msgs').scrollTop=1e9;}
+    text+=dec.decode(); out.innerHTML=renderAnswer(text||'(빈 답변이에요. 다시 물어봐 주세요.)');
+    chatHistory.push({role:'assistant',content:text});
+  }catch(err){ out.textContent='연결이 끊겼어요. 다시 시도해 주세요.'; chatHistory.pop(); }
+  finally{ chatBusy=false; $('#chatForm [type=submit]').disabled=false; $('#msgs').scrollTop=1e9; }
 });
+document.addEventListener('click',e=>{ if(e.target.closest('#drawer a[href^="#"]')&&innerWidth<700) $('#drawer').hidden=true; });
 
 {const fw=document.querySelector('footer .wrap'); if(fw) fw.innerHTML=footerInfo();}
 render(); loadFeed(); loadAuctions(); initAuth(); loadMarket();
