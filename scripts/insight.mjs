@@ -4,10 +4,12 @@
 // - AI 해설: ANTHROPIC_API_KEY 가 있으면 새 글마다 3줄 요약 + 투자자 관점 해설을 붙인다 (없으면 원문만)
 // 사진은 별도 허락이 필요해서 가져오지 않는다.
 
+// End Point: https://apis.data.go.kr/1371000/policyNewsService2 (활용신청 화면 기준) + 상세기능 이름
 const ENDPOINTS = [
-  "https://apis.data.go.kr/1371000/policyNewsService/policyNewsList",
-  "http://apis.data.go.kr/1371000/policyNewsService/policyNewsList"
-];
+  process.env.INSIGHT_ENDPOINT,
+  "https://apis.data.go.kr/1371000/policyNewsService2/policyNewsList2",   // 상세기능: 정책뉴스기사목록조회 (startDate·endDate, YYYYMMDD)
+  "http://apis.data.go.kr/1371000/policyNewsService2/policyNewsList2"
+].filter(Boolean);
 const KEEP_DAYS = 120, MAX_ITEMS = 300, MAX_AI_PER_RUN = 20, BODY_MAX = 6000;
 const MODEL = process.env.INSIGHT_MODEL || "claude-haiku-5-5";
 
@@ -57,10 +59,11 @@ async function fetchRange(key, start, end) {
       const code = (text.match(/<resultCode>([^<]*)<\/resultCode>/i) || [])[1];
       const msg = (text.match(/<(?:resultMsg|returnAuthMsg|errMsg)>([^<]*)</i) || [])[1] || "";
       if (!res.ok || /SERVICE_KEY|NOT_REGISTERED|ACCESS_DENIED|LIMITED_NUMBER|NO_OPENAPI/i.test(text) && !itemsOf(text).length) {
-        lastErr = new Error(`HTTP ${res.status} ${msg || text.slice(0, 160).replace(/\s+/g, " ")}`);
+        lastErr = new Error(`HTTP ${res.status} ${msg || text.slice(0, 160).replace(/\s+/g, " ")} (${ep.split("/").slice(-2).join("/")})`);
         continue;
       }
       if (code && !/^0+$/.test(code) && !itemsOf(text).length) { lastErr = new Error(`resultCode ${code} ${msg}`); continue; }
+      if (!workingEndpoint) console.log("정책뉴스 API 주소: " + ep);
       workingEndpoint = ep;
       return itemsOf(text);
     } catch (e) { lastErr = e; }
