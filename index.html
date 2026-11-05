@@ -317,6 +317,24 @@ a.lcard:hover{border-color:var(--accent)}
 .chip-s.warn{background:var(--hot-soft);color:var(--hot)}
 .auctable{min-width:860px}
 .auctable td:first-child{max-width:380px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.seg label{position:relative;cursor:pointer}
+.seg input{position:absolute;opacity:0}
+.seg span{display:grid;gap:2px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--bg)}
+.seg small{color:var(--faint);font-size:12px}
+.seg input:checked+span{border-color:var(--accent);background:var(--accent-soft)}
+.seg input:focus-visible+span{outline:2px solid var(--accent)}
+#nickMsg{display:block;min-height:1.3em}
+.formmsg.ok{color:var(--ok)}
+.consent{display:grid;gap:8px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--bg)}
+.consent .all{padding-bottom:8px;border-bottom:1px solid var(--line)}
+.consent .see{margin-left:auto;font-size:12.5px;color:var(--muted);text-decoration:underline}
+.legal h2{font-size:16px;margin-top:8px}
+.legal p{margin:0;max-width:72ch;color:var(--fg)}
+.draftnote{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:8px 12px;font-weight:600}
+.bizinfo{display:flex;gap:4px 14px;flex-wrap:wrap}
+.icon.heart[aria-pressed="true"]{color:var(--hot)}
+.icon.heart[aria-pressed="true"] svg{fill:currentColor}
 footer{border-top:1px solid var(--line);background:var(--surface);padding-block:28px;font-size:13px;color:var(--muted)}
 footer .wrap{display:grid;gap:8px}
 footer nav{display:flex;gap:16px;flex-wrap:wrap;font-weight:600}
@@ -338,7 +356,7 @@ footer nav{display:flex;gap:16px;flex-wrap:wrap;font-weight:600}
     </nav>
     <div class="top-actions">
       <a class="btn" href="#login">로그인</a>
-      <a class="btn primary" href="#signup">중개사 가입</a>
+      <a class="btn primary" href="#signup">회원가입</a>
     </div>
   </div>
 </header>
@@ -359,7 +377,7 @@ footer nav{display:flex;gap:16px;flex-wrap:wrap;font-weight:600}
   <form id="chatForm"><input id="chatIn" placeholder="예: 대구 수성구 5억 이하 상가 투자 어때?" autocomplete="off"><button class="btn primary" type="submit">보내기</button></form>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script>
 const TODAY = new Date(new Date(Date.now()+9*3600e3).toISOString().slice(0,10)+'T00:00:00+09:00');
@@ -587,7 +605,7 @@ function filtered(){
 function countBy(st){return FEED.items.filter(n=>{const s=statusOf(n);return st==='all'||(st==='open'?(s==='open'||s==='soon'):s===st)}).length}
 function fmtTime(iso){const m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);if(m)return `${+m[2]}월 ${+m[3]}일 ${m[4]}:${m[5]}`;const d=new Date(iso);if(isNaN(d))return '';return `${d.getMonth()+1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`}
 function noticeCard(n){
-  const st=statusOf(n), id=nid(n), fav=favs.has(n.pblancId);
+  const st=statusOf(n), id=nid(n), fav=isFav('notice',n.pblancId);
   return `<article class="ncard">
     <div class="row1"><span class="dday ${st}">${ddayLabel(n)}</span><span class="reg">${esc(n.region)}</span><span class="realm">${esc(n.realm)}</span>
       <span class="icons"><button class="icon" type="button" data-fav="${n.pblancId}" aria-pressed="${fav}" aria-label="관심 공고">${svg('heart')}</button><button class="icon" type="button" data-share="${id}" aria-label="공유">${svg('share')}</button></span></div>
@@ -634,7 +652,7 @@ function viewSupport(){
 function viewNotice(id){
   const n=FEED.items.find(x=>nid(x)===id);
   if(!n) return `<a class="back" href="#support">← 목록으로</a><div class="empty">${FEED.items.length?'공고를 찾을 수 없어요.':'공고를 불러오는 중입니다.'}</div>`;
-  const st=statusOf(n), url=n.pblancUrl||'https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId='+n.pblancId, fav=favs.has(n.pblancId);
+  const st=statusOf(n), url=n.pblancUrl||'https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId='+n.pblancId, fav=isFav('notice',n.pblancId);
   const related=FEED.items.filter(x=>x!==n&&statusOf(x)!=='closed'&&(x.realm===n.realm||x.region===n.region)).slice(0,4);
   return `<a class="back" href="#support">← 정부지원금 목록</a>
   <div class="dgrid"><div style="min-width:0">
@@ -705,8 +723,10 @@ async function loadMarket(){
   softRender();
 }
 async function loadMe(){
-  if(!sb||!AUTH.session){AUTH.agent=null;return}
-  const {data}=await sb.rpc('my_agent'); AUTH.agent=(data&&data[0])||null;
+  if(!sb||!AUTH.session){AUTH.agent=null;AUTH.profile=null;FAV.set=new Set();FAV.rows=[];return}
+  const [ag,pr]=await Promise.all([sb.rpc('my_agent'),sb.from('profiles').select('*').eq('id',AUTH.session.user.id).maybeSingle()]);
+  AUTH.agent=(ag.data&&ag.data[0])||null; AUTH.profile=pr.data||null;
+  await loadFavs();
 }
 async function initAuth(){
   if(!sb){renderHeader();return}
@@ -715,16 +735,15 @@ async function initAuth(){
   sb.auth.onAuthStateChange((ev,s)=>{
     setTimeout(async()=>{
       AUTH.session=s; await loadMe(); renderHeader();
-      if(ev==='SIGNED_IN' && ['home','login','signup'].includes(route())) location.hash='#agent'; else softRender();
+      if(ev==='SIGNED_IN' && ['home','login','signup'].includes(route())) location.hash=(s?.user?.user_metadata?.signup_type==='agent'&&!AUTH.agent)?'#agent':'#my'; else softRender();
       if(ev==='SIGNED_OUT') loadMarket();
     },0);
   });
 }
 function renderHeader(){
   const box=$('.top-actions'); if(!box) return;
-  if(!sb){box.innerHTML=`<a class="btn" href="#login">로그인</a><a class="btn primary" href="#signup">중개사 가입</a>`;return}
-  if(!AUTH.session){box.innerHTML=`<a class="btn" href="#login">로그인</a><a class="btn primary" href="#signup">중개사 가입</a>`;return}
-  box.innerHTML=`${isAdmin()?'<a class="btn" href="#admin">관리자</a>':''}<a class="btn primary" href="#agent">중개사 센터</a><button class="btn" type="button" id="logoutBtn">로그아웃</button>`;
+  if(!sb||!AUTH.session){box.innerHTML=`<a class="btn" href="#login">로그인</a><a class="btn primary" href="#signup">회원가입</a>`;return}
+  box.innerHTML=`${isAdmin()?'<a class="btn" href="#admin">관리자</a>':''}${AUTH.agent?'<a class="btn" href="#agent">중개사 센터</a>':''}<a class="btn primary" href="#my">${esc(AUTH.profile?.nickname||'마이페이지')}</a><button class="btn" type="button" id="logoutBtn">로그아웃</button>`;
 }
 
 /* ---------- 매물 카드·목록 ---------- */
@@ -799,7 +818,7 @@ function viewListingDetail(id){
     </div>
   </div>
   <aside class="side">
-    <div class="panel"><div style="font-weight:800;margin-bottom:8px">중개사무소</div>
+    <div class="panel"><div style="font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">중개사무소 ${heartBtn('listing',l.id,l.title)}</div>
       <dl class="facts" style="background:transparent;padding:0">
         <dt>명칭</dt><dd>${esc(a.office_name)}</dd><dt>대표</dt><dd>${esc(a.ceo_name)}</dd><dt>등록번호</dt><dd class="num">${esc(a.reg_no)}</dd><dt>소재지</dt><dd>${esc(a.address)}</dd><dt>연락처</dt><dd class="num">${esc(a.phone)}</dd></dl>
       <div class="copy" style="margin-top:12px"><code>${esc(a.phone)}</code><button class="btn" type="button" data-copy="${esc(a.phone)}">번호 복사</button></div></div>
@@ -808,21 +827,6 @@ function viewListingDetail(id){
 }
 
 /* ---------- 로그인·가입 ---------- */
-function viewAuth(mode){
-  if(!sb) return notConnected();
-  if(AUTH.session) return `<div class="formcard"><h1>이미 로그인했어요</h1><p class="note">${esc(AUTH.session.user.email)}</p><a class="btn primary" href="#agent">중개사 센터로</a></div>`;
-  const signup=mode==='signup';
-  return `<div class="formcard">
-    <div class="tabs"><a class="btn ${signup?'':'primary'}" href="#login">로그인</a><a class="btn ${signup?'primary':''}" href="#signup">중개사 회원가입</a></div>
-    <h1>${signup?'중개사 회원가입':'로그인'}</h1>
-    <p class="note">${signup?'매물은 개업공인중개사만 올릴 수 있어요. 가입 후 중개사무소 정보를 제출하면 확인을 거쳐 승인됩니다.':'중개사 센터에서 매물을 올리고 관리할 수 있어요.'}</p>
-    <form id="${signup?'signupForm':'loginForm'}" data-keep class="fgrid" style="grid-template-columns:1fr">
-      <label class="fld"><span>이메일</span><input id="auEmail" name="email" type="email" required autocomplete="email"></label>
-      <label class="fld"><span>비밀번호${signup?' (8자 이상)':''}</span><input id="auPw" name="password" type="password" minlength="${signup?8:1}" required autocomplete="${signup?'new-password':'current-password'}"></label>
-      <p class="formmsg" id="authMsg" role="status"></p>
-      <button class="btn primary" type="submit">${signup?'가입하기':'로그인'}</button>
-    </form>${signup?'':`<p class="note"><button type="button" class="linkbtn" id="resetPw">비밀번호를 잊었어요</button></p>`}</div>`;
-}
 function notConnected(){return `<div class="formcard"><h1>서버 연결 준비 중</h1><p class="note">회원가입과 매물 등록은 서버(Supabase)가 연결되면 바로 열립니다. 관리자는 config.js에 연결 정보를 넣어주세요.</p></div>`}
 
 /* ---------- 중개사 센터 ---------- */
@@ -984,11 +988,12 @@ function viewAdmin(){
   if(!isAdmin()) return '<div class="empty">관리자만 볼 수 있어요.</div>';
   AFTER.push(loadAdmin);
   return `<h1 style="font-size:26px;font-weight:800;margin-bottom:14px">관리자</h1>
-  <nav class="subnav">${[['agents','중개사 심사'],['reports','허위매물 신고'],['hidden','비공개 매물']].map(([k,t])=>`<a href="#admin" data-atab="${k}" ${ADMIN_TAB===k?'aria-current="page"':''}>${t}</a>`).join('')}</nav>
+  <nav class="subnav">${[['agents','중개사 심사'],['members','회원'],['reports','허위매물 신고'],['hidden','비공개 매물']].map(([k,t])=>`<a href="#admin" data-atab="${k}" ${ADMIN_TAB===k?'aria-current="page"':''}>${t}</a>`).join('')}</nav>
   <div class="panel" id="adminBox"><div class="note">불러오는 중입니다.</div></div>`;
 }
 async function loadAdmin(){
   const box=$('#adminBox'); if(!box) return;
+  if(ADMIN_TAB==='members'){ await loadAdminMembers(box); return; }
   if(ADMIN_TAB==='agents'){
     const {data,error}=await sb.rpc('admin_agents'); if(error){box.innerHTML=esc(errMsg(error));return}
     const order={pending:0,rejected:1,approved:2,suspended:3};
@@ -1062,13 +1067,12 @@ document.addEventListener('change',e=>{
 document.addEventListener('submit',async e=>{
   const f=e.target; e.preventDefault();
   if(f.id==='mkForm'){LF.q=$('#mkQ').value;render();return}
-  if(f.id==='loginForm'||f.id==='signupForm'){
+  if(f.id==='loginForm'){
     const m=$('#authMsg'), btn=f.querySelector('[type=submit]'); btn.disabled=true; m.textContent='처리 중…';
     const email=f.email.value.trim(), password=f.password.value;
-    const res=f.id==='loginForm'?await sb.auth.signInWithPassword({email,password}):await sb.auth.signUp({email,password,options:{emailRedirectTo:location.origin+location.pathname}});
+    const res=await sb.auth.signInWithPassword({email,password});
     btn.disabled=false;
     if(res.error){m.textContent=errMsg(res.error);return}
-    if(f.id==='signupForm'&&!res.data.session){m.textContent=`${email}로 인증 메일을 보냈어요. 메일의 링크를 누르면 가입이 끝납니다.`;return}
     return;
   }
   if(f.id==='agentForm'){
@@ -1192,7 +1196,7 @@ function filteredAuc(){
 function aucRow(it){
   const [dl,dc]=aucDday(it), c=it.compare, tr=trustOf(it.org);
   return `<tr>
-    <td><a href="#auc-${esc(it.id)}" class="t" style="font-weight:700">${esc(it.title)}</a>
+    <td><div style="display:flex;gap:6px;align-items:flex-start"><a href="#auc-${esc(it.id)}" class="t" style="font-weight:700;flex:1">${esc(it.title)}</a>${heartBtn('auction',it.id,it.title)}</div>
       <div class="note"><span class="num">${esc(it.id)}</span> · ${esc(it.usage||'-')}</div>
       <div class="chips-s"><span class="chip-s">${esc(it.prpt||'-')}</span>${tr?`<span class="chip-s trust">${esc(tr)}</span>`:''}${it.share||/지분/.test(it.title)?'<span class="chip-s warn">지분</span>':''}</div></td>
     <td class="num r"><div class="note">${wonKRW(it.apsl)}</div><b>${wonKRW(it.minp)}</b><div class="note">${it.ratio?it.ratio+'%':'-'}</div></td>
@@ -1295,7 +1299,7 @@ function viewAuction(id){
     </div>
     <div class="dsec"><h2>입찰 정보</h2><dl class="facts" style="background:transparent;padding:0;gap:8px 16px"><dt>소재지</dt><dd>${esc(it.addr)}</dd>${it.landArea?`<dt>토지 면적</dt><dd class="num">${(+it.landArea).toLocaleString()}㎡ (${pyeong(it.landArea)}평)</dd>`:''}${it.bldArea?`<dt>건물 면적</dt><dd class="num">${(+it.bldArea).toLocaleString()}㎡ (${pyeong(it.bldArea)}평)</dd>`:''}${!it.landArea&&!it.bldArea&&it.area?`<dt>면적</dt><dd class="num">${(+it.area).toLocaleString()}㎡ (${pyeong(it.area)}평)</dd>`:''}<dt>입찰 기간</dt><dd class="num">${esc(it.bidStart||'-')} ~ ${esc(it.bidEnd||'-')}</dd><dt>진행 상태</dt><dd>${esc(it.status||'-')}</dd><dt>처분 방식</dt><dd>${esc(it.method||'-')}</dd><dt>재산 유형</dt><dd>${esc(it.prpt||'-')}</dd><dt>공고 기관</dt><dd>${esc(it.org||'-')}${trustOf(it.org)?' <span class="chip-s trust">신탁공매</span>':''}</dd><dt>물건관리번호</dt><dd class="num">${esc(it.id)}</dd></dl></div>
   </div>
-  <aside class="side"><div class="panel"><div style="font-weight:800;margin-bottom:8px">입찰은 온비드에서</div><p class="note" style="font-size:13px;margin:0 0 12px">감정평가서, 공매재산명세서, 입찰 참가는 온비드 원문에서 확인하세요.</p><a class="btn primary" style="width:100%;justify-content:center" href="${esc(onbidUrl(it))}" target="_blank" rel="noopener">온비드 원문 보기</a></div>
+  <aside class="side"><div class="panel"><div style="font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">입찰은 온비드에서 ${heartBtn('auction',it.id,it.title)}</div><p class="note" style="font-size:13px;margin:0 0 12px">감정평가서, 공매재산명세서, 입찰 참가는 온비드 원문에서 확인하세요.</p><a class="btn primary" style="width:100%;justify-content:center" href="${esc(onbidUrl(it))}" target="_blank" rel="noopener">온비드 원문 보기</a></div>
     <div class="panel note" style="font-size:13px">자료: 한국자산관리공사 온비드, 국토교통부 실거래가${AUC.updatedAt&&fmtTime(AUC.updatedAt)?'<br>'+fmtTime(AUC.updatedAt)+' 갱신':''}</div></aside></div>`;
 }
 document.addEventListener('click',e=>{
@@ -1328,6 +1332,211 @@ document.addEventListener('submit',e=>{
   else if(e.target.id==='aucAdv'){e.preventDefault();readAdv();AF.adv=true;AF.shown=24;render();$('.reshead')?.scrollIntoView({block:'start'})}
 });
 
+/* ================= 회원: 가입·마이페이지·관심 목록·약관 ================= */
+const COMPANY=Object.assign({name:'',ceo:'',bizNo:'',mailOrderNo:'',address:'',email:'',phone:'',privacyOfficer:''},(window.REALPICK_CONFIG||{}).company||{});
+const OPERATOR=()=>COMPANY.name||'리얼픽 운영자';
+const FAV={set:new Set(),loaded:false};
+const favKey=(k,id)=>k+':'+id;
+function isFav(kind,id){ return AUTH.session&&sb ? FAV.set.has(favKey(kind,id)) : (kind==='notice'&&favs.has(id)); }
+async function loadFavs(){
+  FAV.set=new Set(); FAV.loaded=false; FAV.rows=[];
+  if(!sb||!AUTH.session) return;
+  const {data}=await sb.from('favorites').select('kind,ref_id,title,created_at').order('created_at',{ascending:false});
+  FAV.rows=data||[]; FAV.rows.forEach(r=>FAV.set.add(favKey(r.kind,r.ref_id))); FAV.loaded=true;
+  // 로그인 전에 이 기기에 담아둔 관심 공고를 계정으로 옮긴다
+  const local=[...favs].filter(id=>!FAV.set.has(favKey('notice',id)));
+  if(local.length){ const rows=local.slice(0,200).map(id=>({kind:'notice',ref_id:id,title:(FEED.items.find(n=>n.pblancId===id)||{}).pblancNm||null}));
+    const {error}=await sb.from('favorites').insert(rows); if(!error){rows.forEach(r=>FAV.set.add(favKey('notice',r.ref_id)));favs=new Set();saveFavs();} }
+}
+async function toggleFav(kind,id,title,btn){
+  if(!(sb&&AUTH.session)){
+    if(kind==='notice'){favs.has(id)?favs.delete(id):favs.add(id);saveFavs();btn?.setAttribute('aria-pressed',favs.has(id));toast(favs.has(id)?'관심 공고에 담았어요 (로그인하면 다른 기기에서도 보여요)':'관심 공고에서 뺐어요');return}
+    toast('로그인하면 관심 물건을 저장할 수 있어요'); return;
+  }
+  const k=favKey(kind,id), on=!FAV.set.has(k);
+  const res=on?await sb.from('favorites').insert({kind,ref_id:id,title:(title||'').slice(0,200)||null}):await sb.from('favorites').delete().eq('kind',kind).eq('ref_id',id);
+  if(res.error&&!/duplicate/.test(res.error.message)){toast(errMsg(res.error));return}
+  on?FAV.set.add(k):FAV.set.delete(k);
+  if(on) FAV.rows?.unshift({kind,ref_id:id,title,created_at:new Date().toISOString()}); else FAV.rows=(FAV.rows||[]).filter(r=>favKey(r.kind,r.ref_id)!==k);
+  document.querySelectorAll(`[data-heart="${CSS.escape(kind+'|'+id)}"]`).forEach(b=>b.setAttribute('aria-pressed',on));
+  toast(on?'관심 목록에 담았어요':'관심 목록에서 뺐어요');
+}
+const heartBtn=(kind,id,title)=>`<button class="icon heart" type="button" data-heart="${esc(kind+'|'+id)}" data-title="${esc(title||'')}" aria-pressed="${isFav(kind,id)}" aria-label="관심 목록에 담기">${svg('heart')}</button>`;
+
+/* ---------- 가입·로그인 ---------- */
+function viewAuth(mode){
+  if(!sb) return notConnected();
+  if(AUTH.session) return `<div class="formcard"><h1>이미 로그인했어요</h1><p class="note">${esc(AUTH.session.user.email)}</p><a class="btn primary" href="#my">마이페이지로</a></div>`;
+  const signup=mode==='signup';
+  return `<div class="formcard">
+    <div class="tabs"><a class="btn ${signup?'':'primary'}" href="#login">로그인</a><a class="btn ${signup?'primary':''}" href="#signup">회원가입</a></div>
+    <h1>${signup?'리얼픽 회원가입':'로그인'}</h1>
+    ${signup?`<p class="note">관심 물건 저장과 마이페이지를 쓸 수 있어요. 중개사는 가입 후 중개사무소를 등록하면 매물을 올릴 수 있어요.</p>`:''}
+    <form id="${signup?'signupForm':'loginForm'}" data-keep class="fgrid" style="grid-template-columns:1fr">
+      ${signup?`<div class="fld"><span>회원 유형</span><div class="seg">
+        <label><input type="radio" name="stype" value="general" checked><span><b>일반 회원</b><small>매물·공매 찾기, 관심 목록</small></span></label>
+        <label><input type="radio" name="stype" value="agent"><span><b>중개사 회원</b><small>가입 후 사무소 등록 → 매물 등록</small></span></label></div></div>`:''}
+      <label class="fld"><span>이메일</span><input id="auEmail" name="email" type="email" required autocomplete="email"></label>
+      <label class="fld"><span>비밀번호${signup?' (8자 이상)':''}</span><input id="auPw" name="password" type="password" minlength="${signup?8:1}" required autocomplete="${signup?'new-password':'current-password'}"></label>
+      ${signup?`<label class="fld"><span>비밀번호 확인</span><input id="auPw2" name="password2" type="password" minlength="8" required autocomplete="new-password"></label>
+      <label class="fld"><span>닉네임 (2~20자, 커뮤니티에 보여요)</span><input id="auNick" name="nickname" required minlength="2" maxlength="20" autocomplete="nickname"><small id="nickMsg" class="note"></small></label>
+      <div class="consent">
+        <label class="chk all"><input type="checkbox" id="agreeAll"> <b>전체 동의</b></label>
+        <label class="chk"><input type="checkbox" name="age" required data-agree> [필수] 만 14세 이상입니다</label>
+        <label class="chk"><input type="checkbox" name="terms" required data-agree> [필수] 이용약관 동의 <a href="#terms" target="_blank" class="see">보기</a></label>
+        <label class="chk"><input type="checkbox" name="privacy" required data-agree> [필수] 개인정보 수집·이용 동의 <a href="#privacy" target="_blank" class="see">보기</a></label>
+        <label class="chk"><input type="checkbox" name="marketing" data-agree> [선택] 새 공매·급매 소식 등 마케팅 정보 수신</label>
+      </div>`:''}
+      <p class="formmsg" id="authMsg" role="status"></p>
+      <button class="btn primary" type="submit">${signup?'가입하기':'로그인'}</button>
+    </form>${signup?'':`<p class="note"><button type="button" class="linkbtn" id="resetPw">비밀번호를 잊었어요</button> · 계정이 없으면 <a href="#signup" style="color:var(--accent);font-weight:600">회원가입</a></p>`}</div>`;
+}
+async function submitSignup(f){
+  const m=$('#authMsg'), btn=f.querySelector('[type=submit]');
+  if(f.password.value!==f.password2.value){m.textContent='비밀번호가 서로 달라요.';f.password2.focus();return}
+  const nick=f.nickname.value.replace(/\s+/g,'');
+  btn.disabled=true; m.textContent='처리 중…';
+  const ok=await sb.rpc('nickname_available',{p_nick:nick});
+  if(ok.data===false){m.textContent='이미 쓰는 닉네임이에요. 다른 닉네임을 정해주세요.';btn.disabled=false;f.nickname.focus();return}
+  const email=f.email.value.trim();
+  const res=await sb.auth.signUp({email,password:f.password.value,options:{emailRedirectTo:location.origin+location.pathname,
+    data:{nickname:nick,signup_type:f.stype.value,marketing:f.marketing.checked,agree_terms:'true',agree_privacy:'true'}}});
+  btn.disabled=false;
+  if(res.error){m.textContent=errMsg(res.error);return}
+  if(!res.data.session){m.textContent=`${email}로 인증 메일을 보냈어요. 메일의 링크를 누르면 가입이 끝납니다.`;m.classList.add('ok');}
+}
+
+/* ---------- 마이페이지 ---------- */
+const KIND_NAME={auction:'공매',listing:'매물',notice:'지원사업'};
+function favLink(r){ return r.kind==='auction'?'#auc-'+r.ref_id:r.kind==='listing'?'#l-'+r.ref_id:'#notice-'+r.ref_id.toLowerCase().replace(/_/g,'-'); }
+function favStatus(r){
+  if(r.kind==='auction'){const it=AUC.items.find(i=>i.id===r.ref_id);if(!it)return['마감·내려감','closed'];return aucDday(it)}
+  if(r.kind==='notice'){const n=FEED.items.find(x=>x.pblancId===r.ref_id);if(!n)return['내려감','closed'];return[ddayLabel(n),statusOf(n)]}
+  const l=MARKET.items.find(x=>x.id===r.ref_id); return l?['공개 중','open']:['거래완료·내려감','closed'];
+}
+let MY_TAB='favs';
+function viewMy(){
+  if(!sb) return notConnected();
+  if(!AUTH.ready) return '<div class="empty">불러오는 중입니다.</div>';
+  if(!AUTH.session) return `<div class="formcard"><h1>마이페이지</h1><p class="note">로그인하면 관심 목록과 내 정보를 볼 수 있어요.</p><a class="btn primary" href="#login">로그인</a> <a class="btn" href="#signup">회원가입</a></div>`;
+  const p=AUTH.profile||{}, a=AUTH.agent, regions=p.interest_regions||[];
+  const rows=FAV.rows||[];
+  const regionCount=r=>AUC.items.filter(i=>i.sido===r&&aucDday(i)[1]!=='closed').length;
+  return `<section class="block"><div class="sec-head"><div><div class="eyebrow">마이페이지</div><h2>${esc(p.nickname||'회원')}님</h2></div>
+    <div class="acts">${a?`<a class="btn" href="#agent">중개사 센터</a>`:''}<span class="dday ${p.plan&&p.plan!=='free'?'open':'closed'}">${p.plan&&p.plan!=='free'?esc(p.plan)+' 요금제':'무료 회원'}</span></div></div>
+    <nav class="subnav">${[['favs',`관심 목록 ${rows.length}`],['info','내 정보'],['account','계정 관리']].map(([k,t])=>`<a href="#my" data-mytab="${k}" ${MY_TAB===k?'aria-current="page"':''}>${t}</a>`).join('')}</nav>
+    ${MY_TAB==='favs'?`
+      ${regions.length?`<div class="trustbar"><span class="note" style="font-weight:700">관심 지역 공매</span>${regions.map(r=>`<button type="button" class="tchip" data-goregion="${esc(r)}">${esc(r)} <span class="num">${regionCount(r)}</span></button>`).join('')}</div>`:''}
+      ${rows.length?`<div class="panel">${rows.map(r=>{const [sl,sc]=favStatus(r);return `<div class="post" style="grid-template-columns:auto 1fr auto;display:grid;align-items:center;gap:10px">
+        <span class="chip-s">${KIND_NAME[r.kind]}</span><a href="${favLink(r)}" class="t">${esc(r.title||r.ref_id)}</a>
+        <span class="acts" style="align-items:center"><span class="dday ${sc}">${esc(sl)}</span>${heartBtn(r.kind,r.ref_id,r.title)}</span></div>`}).join('')}</div>`
+      :`<div class="empty">아직 담은 게 없어요. 공매·매물·지원사업 상세 화면의 하트를 누르면 여기에 모여요.</div>`}`:''}
+    ${MY_TAB==='info'?`<div class="formcard wide" style="margin:0">
+      <form id="profileForm" class="fgrid">
+        <label class="fld"><span>이메일</span><input value="${esc(AUTH.session.user.email)}" disabled></label>
+        <label class="fld"><span>닉네임</span><input name="nickname" value="${esc(p.nickname||'')}" required minlength="2" maxlength="20"></label>
+        <div class="fld wide"><span>관심 지역 (공매·매물을 빠르게 보는 데 써요)</span><div class="chkrow">${SIDOS.concat(['전남광주']).map(r=>`<label class="chk"><input type="checkbox" name="regions" value="${r}" ${regions.includes(r)?'checked':''}> ${r}</label>`).join('')}</div></div>
+        <label class="chk wide"><input type="checkbox" name="marketing" ${p.marketing_opt_in?'checked':''}> 새 공매·급매 소식 등 마케팅 정보 받기${p.marketing_agreed_at?` <span class="note">(${kst(p.marketing_agreed_at).slice(0,10)} 동의)</span>`:''}</label>
+        <p class="formmsg wide" id="profileMsg" role="status"></p>
+        <div class="wide"><button class="btn primary" type="submit">저장하기</button></div>
+      </form>
+      <p class="note">가입일 ${p.created_at?kst(p.created_at).slice(0,10):'-'} · 약관 동의 ${p.agreed_terms_at?kst(p.agreed_terms_at).slice(0,10):'-'}</p>
+      ${a?'':`<div class="panel" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:200px"><b>중개사이신가요?</b><div class="note">중개사무소를 등록하면 매물을 올릴 수 있어요.</div></div><a class="btn" href="#agent">중개사무소 등록</a></div>`}</div>`:''}
+    ${MY_TAB==='account'?`<div class="formcard wide" style="margin:0">
+      <h2 style="font-size:16px">비밀번호 변경</h2>
+      <form id="pwForm" class="fgrid"><label class="fld"><span>새 비밀번호 (8자 이상)</span><input name="pw" type="password" minlength="8" required autocomplete="new-password"></label><label class="fld"><span>새 비밀번호 확인</span><input name="pw2" type="password" minlength="8" required autocomplete="new-password"></label><p class="formmsg wide" id="pwMsg" role="status"></p><div class="wide"><button class="btn" type="submit">비밀번호 바꾸기</button></div></form>
+      <h2 style="font-size:16px;margin-top:12px">회원 탈퇴</h2>
+      <p class="note" style="margin:0">탈퇴하면 관심 목록과 내 정보가 바로 지워지고 되돌릴 수 없어요.${a?' 중개사 정보와 올린 매물, 사진도 함께 지워집니다.':''}</p>
+      <form id="leaveForm" class="fgrid"><label class="fld wide"><span>확인을 위해 <b>탈퇴합니다</b> 라고 적어주세요</span><input name="confirm" autocomplete="off" required></label><p class="formmsg wide" id="leaveMsg" role="status"></p><div class="wide"><button class="btn" type="submit" style="color:var(--hot);border-color:var(--hot)">회원 탈퇴</button></div></form></div>`:''}
+  </section>`;
+}
+
+/* ---------- 약관·개인정보처리방침 (초안) ---------- */
+const DRAFT_NOTE=`<p class="note draftnote">이 문서는 서비스 출시 전 초안입니다. 정식 게시 전에 법률 검토를 받아 확정해야 합니다.</p>`;
+function legalPage(title,body){return `<article class="formcard wide legal"><h1>${title}</h1>${DRAFT_NOTE}${body}<p class="note">시행일: 정식 오픈일에 확정 · 운영자: ${esc(OPERATOR())}</p></article>`}
+function viewTerms(){return legalPage('이용약관',`
+  <h2>제1조 목적</h2><p>이 약관은 ${esc(OPERATOR())}(이하 "운영자")가 제공하는 리얼픽 서비스(매물 정보, 경매·공매 정보와 실거래가 비교, 정부지원사업 공고, 금리 정보, 커뮤니티 등)의 이용 조건과 절차, 회원과 운영자의 권리·의무를 정합니다.</p>
+  <h2>제2조 회원가입</h2><p>회원가입은 만 14세 이상인 사람이 이 약관과 개인정보 수집·이용에 동의하고 이메일 인증을 마치면 이루어집니다. 다른 사람의 정보를 쓰거나 사실과 다른 정보를 입력하면 이용을 제한할 수 있습니다.</p>
+  <h2>제3조 중개사 회원</h2><p>매물 광고는 「공인중개사법」에 따라 등록된 개업공인중개사만 할 수 있습니다. 중개사 회원은 중개사무소 등록 정보를 사실대로 제출하고 운영자의 확인을 받은 뒤 매물을 올릴 수 있습니다. 중개사 회원은 의뢰받은 매물만 사실대로 표시·광고하고, 계약이 끝난 매물은 지체 없이 거래완료로 바꿔야 합니다. 허위·과장 광고나 미끼 매물이 확인되면 매물을 내리고 이용을 정지할 수 있습니다.</p>
+  <h2>제4조 정보의 성격</h2><p>경매·공매 물건 정보는 한국자산관리공사 온비드, 실거래가는 국토교통부, 지원사업 공고는 기업마당, 금리는 한국은행 경제통계시스템의 공개 자료를 자동으로 모은 것입니다. "주변 시세 추정"은 공개 실거래 자료로 계산한 참고치이며 실제 시세·감정가·낙찰가와 다를 수 있습니다. AI 답변도 참고용입니다. 회원은 거래·입찰 전에 원문 공고와 공적 장부를 직접 확인해야 하며, 운영자는 이 정보만을 근거로 한 판단의 결과에 책임지지 않습니다.</p>
+  <h2>제5조 금지 행위</h2><p>회원은 다른 사람의 계정 사용, 허위 정보 등록, 자동화 수단을 이용한 대량 수집, 서비스 운영 방해, 다른 사람의 권리 침해, 법령 위반 행위를 해서는 안 됩니다.</p>
+  <h2>제6조 게시물</h2><p>회원이 올린 게시물의 책임은 작성자에게 있습니다. 법령이나 이 약관을 어긴 게시물은 알리고 비공개하거나 지울 수 있습니다.</p>
+  <h2>제7조 유료 서비스</h2><p>구독 요금제 등 유료 서비스를 시작할 때는 가격, 결제 주기, 해지·환불 방법을 미리 알리고 회원이 직접 동의한 경우에만 결제합니다. 무료에서 유료로 바뀌거나 가격이 오를 때도 미리 알리고 동의를 받습니다.</p>
+  <h2>제8조 탈퇴와 이용 제한</h2><p>회원은 마이페이지에서 언제든지 탈퇴할 수 있습니다. 운영자는 이 약관을 어긴 회원의 이용을 제한할 수 있으며, 그 사유를 알립니다.</p>
+  <h2>제9조 약관 변경</h2><p>약관을 바꿀 때는 시행 7일 전(회원에게 불리한 변경은 30일 전)부터 서비스 화면에 알립니다.</p>
+  <h2>제10조 분쟁 해결</h2><p>서비스 이용과 관련한 분쟁은 대한민국 법을 따르며, 관할 법원은 「민사소송법」에 따릅니다.</p>`)}
+function viewPrivacy(){return legalPage('개인정보처리방침',`
+  <h2>1. 수집하는 개인정보와 목적</h2>
+  <div class="tablewrap"><table class="mtable" style="min-width:560px"><thead><tr><th>구분</th><th>항목</th><th>목적</th></tr></thead><tbody>
+    <tr><td>회원가입 (필수)</td><td>이메일, 비밀번호(암호화 저장), 닉네임, 약관 동의 일시</td><td>회원 식별, 로그인, 공지 전달</td></tr>
+    <tr><td>서비스 이용 (선택)</td><td>관심 지역, 관심 목록</td><td>맞춤 정보 제공</td></tr>
+    <tr><td>마케팅 (선택)</td><td>이메일, 수신 동의 일시</td><td>새 공매·급매 소식 안내</td></tr>
+    <tr><td>중개사 회원 (필수)</td><td>중개사무소 명칭·등록번호·소재지·연락처, 개업공인중개사 성명, 등록증 사본</td><td>자격 확인, 매물 광고에 법정 표시사항 게재</td></tr>
+    <tr><td>자동 수집</td><td>접속 기록, 브라우저 정보</td><td>보안, 부정 이용 방지</td></tr>
+  </tbody></table></div>
+  <h2>2. 보유 기간</h2><p>회원 탈퇴 시 바로 지웁니다. 다만 관계 법령에 따라 보관해야 하는 정보(유료 서비스 도입 후의 계약·결제 기록 5년, 소비자 불만·분쟁 처리 기록 3년, 접속 기록 3개월 등)는 그 기간 동안 따로 보관합니다.</p>
+  <h2>3. 처리 위탁과 국외 처리</h2><p>회원 정보 저장과 로그인 처리는 Supabase Inc.(미국)의 클라우드 서비스를 이용하며, 데이터는 서울 지역(Northeast Asia) 서버에 저장합니다. 사이트 화면은 GitHub Pages(GitHub, Inc., 미국)로 제공되며 회원 정보는 저장하지 않습니다.</p>
+  <h2>4. 제3자 제공</h2><p>회원의 개인정보를 제3자에게 제공하지 않습니다. 다만 중개사 회원의 중개사무소 정보는 공인중개사법에 따라 매물 광고에 공개됩니다.</p>
+  <h2>5. 회원의 권리</h2><p>회원은 마이페이지에서 정보를 보고 고치거나 탈퇴할 수 있고, 개인정보 열람·정정·삭제·처리정지를 요청할 수 있습니다.</p>
+  <h2>6. 안전성 확보 조치</h2><p>비밀번호 암호화, 데이터베이스 접근 권한 분리(본인 정보만 조회), 등록증 등 민감 자료의 비공개 저장, 전송 구간 암호화(HTTPS)를 적용합니다.</p>
+  <h2>7. 개인정보 보호책임자</h2><p>${esc(COMPANY.privacyOfficer||COMPANY.ceo||'(정식 오픈 전 지정)')} · ${esc(COMPANY.email||'(연락처 기재 예정)')}</p>`)}
+function footerInfo(){
+  const c=COMPANY, parts=[['상호',c.name],['대표',c.ceo],['사업자등록번호',c.bizNo],['통신판매업 신고',c.mailOrderNo],['주소',c.address],['이메일',c.email],['전화',c.phone]].filter(([,v])=>v);
+  return `<nav><a href="#terms">이용약관</a><a href="#privacy"><b>개인정보처리방침</b></a><a href="#insight">전문가 인사이트</a><a href="#support">정부지원금</a><a href="#auctions">경매·공매</a></nav>
+    ${parts.length?`<div class="bizinfo">${parts.map(([k,v])=>`<span>${k} ${esc(v)}</span>`).join('')}</div>`:''}
+    <div>리얼픽은 매물 검색, 경매·공매와 실거래가 비교, 지원사업 공고, 금리 정보를 한곳에서 제공합니다. 매물은 등록 심사를 거친 개업공인중개사가 올리며, 커뮤니티·칼럼은 예시입니다. 공매·실거래·공고 정보는 공공기관 공개 자료이고, 시세 추정과 AI 답변은 참고용입니다.</div>`;
+}
+
+/* ---------- 관리자: 회원 ---------- */
+async function loadAdminMembers(box){
+  const {data,error}=await sb.rpc('admin_profiles'); if(error){box.innerHTML=esc(errMsg(error));return}
+  const mk=data.filter(p=>p.marketing_opt_in).length;
+  box.innerHTML=`<p class="note" style="margin-top:0">전체 <b class="num">${data.length}</b>명 · 마케팅 수신 동의 <b class="num">${mk}</b>명 · 중개사로 가입 <b class="num">${data.filter(p=>p.signup_type==='agent').length}</b>명</p>
+    ${data.length?`<div class="tablewrap"><table class="mtable"><thead><tr><th>닉네임</th><th>이메일</th><th>유형</th><th>요금제</th><th>관심 지역</th><th>마케팅</th><th>가입일</th></tr></thead><tbody>${data.map(p=>`<tr><td><b>${esc(p.nickname)}</b></td><td>${esc(p.email||'')}</td><td>${p.signup_type==='agent'?'중개사':'일반'}</td><td>${esc(p.plan)}</td><td>${esc((p.interest_regions||[]).join(', '))}</td><td>${p.marketing_opt_in?'동의':'-'}</td><td class="num">${kst(p.created_at).slice(0,10)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="empty">아직 회원이 없어요.</div>'}`;
+}
+
+/* ---------- 이벤트 ---------- */
+document.addEventListener('click',async e=>{
+  const t=e.target;
+  const h=t.closest('[data-heart]'); if(h){e.preventDefault();e.stopPropagation();const [kind,...rest]=h.dataset.heart.split('|');toggleFav(kind,rest.join('|'),h.dataset.title,h);return}
+  const mt=t.closest('[data-mytab]'); if(mt){e.preventDefault();MY_TAB=mt.dataset.mytab;render();return}
+  const gr=t.closest('[data-goregion]'); if(gr){AF=Object.assign(AF_DEFAULT(),{view:AF.view,sido:gr.dataset.goregion});location.hash='#auctions';return}
+},true);
+document.addEventListener('change',async e=>{
+  if(e.target.id==='agreeAll'){document.querySelectorAll('[data-agree]').forEach(c=>c.checked=e.target.checked);return}
+  if(e.target.matches('[data-agree]')){const all=[...document.querySelectorAll('[data-agree]')];const a=$('#agreeAll');if(a)a.checked=all.every(c=>c.checked);return}
+});
+document.addEventListener('focusout',async e=>{
+  if(e.target.id!=='auNick'||!sb) return;
+  const v=e.target.value.replace(/\s+/g,''), m=$('#nickMsg'); if(!m) return;
+  if(v.length<2){m.textContent='';return}
+  const {data}=await sb.rpc('nickname_available',{p_nick:v});
+  m.textContent=data===false?'이미 쓰는 닉네임이에요.':data?'쓸 수 있는 닉네임이에요.':''; m.style.color=data===false?'var(--hot)':'var(--ok)';
+});
+document.addEventListener('submit',async e=>{
+  const f=e.target;
+  if(f.id==='signupForm'){e.preventDefault();e.stopImmediatePropagation();submitSignup(f);return}
+  if(f.id==='profileForm'){e.preventDefault();const m=$('#profileMsg');m.textContent='저장하는 중…';
+    const nick=f.nickname.value.replace(/\s+/g,'');
+    if(nick!==AUTH.profile?.nickname){const ok=await sb.rpc('nickname_available',{p_nick:nick});if(ok.data===false){m.textContent='이미 쓰는 닉네임이에요.';return}}
+    const regions=[...f.querySelectorAll('[name=regions]:checked')].map(c=>c.value);
+    const {error}=await sb.from('profiles').update({nickname:nick,interest_regions:regions,marketing_opt_in:f.marketing.checked}).eq('id',uid());
+    if(error){m.textContent=errMsg(error);return} await loadMe(); renderHeader(); toast('저장했어요'); render(); return}
+  if(f.id==='pwForm'){e.preventDefault();const m=$('#pwMsg');if(f.pw.value!==f.pw2.value){m.textContent='비밀번호가 서로 달라요.';return}
+    const {error}=await sb.auth.updateUser({password:f.pw.value}); m.textContent=error?errMsg(error):''; if(!error){f.reset();toast('비밀번호를 바꿨어요')} return}
+  if(f.id==='leaveForm'){e.preventDefault();const m=$('#leaveMsg');if(f.confirm.value.trim()!=='탈퇴합니다'){m.textContent='"탈퇴합니다"라고 정확히 적어주세요.';return}
+    const btn=f.querySelector('[type=submit]');btn.disabled=true;m.textContent='탈퇴 처리 중…';
+    try{
+      for(const bucket of ['listing-photos','agent-licenses']){
+        const {data:files}=await sb.storage.from(bucket).list(uid(),{limit:1000});
+        if(files?.length) await sb.storage.from(bucket).remove(files.map(x=>`${uid()}/${x.name}`));
+      }
+      const {error}=await sb.rpc('delete_my_account'); if(error) throw error;
+      await sb.auth.signOut(); toast('탈퇴했어요. 그동안 이용해 주셔서 고맙습니다.'); location.hash='#home';
+    }catch(err){m.textContent=errMsg(err);btn.disabled=false}
+    return}
+},true);
+
 /* ---------- 라우터 ---------- */
 function route(){return (location.hash||'#home').slice(1)||'home'}
 function render(){
@@ -1341,6 +1550,9 @@ function render(){
   else if(r.startsWith('l-')){html=viewListingDetail(r.slice(2));nav='listings'}
   else if(r==='admin'){html=viewAdmin();nav=''}
   else if(r==='auctions') html=viewAuctions();
+  else if(r==='my'){html=viewMy();nav=''}
+  else if(r==='terms'){html=viewTerms();nav=''}
+  else if(r==='privacy'){html=viewPrivacy();nav=''}
   else if(r.startsWith('auc-')){html=viewAuction(r.slice(4));nav='auctions'}
   else if(r==='community') html=viewCommunity();
   else if(r==='insight') html=viewInsight();
@@ -1371,7 +1583,7 @@ document.addEventListener('click',async e=>{
   const st=t.closest('[data-st]'); if(st){S.status=st.dataset.st;S.page=1;render();return}
   const pg=t.closest('[data-pg]'); if(pg){S.page=+pg.dataset.pg;render();scrollTo({top:0});return}
   if(t.closest('#aiTog')){S.ai=!S.ai;render();return}
-  const fv=t.closest('[data-fav]'); if(fv){const id=fv.dataset.fav;favs.has(id)?favs.delete(id):favs.add(id);saveFavs();fv.setAttribute('aria-pressed',favs.has(id));toast(favs.has(id)?'관심 공고에 담았어요':'관심 공고에서 뺐어요');return}
+  const fv=t.closest('[data-fav]'); if(fv){const id=fv.dataset.fav;toggleFav('notice',id,(FEED.items.find(n=>n.pblancId===id)||{}).pblancNm,fv);return}
   const sh=t.closest('[data-share]'); if(sh){copyText(location.href.split('#')[0]+'#notice-'+sh.dataset.share,'링크를 복사했어요');return}
   const cp=t.closest('[data-copy]'); if(cp){copyText(cp.dataset.copy,'복사했어요');return}
 });
@@ -1441,6 +1653,7 @@ $('#chatForm').addEventListener('submit',async e=>{
   }
 });
 
+{const fw=document.querySelector('footer .wrap'); if(fw) fw.innerHTML=footerInfo();}
 render(); loadFeed(); loadAuctions(); initAuth(); loadMarket();
 </script>
 
