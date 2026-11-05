@@ -21,7 +21,7 @@ export const RTMS = {
   land: { url: `${RT}/RTMSDataSvcLandTrade/getRTMSDataSvcLandTrade`, label: "토지" },
   nrg:  { url: `${RT}/RTMSDataSvcNrgTrade/getRTMSDataSvcNrgTrade`,   label: "상업업무용" },
   apt:  { url: `${RT}/RTMSDataSvcAptTrade/getRTMSDataSvcAptTrade`,   label: "아파트" },
-  rh:   { url: `${RT}/RTMSDataSvcRHTrade2/getRTMSDataSvcRHTrade`,    label: "연립다세대" }, // 2026년 새 주소 (끝에 2)
+  rh:   { url: `${RT}/RTMSDataSvcRHTrade2/getRTMSDataSvcRHTrade2`,   label: "연립다세대" }, // 2026년 새 주소 (공공데이터포털 상세기능 기준)
   sh:   { url: `${RT}/RTMSDataSvcSHTrade/getRTMSDataSvcSHTrade`,     label: "단독다가구" },
   offi: { url: `${RT}/RTMSDataSvcOffiTrade/getRTMSDataSvcOffiTrade`, label: "오피스텔" },
   indu: { url: `${RT}/RTMSDataSvcInduTrade/getRTMSDataSvcInduTrade`, label: "공장창고" }
