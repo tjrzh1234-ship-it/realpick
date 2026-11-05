@@ -257,7 +257,7 @@ select{font:inherit;font-size:14px;color:var(--fg);background:var(--surface);bor
 .formcard.wide{max-width:860px}
 .formcard h1{font-size:22px;font-weight:800}
 .formcard .tabs{margin:0}
-.fgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 14px;border:0;margin:0;padding:0;min-width:0}
+.fgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:12px 14px;border:0;margin:0;padding:0;min-width:0}
 .fgrid .wide{grid-column:1/-1}
 @media (max-width:640px){.fgrid{grid-template-columns:1fr}}
 fieldset.sub{border:1px solid var(--line);border-radius:10px;padding:12px 14px 14px}
@@ -271,6 +271,10 @@ fieldset.sub legend small,.fld small{font-weight:400;color:var(--faint)}
 .chk{display:flex;gap:8px;align-items:center;font-size:14px}
 .chk input{width:18px;height:18px;accent-color:var(--accent)}
 .formmsg{margin:0;font-size:14px;color:var(--hot);min-height:1em}
+.fld.err>span{color:var(--hot)}
+.fld.err input,.fld.err select,.fld.err textarea{border:1.5px solid var(--hot);background:color-mix(in srgb,var(--hot) 6%,var(--bg))}
+.fld .ferr{display:block;color:var(--hot);font-size:12.5px;font-weight:600}
+fieldset.sub.err{border-color:var(--hot)}
 .linkbtn{border:0;background:none;color:var(--accent);font-weight:600;padding:0}
 .statusbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .thumbs{display:flex;gap:8px;flex-wrap:wrap}
@@ -897,7 +901,7 @@ function viewListingForm(id){
   AFTER.push(syncFormKind);
   return `<a class="back" href="#agent">← 중개사 센터</a><div class="formcard wide"><h1>${id?'매물 수정':'매물 등록'}</h1>
   <p class="note">* 표시는 공인중개사법상 인터넷 광고에 꼭 적어야 하는 항목이에요. 중개사무소 정보(명칭·소재지·연락처·등록번호·성명)는 자동으로 붙습니다.</p>
-  <form id="listingForm" data-keep data-id="${id||''}" class="fgrid">
+  <form id="listingForm" data-keep data-id="${id||''}" class="fgrid" novalidate>
     <label class="fld wide"><span>매물 제목 *</span><input name="title" value="${v('title')}" required minlength="4" maxlength="80" placeholder="예: 범어역 도보 5분 1층 코너 상가"></label>
     <label class="fld"><span>종류 *</span><select name="kind" id="fKind" required>${KINDS.map(k=>`<option ${sel('kind',k)}>${k}</option>`).join('')}</select></label>
     <label class="fld"><span>건축법상 용도 * <small>(토지는 지목)</small></span><input name="building_use" value="${v('building_use')}" required maxlength="40" list="usesList" placeholder="예: 제1종근린생활시설"><datalist id="usesList">${USES.map(u=>`<option value="${u}">`).join('')}</datalist></label>
@@ -950,7 +954,91 @@ async function shrinkImage(file){
     return await new Promise(r=>c.toBlob(b=>r(b||file),'image/jpeg',.85));
   }catch(e){return file}
 }
+/* 매물 입력값 검사: 서버(DB) 규칙과 같은 기준으로 먼저 확인해서 틀린 칸을 빨갛게 표시한다 */
+function clearFieldErrors(f){
+  f.querySelectorAll('.fld.err').forEach(x=>x.classList.remove('err'));
+  f.querySelectorAll('fieldset.sub.err').forEach(x=>x.classList.remove('err'));
+  f.querySelectorAll('.ferr').forEach(x=>x.remove());
+}
+function markField(f,name,text){
+  const el=f.elements[name]; if(!el) return null;
+  const box=el.closest('.fld'); if(!box) return el;
+  if(!box.classList.contains('err')){box.classList.add('err');const s=document.createElement('small');s.className='ferr';s.textContent=text;box.appendChild(s)}
+  el.closest('fieldset.sub')?.classList.add('err');
+  return el;
+}
+function showFieldErrors(f,errs){
+  clearFieldErrors(f);
+  const els=errs.map(([n,t])=>markField(f,n,t)).filter(Boolean);
+  const msg=$('#listingMsg');
+  msg.textContent=errs.length?`빨간색으로 표시된 ${errs.length}개 항목을 확인해 주세요.`:'';
+  const first=els[0];
+  if(first){
+    const fs=first.closest('fieldset.sub'); if(fs&&fs.hidden) fs.hidden=false;
+    first.closest('.fld').scrollIntoView({behavior:'smooth',block:'center'});
+    setTimeout(()=>{try{first.focus({preventScroll:true})}catch(_){}},350);
+  }
+}
+function validateListing(f){
+  const E=[], val=n=>(f.elements[n]?.value??'').trim(), len=n=>[...val(n)].length;
+  const bad=n=>f.elements[n]?.validity?.badInput;
+  const numChk=(n,{req,min,max,int,label})=>{
+    if(bad(n)) return E.push([n,'숫자만 입력해 주세요.']);
+    const s=val(n); if(s===''){ if(req) E.push([n,`필수 항목이에요. ${label}을 입력해 주세요.`.replace(/([가-힣])을 /,(m,c)=>c+((c.charCodeAt(0)-0xAC00)%28?"을 ":"를 "))]); return; }
+    const x=Number(s);
+    if(!isFinite(x)) return E.push([n,'숫자만 입력해 주세요.']);
+    if(int&&!Number.isInteger(x)) return E.push([n,'소수점 없이 정수로 입력해 주세요.']);
+    if(min!=null&&x<min) return E.push([n,min===0.01?'0보다 큰 값을 입력해 주세요.':`${min} 이상으로 입력해 주세요.`]);
+    if(max!=null&&x>max) return E.push([n,`${max} 이하로 입력해 주세요.`]);
+  };
+  const txtChk=(n,{req,min=0,max,label})=>{
+    const k=len(n);
+    if(!k){ if(req) E.push([n,`필수 항목이에요. ${label}을 입력해 주세요.`.replace(/([가-힣])을 /,(m,c)=>c+((c.charCodeAt(0)-0xAC00)%28?"을 ":"를 "))]); return; }
+    if(k<min) E.push([n,`${min}자 이상 입력해 주세요. (지금 ${k}자)`]);
+    else if(max&&k>max) E.push([n,`${max}자 이하로 줄여 주세요. (지금 ${k}자)`]);
+  };
+  const land=f.kind.value==='토지', rent=f.deal_type.value==='월세';
+  txtChk('title',{req:1,min:4,max:80,label:'매물 제목'});
+  txtChk('building_use',{req:1,min:2,max:40,label:land?'지목':'건축법상 용도'});
+  numChk('price',{req:1,min:0,int:1,label:f.deal_type.value==='매매'?'매매가':'보증금'});
+  if(rent) numChk('monthly_rent',{req:1,min:0,int:1,label:'월세'});
+  txtChk('sigungu',{req:1,min:1,max:20,label:'시·군·구'});
+  txtChk('address',{req:1,min:4,max:200,label:'소재지'});
+  numChk('area_m2',{req:1,min:0.01,max:99999999,label:'면적'});
+  numChk('land_m2',{min:0.01,max:99999999,label:'대지면적'});
+  txtChk('move_in',{req:1,min:2,max:20,label:'입주 가능일'});
+  if(!land){
+    numChk('total_floors',{req:1,min:0,max:200,int:1,label:'총 층수'});
+    txtChk('floor_desc',{max:20,label:'해당 층'});
+    if(bad('approval_date')||!/^\d{4}-\d{2}-\d{2}$/.test(val('approval_date'))) E.push(['approval_date',val('approval_date')?'날짜 형식이 맞지 않아요.':'사용승인일을 선택해 주세요.']);
+    txtChk('direction',{req:1,min:1,max:30,label:'방향'});
+    txtChk('parking',{req:1,min:1,max:30,label:'주차'});
+    txtChk('mgmt_fee',{max:120,label:'관리비'});
+    numChk('rooms',{min:0,max:99,int:1,label:'방 수'});
+    numChk('baths',{min:0,max:99,int:1,label:'욕실 수'});
+  }
+  numChk('recent_deal',{min:0,int:1,label:'직전 매매가'});
+  const ym=val('recent_deal_ym');
+  if(ym&&!/^\d{4}-\d{2}$/.test(ym)) E.push(['recent_deal_ym','2026-03 처럼 연-월로 입력해 주세요.']);
+  if(val('recent_deal')&&!ym) E.push(['recent_deal_ym','직전 매매가를 넣었다면 거래 연월도 골라 주세요.']);
+  txtChk('description',{max:3000,label:'상세 설명'});
+  return E;
+}
+/* 서버가 거절한 경우에도 어느 칸인지 찾아 표시 */
+function dbErrorFields(e,f){
+  const m=String(e?.message||'')+' '+String(e?.details||'');
+  if(/price_required/.test(m)) return f.deal_type.value==='월세'?[['price','보증금을 확인해 주세요.'],['monthly_rent','월세를 확인해 주세요.']]:[['price','가격을 확인해 주세요.']];
+  if(/building_fields/.test(m)) return [['total_floors','총 층수를 확인해 주세요.'],['approval_date','사용승인일을 확인해 주세요.'],['direction','방향을 확인해 주세요.'],['parking','주차를 확인해 주세요.']].filter(([n])=>!(f.elements[n]?.value||'').trim());
+  const c=m.match(/listings_([a-z_0-9]+?)_check/); if(c&&f.elements[c[1]]) return [[c[1],'입력 범위를 벗어났어요. 값을 확인해 주세요.']];
+  return [];
+}
+document.addEventListener('input',e=>{const box=e.target.closest?.('#listingForm .fld.err');if(box){box.classList.remove('err');box.querySelector('.ferr')?.remove();const fs=box.closest('fieldset.sub');if(fs&&!fs.querySelector('.fld.err'))fs.classList.remove('err')}});
+document.addEventListener('change',e=>{if(e.target.closest?.('#listingForm')&&e.target.type==='date'){const box=e.target.closest('.fld.err');if(box){box.classList.remove('err');box.querySelector('.ferr')?.remove()}}});
+
 async function submitListing(f){
+  const errs=validateListing(f);
+  if(errs.length){showFieldErrors(f,errs);return}
+  clearFieldErrors(f);
   const msg=$('#listingMsg'), btn=f.querySelector('[type=submit]'); btn.disabled=true; msg.textContent='저장하는 중…';
   try{
     const fd=new FormData(f), num=k=>fd.get(k)===''||fd.get(k)===null?null:Number(fd.get(k)), txt=k=>(fd.get(k)||'').toString().trim()||null;
@@ -982,7 +1070,12 @@ async function submitListing(f){
     if(res.error) throw res.error;
     delete DETAIL['edit-'+id]; if(id) delete DETAIL[id]; FORM_PHOTOS=[];
     toast(id?'저장했어요':'매물을 올렸어요'); loadMarket(); location.hash='#agent';
-  }catch(e){msg.textContent=errMsg(e); btn.disabled=false}
+  }catch(e){
+    btn.disabled=false;
+    const fe=dbErrorFields(e,f);
+    if(fe.length){showFieldErrors(f,fe);return}
+    msg.textContent=errMsg(e);
+  }
 }
 
 /* ---------- 관리자 ---------- */
