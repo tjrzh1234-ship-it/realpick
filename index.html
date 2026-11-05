@@ -6,6 +6,7 @@
 <meta name="description" content="매물 검색, 실거래가·AI 추정 시세 비교, 커뮤니티와 전문가 인사이트를 한곳에서 제공하는 부동산 플랫폼 리얼픽">
 <title>리얼픽 부동산</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@500;700;800&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
@@ -382,6 +383,123 @@ footer .wrap{display:grid;gap:8px}
 footer nav{display:flex;gap:16px;flex-wrap:wrap;font-weight:600}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:9px;font-size:14px;z-index:40}
 @media (prefers-reduced-motion:no-preference){.view{animation:in .25s ease-out}@keyframes in{from{transform:translateY(6px)}to{transform:none}}}
+
+/* ===== 부드러운 화면 (soft theme) : 위 기본값을 덮어쓴다 ===== */
+:root{
+  --bg:#ffffff; --surface:#ffffff; --sunk:#f4f6fb; --line:#eceff5;
+  --fg:#191f2e; --muted:#5f6779; --faint:#9aa1b1;
+  --accent:#3366ff; --accent-2:#7b5cff; --accent-soft:#eef2ff;
+  --hot:#ff6b3d; --hot-soft:#fff1eb; --ok:#12a26a; --ok-soft:#e8f8f0;
+  --display:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --body:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  --mono:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo",sans-serif;
+  --r:20px; --shadow:0 2px 14px rgb(30 45 90/.06); --shadow-h:0 10px 30px rgb(30 45 90/.11);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1320;--surface:#171c2b;--sunk:#1e2435;--line:#262d42;--accent-2:#9c86ff;--shadow:0 2px 14px rgb(0 0 0/.3);--shadow-h:0 10px 30px rgb(0 0 0/.45)}}
+:root[data-theme="dark"]{--bg:#0f1320;--surface:#171c2b;--sunk:#1e2435;--line:#262d42;--accent-2:#9c86ff;--shadow:0 2px 14px rgb(0 0 0/.3);--shadow-h:0 10px 30px rgb(0 0 0/.45)}
+body{font-size:15px;letter-spacing:-.01em;word-break:keep-all}
+.num{font-family:var(--body);font-feature-settings:"tnum"}
+h1,h2,h3{letter-spacing:-.025em}
+/* header */
+header.top{border-bottom:0;box-shadow:0 1px 0 var(--line);background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:saturate(1.6) blur(12px);-webkit-backdrop-filter:saturate(1.6) blur(12px)}
+.top .wrap{height:70px}
+.logo{font-size:22px;letter-spacing:-.04em}
+.logo i{border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff}
+nav.gnb{gap:6px}
+nav.gnb a{border-radius:0;padding:24px 12px 22px;font-size:15.5px;border-bottom:2px solid transparent;transition:color .2s}
+nav.gnb a:hover{background:none;color:var(--fg)}
+nav.gnb a[aria-current="page"]{background:none;color:var(--accent);border-bottom-color:var(--accent)}
+@media (max-width:820px){nav.gnb a{padding:10px 10px}}
+/* buttons, inputs */
+.btn{border-radius:999px;padding:9px 16px;border-color:var(--line);transition:transform .15s,box-shadow .2s,border-color .2s,background .2s}
+.btn:hover{border-color:color-mix(in srgb,var(--accent) 40%,var(--line))}
+.btn.primary{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 60%,var(--accent-2)));border-color:transparent;color:#fff;box-shadow:0 4px 14px color-mix(in srgb,var(--accent) 28%,transparent)}
+.btn.primary:hover{transform:translateY(-1px);box-shadow:0 8px 20px color-mix(in srgb,var(--accent) 34%,transparent)}
+.btn.sm{padding:6px 12px}
+.fld input,.fld select,.fld textarea,.note-in,.csearch input,.csearch select{border-radius:12px;border-color:transparent;background:var(--sunk);padding:11px 13px;transition:background .2s,box-shadow .2s}
+.fld input:focus,.fld select:focus,.fld textarea:focus,.csearch input:focus{outline:0;background:var(--surface);box-shadow:0 0 0 2px var(--accent)}
+/* cards & panels */
+.panel,.lcard,.dsec,.formcard,.column,.empty{border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.empty{border-style:solid;box-shadow:none;background:var(--sunk);border-color:transparent}
+.lcard,.column,.rate{transition:transform .2s ease,box-shadow .2s ease}
+.lcard:hover,.column:hover,a.rate:hover{transform:translateY(-3px);box-shadow:var(--shadow-h)}
+.panel{padding:22px}
+.tabs button{border:0;background:var(--sunk);padding:7px 15px;font-size:13.5px;transition:background .2s,color .2s}
+.tabs button:hover{color:var(--fg)}
+.tabs button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.subnav a{font-weight:600}
+.subnav a[aria-current="page"]{color:var(--accent);border-color:var(--accent)}
+.dday,.chip-s,.pinb,.ubadge,.tag{border-radius:999px}
+.post{padding:16px 4px;transition:background .2s}
+a.post:hover .t{color:var(--accent)}
+.sec-head{margin-bottom:18px}
+.sec-head h2{font-size:24px;font-weight:800}
+.sec-head .eyebrow{color:var(--accent);letter-spacing:0;font-size:13px;font-weight:700;margin-bottom:4px}
+section.block{margin-top:64px}
+footer{background:var(--sunk);border-top:0}
+.toast{border-radius:999px;padding:11px 20px;box-shadow:var(--shadow-h)}
+@media (prefers-reduced-motion:no-preference){.view{animation:in .35s cubic-bezier(.2,.7,.2,1)}@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}}
+
+/* 메인: 배너 슬라이드 */
+.banner{position:relative;border-radius:28px;overflow:hidden;box-shadow:var(--shadow)}
+.btrack{display:flex;transition:transform .6s cubic-bezier(.2,.7,.2,1)}
+.slide{flex:0 0 100%;min-height:300px;display:grid;place-items:center;text-align:center;padding:44px 72px 56px;position:relative;overflow:hidden}
+.slide::before,.slide::after{content:"";position:absolute;border-radius:50%;filter:blur(8px);opacity:.75;pointer-events:none}
+.slide::before{width:340px;height:340px;left:-80px;top:-120px;background:radial-gradient(circle,var(--b1) 0%,transparent 70%)}
+.slide::after{width:420px;height:420px;right:-120px;bottom:-200px;background:radial-gradient(circle,var(--b2) 0%,transparent 70%)}
+.slide.s1{background:linear-gradient(120deg,#eaf1ff 0%,#f1ecff 55%,#e9f6ff 100%);--b1:#b9ccff;--b2:#d8c8ff}
+.slide.s2{background:linear-gradient(120deg,#fff3ec 0%,#fff7e8 50%,#ffeef0 100%);--b1:#ffd2bd;--b2:#ffe2a8}
+.slide.s3{background:linear-gradient(120deg,#eafaf3 0%,#eef7ff 60%,#f3f0ff 100%);--b1:#bdebd6;--b2:#c9dcff}
+.slide>*{position:relative;z-index:1}
+.slide .kick{font-size:clamp(18px,2.2vw,26px);font-weight:800;color:#2a3147;letter-spacing:-.03em}
+.slide .big{font-size:clamp(34px,5.6vw,64px);font-weight:900;letter-spacing:-.045em;line-height:1.15;margin:4px 0 6px;background:linear-gradient(100deg,var(--g1),var(--g2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.slide.s1{--g1:#2f5bff;--g2:#8a5cff}.slide.s2{--g1:#ff6b3d;--g2:#ff9a2e}.slide.s3{--g1:#10a56b;--g2:#2f7bff}
+.slide .sub{color:#4b5468;font-size:15.5px;margin:0 0 22px;max-width:34em}
+.slide .cta{display:inline-flex;align-items:center;gap:8px;border-radius:14px;padding:13px 26px;font-weight:800;font-size:16px;color:#fff;background:linear-gradient(135deg,var(--g1),var(--g2));box-shadow:0 10px 24px color-mix(in srgb,var(--g1) 30%,transparent);transition:transform .2s;border:0}
+.slide .cta:hover{transform:translateY(-2px)}
+.barrow{position:absolute;top:50%;transform:translateY(-50%);z-index:2;width:46px;height:46px;border-radius:50%;border:0;background:rgb(255 255 255/.85);box-shadow:0 4px 14px rgb(30 45 90/.12);display:grid;place-items:center;font-size:20px;color:#2a3147;transition:background .2s}
+.barrow:hover{background:#fff}
+.barrow.prev{left:18px}.barrow.next{right:18px}
+.bdots{position:absolute;left:0;right:0;bottom:18px;display:flex;justify-content:center;gap:6px;z-index:2}
+.bdots button{width:7px;height:7px;border-radius:999px;border:0;padding:0;background:rgb(42 49 71/.22);transition:width .3s,background .3s}
+.bdots button[aria-current="true"]{width:24px;background:var(--accent)}
+@media (max-width:640px){.slide{padding:36px 22px 52px;min-height:260px}.barrow{display:none}}
+/* 메인: AI 검색창 + 동그란 바로가기 */
+.aisearch{max-width:760px;margin:28px auto 0;display:flex;gap:8px;background:var(--surface);border-radius:999px;padding:7px 7px 7px 22px;box-shadow:0 6px 26px rgb(30 45 90/.10);border:1px solid var(--line)}
+.aisearch input{flex:1;min-width:0;border:0;background:transparent;color:var(--fg);font:inherit;font-size:16px;outline:none}
+.aisearch .btn{padding:11px 22px}
+.aichips{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+.aichips button{border:0;background:var(--sunk);color:var(--muted);border-radius:999px;padding:6px 13px;font-size:13px;transition:background .2s,color .2s}
+.aichips button:hover{background:var(--accent-soft);color:var(--accent)}
+.qround{display:flex;justify-content:center;flex-wrap:wrap;gap:14px 8px;margin-top:34px}
+.qround a{display:grid;justify-items:center;gap:9px;width:96px;font-size:13.5px;font-weight:600;color:var(--muted);text-align:center}
+.qround .ic{width:76px;height:76px;border-radius:26px;display:grid;place-items:center;background:var(--qb);transition:transform .25s cubic-bezier(.2,.7,.2,1),box-shadow .25s}
+.qround a:hover .ic{transform:translateY(-4px);box-shadow:0 10px 20px color-mix(in srgb,var(--qc) 22%,transparent)}
+.qround a:hover{color:var(--fg)}
+.qround svg{width:32px;height:32px;stroke:var(--qc);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.q1{--qb:#eef3ff;--qc:#3366ff}.q2{--qb:#fff1ea;--qc:#ff6b3d}.q3{--qb:#f2edff;--qc:#7b5cff}.q4{--qb:#fff6e0;--qc:#e59a00}
+.q5{--qb:#ffeef1;--qc:#f0446a}.q6{--qb:#e9f8f1;--qc:#12a26a}.q7{--qb:#e8f6fb;--qc:#1a91c2}.q8{--qb:#f3f4f8;--qc:#4b5468}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .qround .ic{background:color-mix(in srgb,var(--qc) 16%,var(--surface))}}
+@media (max-width:520px){.qround a{width:76px;font-size:12.5px}.qround .ic{width:60px;height:60px;border-radius:20px}.qround svg{width:26px;height:26px}}
+
+/* AI 상담창: 넓은 화면에서는 오른쪽 여백에 고정 */
+.drawer{border-radius:22px;border:1px solid var(--line);box-shadow:0 16px 48px rgb(30 45 90/.18)}
+.drawer header{border-bottom:1px solid var(--line);background:linear-gradient(120deg,var(--accent-soft),color-mix(in srgb,var(--accent-2) 10%,var(--surface)))}
+.drawer header .ttl{display:flex;align-items:center;gap:8px}
+.drawer header .ttl i{width:26px;height:26px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;font-style:normal;font-size:13px}
+.drawer input{border-radius:999px;border-color:transparent;background:var(--sunk);padding:10px 14px}
+.drawer form .btn{padding:9px 16px}
+.msg{border-radius:16px;line-height:1.6}
+.msg.me{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 65%,var(--accent-2)));color:#fff;border-bottom-right-radius:6px}
+.msg.ai{border-bottom-left-radius:6px}
+.fab{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#fff;padding:14px 20px;box-shadow:0 10px 26px color-mix(in srgb,var(--accent) 35%,transparent);transition:transform .2s}
+.fab:hover{transform:translateY(-2px)}
+@media (min-width:1360px){
+  body.dock{padding-right:376px}
+  body.dock .drawer,body.dock .drawer[hidden]{display:flex!important;top:calc(84px + env(safe-area-inset-top,0px));bottom:16px;right:16px;width:344px;height:auto;box-shadow:var(--shadow-h)}
+  body.dock .fab{display:none}
+  body.dock header.top{margin-right:-376px;padding-right:376px}
+}
 </style>
 
 </head>
@@ -414,7 +532,7 @@ footer nav{display:flex;gap:16px;flex-wrap:wrap;font-weight:600}
 
 <button class="fab" id="fab" type="button">AI 채팅</button>
 <div class="drawer" id="drawer" hidden>
-  <header>리얼픽 AI <button class="icon" id="closeChat" type="button" aria-label="닫기"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
+  <header><span class="ttl"><i>AI</i>리얼픽 AI 상담</span><button class="icon" id="closeChat" type="button" aria-label="닫기"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
   <div class="msgs" id="msgs"><div class="msg ai">지역, 예산, 종류를 말씀해 주시면 지금 진행 중인 공매와 등록 매물에서 후보를 골라 체크할 점과 함께 정리해 드려요. 정부지원사업 공고나 금리도 물어보세요.<br><span class="note">예: 대구 수성구 3억 이하 아파트 공매 있어? · 감정가보다 많이 떨어진 토지 공매 알려줘</span></div></div>
   <div id="chatQuota" class="chatquota"></div>
   <form id="chatForm"><input id="chatIn" placeholder="예: 대구 수성구 5억 이하 상가 투자 어때?" autocomplete="off"><button class="btn primary" type="submit">보내기</button></form>
@@ -543,23 +661,41 @@ const secHead=(eb,t,href,label='더보기')=>`<div class="sec-head"><div><div cl
 function viewHome(){
   if(sb) AFTER.push(()=>loadHomePosts('전체'));
   const latest=[...FEED.items].filter(n=>statusOf(n)!=='closed').sort((a,b)=>b.creatPnttm.localeCompare(a.creatPnttm)).slice(0,4);
-  return `<section class="block"><div class="hero">
-    <div class="hero-main">
-      <h1>원하는 매물을 말로 찾고, 시세는 데이터로 확인하세요</h1>
-      <p>지역·예산·유형을 입력하면 AI가 후보를 좁히고, 호가와 실거래가·AI 추정 시세를 나란히 보여줍니다.</p>
-      <form class="aibar" id="heroForm"><input id="heroIn" placeholder="예: 대구 수성구 10억 이하 수익형 꼬마빌딩" autocomplete="off"><button class="btn primary" type="submit">AI로 찾기</button></form>
-      <div class="chips"><button type="button" data-ask="대구 동성로 상가 5억대">대구 동성로 상가 5억대</button><button type="button" data-ask="월세 500만 원 이상 다가구">월세 500만+ 다가구</button><button type="button" data-ask="AI 추정가보다 10% 싼 급매">AI 추정가 -10% 급매</button></div>
+  const live=AUC.items.filter(i=>aucDday(i)[1]!=='closed');
+  const cheap=live.filter(i=>i.compare&&!i.compare.skip&&i.compare.minVsEst<=-30).length;
+  AFTER.push(initBanner);
+  return `<section class="block">
+    <div class="banner" id="banner" aria-roledescription="carousel" aria-label="리얼픽 소개">
+      <div class="btrack" id="btrack">
+        <div class="slide s1" role="group" aria-label="1 / 3"><div>
+          <div class="kick">물어보면 골라주는</div><div class="big">리얼픽 AI 상담</div>
+          <p class="sub">“대구 수성구 3억 이하 아파트 공매 있어?” 처럼 말로 물어보면 진행 중인 공매와 매물에서 후보를 골라 드려요.</p>
+          <button type="button" class="cta" data-open-chat>AI에게 물어보기 →</button></div></div>
+        <div class="slide s2" role="group" aria-label="2 / 3"><div>
+          <div class="kick">주변 시세보다 싸게 시작하는</div><div class="big">공매 ${cheap?cheap.toLocaleString()+'건':'물건'}</div>
+          <p class="sub">온비드 공매 ${live.length?live.length.toLocaleString()+'건을':'물건을'} 매일 모아 국토부 실거래가와 비교했어요. 30% 이상 싸게 시작하는 물건만 모아 보세요.</p>
+          <a class="cta" href="#auctions">공매 보러가기 →</a></div></div>
+        <div class="slide s3" role="group" aria-label="3 / 3"><div>
+          <div class="kick">투자 경험을 나누는</div><div class="big">리얼픽 커뮤니티</div>
+          <p class="sub">낙찰 후기, 명도 질문, 지역 시장 이야기까지. 중개사와 투자자가 함께 답해요.</p>
+          <a class="cta" href="#community">커뮤니티 바로가기 →</a></div></div>
+      </div>
+      <button type="button" class="barrow prev" data-bslide="-1" aria-label="이전 배너">‹</button>
+      <button type="button" class="barrow next" data-bslide="1" aria-label="다음 배너">›</button>
+      <div class="bdots">${[0,1,2].map(i=>`<button type="button" data-bgo="${i}" aria-label="${i+1}번 배너" aria-current="${i===0}"></button>`).join('')}</div>
     </div>
-    <div class="quick">
-      <a href="#listings">${svg('map')}지도검색</a>
-      <a href="#auctions">${svg('gavel')}경매·공매</a>
-      <a href="#" data-open-chat>${svg('chat')}AI 채팅</a>
-      <a href="#listings">${svg('bell')}급매알림</a>
-      <a href="#listings" data-goloss>${svg('down')}손절매물</a>
-      <a href="#community">${svg('users')}커뮤니티</a>
-      <a href="#rates">${svg('trend')}금리 동향</a>
-      <a href="#support" class="hl">${svg('coin')}정부지원금</a>
-    </div></div></section>
+    <form class="aisearch" id="heroForm"><input id="heroIn" placeholder="예: 대구 수성구 10억 이하 수익형 꼬마빌딩" autocomplete="off" aria-label="AI에게 물어보기"><button class="btn primary" type="submit">AI로 찾기</button></form>
+    <div class="aichips"><button type="button" data-ask="대구 수성구 3억 이하 아파트 공매 있어?">대구 3억 이하 아파트 공매</button><button type="button" data-ask="감정가보다 많이 떨어진 토지 공매 알려줘">감정가보다 많이 떨어진 토지</button><button type="button" data-ask="지금 신청할 수 있는 소상공인 지원사업 알려줘">소상공인 지원사업</button></div>
+    <nav class="qround" aria-label="바로가기">
+      <a href="#listings" class="q1"><span class="ic">${svg('map')}</span>지도검색</a>
+      <a href="#auctions" class="q2"><span class="ic">${svg('gavel')}</span>경매·공매</a>
+      <a href="#" data-open-chat class="q3"><span class="ic">${svg('ai')}</span>AI 상담</a>
+      <a href="#listings" class="q4"><span class="ic">${svg('bell')}</span>급매알림</a>
+      <a href="#listings" data-goloss class="q5"><span class="ic">${svg('down')}</span>손절매물</a>
+      <a href="#community" class="q6"><span class="ic">${svg('users')}</span>커뮤니티</a>
+      <a href="#rates" class="q7"><span class="ic">${svg('trend')}</span>금리 동향</a>
+      <a href="#support" class="q8"><span class="ic">${svg('coin')}</span>정부지원금</a>
+    </nav></section>
 
   ${MARKET.items.length?`<section class="block">${secHead('중개사 등록 매물','새로 올라온 매물','#listings','전체 매물 보기')}
     <div class="rail">${MARKET.items.slice(0,4).map(realCard).join('')}</div></section>`:`<section class="block">${secHead('예시 매물','이런 매물을 볼 수 있어요','#listings','매물 검색')}
@@ -1964,6 +2100,28 @@ document.addEventListener('submit',async e=>{
     f.parentElement.innerHTML='<p class="note" style="margin:6px 0">신고했어요. 운영자가 확인할게요.</p>'; return}
 },true);
 
+
+/* 메인 배너 슬라이드 (5초마다 넘김, 마우스를 올리면 멈춤) */
+let BAN={i:0,timer:null};
+function bannerGo(i){
+  const tr=$('#btrack'); if(!tr) return;
+  BAN.i=(i+3)%3; tr.style.transform=`translateX(${-100*BAN.i}%)`;
+  document.querySelectorAll('[data-bgo]').forEach((b,k)=>b.setAttribute('aria-current',k===BAN.i));
+}
+function initBanner(){
+  clearInterval(BAN.timer); const el=$('#banner'); if(!el) return; bannerGo(BAN.i);
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const start=()=>{clearInterval(BAN.timer);BAN.timer=setInterval(()=>{if(!$('#banner'))return clearInterval(BAN.timer);if(!document.hidden)bannerGo(BAN.i+1)},5000)};
+  el.addEventListener('mouseenter',()=>clearInterval(BAN.timer)); el.addEventListener('mouseleave',start);
+  el.addEventListener('focusin',()=>clearInterval(BAN.timer));
+  let x0=null; el.addEventListener('touchstart',e=>{x0=e.touches[0].clientX},{passive:true});
+  el.addEventListener('touchend',e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>40)bannerGo(BAN.i+(dx<0?1:-1));x0=null;start()});
+  start();
+}
+document.addEventListener('click',e=>{
+  const s=e.target.closest('[data-bslide]'); if(s){bannerGo(BAN.i+ +s.dataset.bslide);return}
+  const g=e.target.closest('[data-bgo]'); if(g){bannerGo(+g.dataset.bgo);return}
+});
 /* ---------- 라우터 ---------- */
 function route(){return (location.hash||'#home').slice(1)||'home'}
 function render(){
@@ -1994,6 +2152,7 @@ function render(){
   const run=AFTER; AFTER=[]; run.forEach(fn=>{try{fn()}catch(e){console.error(e)}});
   document.querySelectorAll('[data-nav]').forEach(a=>{a.dataset.nav===nav?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current')});
   paintArt(); if(r==='listings') paintMap();
+  if(document.body.classList.contains('dock')&&window.__quotaUid!==uid()){window.__quotaUid=uid();refreshQuota()}
 }
 // 배경 갱신(매물 새로고침, 로그인 토큰 갱신)이 작성 중인 폼을 지우지 않게
 function softRender(){ if(document.querySelector('#app form[data-keep]')&&route()===lastRoute) return; render(); }
@@ -2061,9 +2220,21 @@ new MutationObserver(()=>{paintArt();paintMap()}).observe(document.documentEleme
 
 /* ---------- AI 채팅 (Supabase 서버 함수 → Claude) ---------- */
 let chatHistory=[], chatBusy=false;
-function openChat(prefill){$('#drawer').hidden=false;refreshQuota();$('#chatIn').focus();if(prefill){$('#chatIn').value=prefill;$('#chatForm').requestSubmit()}}
-$('#fab').onclick=()=>{const d=$('#drawer');d.hidden=!d.hidden;if(!d.hidden){refreshQuota();$('#chatIn').focus()}};
-$('#closeChat').onclick=()=>{$('#drawer').hidden=true};
+function openChat(prefill){if(DOCK_MQ.matches&&!document.body.classList.contains('dock')){lsSet('rp-dock','1');applyDock()}$('#drawer').hidden=false;refreshQuota();$('#chatIn').focus();if(prefill){$('#chatIn').value=prefill;$('#chatForm').requestSubmit()}}
+/* 넓은 화면: 오른쪽 여백에 붙어 스크롤해도 따라다니는 상담창 / 좁은 화면: 버튼으로 여닫기 */
+const DOCK_MQ=matchMedia('(min-width:1360px)');
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}}, lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+function applyDock(){
+  const on=DOCK_MQ.matches&&lsGet('rp-dock')!=='0';
+  document.body.classList.toggle('dock',on);
+  $('#closeChat').setAttribute('aria-label',on?'상담창 접기':'닫기');
+  if(on) refreshQuota();
+}
+applyDock(); DOCK_MQ.addEventListener?.('change',applyDock);
+$('#fab').onclick=()=>{
+  if(DOCK_MQ.matches){lsSet('rp-dock','1');applyDock();$('#drawer').hidden=false;$('#chatIn').focus();return}
+  const d=$('#drawer');d.hidden=!d.hidden;if(!d.hidden){refreshQuota();$('#chatIn').focus()}};
+$('#closeChat').onclick=()=>{if(document.body.classList.contains('dock')){lsSet('rp-dock','0');applyDock()}$('#drawer').hidden=true};
 function addMsg(cls,html){const m=document.createElement('div');m.className='msg '+cls;m.innerHTML=html;$('#msgs').appendChild(m);$('#msgs').scrollTop=1e9;return m}
 async function refreshQuota(){
   const el=$('#chatQuota'); if(!el) return;
