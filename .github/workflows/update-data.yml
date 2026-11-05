@@ -31,11 +31,12 @@ jobs:
           key: rtms-${{ github.run_id }}
           restore-keys: rtms-
 
-      - name: 공고·금리·공매 수집
+      - name: 공고·금리·공매·정책뉴스 수집
         env:
           BIZINFO_API_KEY: ${{ secrets.BIZINFO_API_KEY }}
           ECOS_API_KEY: ${{ secrets.ECOS_API_KEY }}
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: node scripts/update.mjs
 
       - name: 실거래가 캐시 저장
@@ -53,7 +54,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # 예전에 저장소에 올라간 캐시 파일은 저장소에서만 뺀다
           if git ls-files --error-unmatch rtms-cache.json >/dev/null 2>&1; then git rm --cached -q rtms-cache.json; fi
-          for f in notices.json rates.json auctions.json; do
+          for f in notices.json rates.json auctions.json insight.json; do
             if [ -f "$f" ]; then git add "$f"; fi
           done
           if git diff --cached --quiet; then
