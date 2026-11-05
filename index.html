@@ -1030,6 +1030,7 @@ function dbErrorFields(e,f){
   if(/price_required/.test(m)) return f.deal_type.value==='월세'?[['price','보증금을 확인해 주세요.'],['monthly_rent','월세를 확인해 주세요.']]:[['price','가격을 확인해 주세요.']];
   if(/building_fields/.test(m)) return [['total_floors','총 층수를 확인해 주세요.'],['approval_date','사용승인일을 확인해 주세요.'],['direction','방향을 확인해 주세요.'],['parking','주차를 확인해 주세요.']].filter(([n])=>!(f.elements[n]?.value||'').trim());
   const c=m.match(/listings_([a-z_0-9]+?)_check/); if(c&&f.elements[c[1]]) return [[c[1],'입력 범위를 벗어났어요. 값을 확인해 주세요.']];
+  const nn=m.match(/null value in column "([a-z_0-9]+)"/); if(nn&&f.elements[nn[1]]) return [[nn[1],'필수 항목이에요. 입력해 주세요.']];
   return [];
 }
 document.addEventListener('input',e=>{const box=e.target.closest?.('#listingForm .fld.err');if(box){box.classList.remove('err');box.querySelector('.ferr')?.remove();const fs=box.closest('fieldset.sub');if(fs&&!fs.querySelector('.fld.err'))fs.classList.remove('err')}});
@@ -1074,7 +1075,9 @@ async function submitListing(f){
     btn.disabled=false;
     const fe=dbErrorFields(e,f);
     if(fe.length){showFieldErrors(f,fe);return}
-    msg.textContent=errMsg(e);
+    // 칸을 특정할 수 없는 오류는 원인 문장을 그대로 함께 보여준다 (문의할 때 그대로 전달하면 됨)
+    const raw=String(e?.message||e||'');
+    msg.innerHTML=esc(errMsg(e))+(raw&&!errMsg(e).includes(raw)?`<br><small style="color:var(--muted)">오류 내용: ${esc(raw)}</small>`:'');
   }
 }
 
