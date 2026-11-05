@@ -272,6 +272,40 @@ fieldset.sub legend small,.fld small{font-weight:400;color:var(--faint)}
 .chk input{width:18px;height:18px;accent-color:var(--accent)}
 .formmsg{margin:0;font-size:14px;color:var(--hot);min-height:1em}
 .fld.err>span{color:var(--hot)}
+.ubadge{display:inline-block;font-size:11px;font-weight:700;padding:1px 6px;border-radius:5px;background:var(--accent-soft);color:var(--accent);margin-left:5px;vertical-align:1px}
+.ubadge.adm{background:var(--fg);color:var(--bg)}
+.ubadge.op{background:var(--sunk);color:var(--muted);margin-left:0}
+.who{font-weight:600;color:var(--muted)}
+.ctop{display:flex;gap:6px;align-items:center}
+.ctop .cat{font-size:12px;font-weight:700;color:var(--accent)}
+.pinb{font-size:11.5px;font-weight:800;padding:1px 7px;border-radius:5px;background:var(--hot-soft);color:var(--hot)}
+.cpost .pic{font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 4px;vertical-align:2px}
+.cpost .ccount{color:var(--accent);font-weight:700;font-size:14px}
+.ctool{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.csearch{display:flex;gap:6px;flex-wrap:wrap}
+.csearch input,.csearch select{font:inherit;font-size:14px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:7px 10px;min-width:0}
+.csearch input{width:220px;max-width:100%}
+.cdetail h1{font-size:24px;font-weight:800;line-height:1.35;margin:8px 0 8px;overflow-wrap:anywhere}
+.cdetail>.meta{padding-bottom:14px;border-bottom:1px solid var(--line);align-items:center}
+.cbody{white-space:pre-wrap;line-height:1.8;font-size:15.5px;overflow-wrap:anywhere;margin-top:18px;max-width:72ch}
+.cbody a,.cmt p a{color:var(--accent);text-decoration:underline}
+.cact{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:22px;padding-top:14px;border-top:1px solid var(--line)}
+.likebtn[aria-pressed="true"]{border-color:var(--hot);color:var(--hot)}
+.ccomments{margin-top:14px}
+.ccomments h2{font-size:16px;font-weight:800;margin-bottom:6px}
+.cmt{padding:12px 0;border-top:1px solid var(--line)}
+.cmt:first-of-type{border-top:0}
+.cmt .meta{align-items:center}
+.cmt p{margin:6px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.65;font-size:14.5px}
+.cmt.hid p{opacity:.55}
+.cmt .linkbtn{font-size:12px;color:var(--faint)}
+.cform{display:grid;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.cform textarea{font:inherit;font-size:14px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px;width:100%;resize:vertical}
+.cform-row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.creport{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;padding:10px;background:var(--sunk);border-radius:9px}
+.creport select,.creport input{font:inherit;font-size:13px;color:var(--fg);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 8px;min-width:0}
+.creport input{flex:1;min-width:140px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .fld.err input,.fld.err select,.fld.err textarea{border:1.5px solid var(--hot);background:color-mix(in srgb,var(--hot) 6%,var(--bg))}
 .fld .ferr{display:block;color:var(--hot);font-size:12.5px;font-weight:600}
 fieldset.sub.err{border-color:var(--hot)}
@@ -374,7 +408,7 @@ footer nav{display:flex;gap:16px;flex-wrap:wrap;font-weight:600}
 <footer>
   <div class="wrap">
     <nav><a href="#insight">전문가 인사이트</a><a href="#support">정부지원금</a><a href="#rates">금리 동향</a><a href="#community">커뮤니티</a></nav>
-    <div>리얼픽은 매물 검색, 실거래가·AI 추정 시세 비교, 커뮤니티와 전문가 인사이트를 한곳에서 제공하는 부동산 플랫폼 시안입니다. 매물은 등록 심사를 거친 개업공인중개사가 올리며, 커뮤니티·칼럼은 예시입니다.</div>
+    <div>리얼픽은 매물 검색, 실거래가·AI 추정 시세 비교, 커뮤니티와 전문가 인사이트를 한곳에서 제공하는 부동산 플랫폼 시안입니다. 매물은 등록 심사를 거친 개업공인중개사가 올리며, 전문가 칼럼은 예시입니다.</div>
   </div>
 </footer>
 
@@ -507,6 +541,7 @@ const secHead=(eb,t,href,label='더보기')=>`<div class="sec-head"><div><div cl
 
 /* ---------- 뷰 ---------- */
 function viewHome(){
+  if(sb) AFTER.push(()=>loadHomePosts('전체'));
   const latest=[...FEED.items].filter(n=>statusOf(n)!=='closed').sort((a,b)=>b.creatPnttm.localeCompare(a.creatPnttm)).slice(0,4);
   return `<section class="block"><div class="hero">
     <div class="hero-main">
@@ -535,8 +570,8 @@ function viewHome(){
 
   <section class="block"><div class="duo">
     <div class="panel">${secHead('커뮤니티','베스트 게시글','#community')}
-      <div class="tabs" id="homeTabs">${['전체','투자후기','Q&A','시장분석'].map((t,i)=>`<button type="button" aria-pressed="${i===0}" data-cat="${t}">${t}</button>`).join('')}</div>
-      <div id="homePosts">${POSTS.slice(0,4).map(postItem).join('')}</div></div>
+      <div class="tabs" id="homeTabs">${(sb?['전체',...CCATS]:['전체','투자후기','Q&A','시장분석']).map((t,i)=>`<button type="button" aria-pressed="${i===0}" data-cat="${t}">${t}</button>`).join('')}</div>
+      <div id="homePosts">${sb?'<div class="note" style="padding:14px 0">불러오는 중…</div>':POSTS.slice(0,4).map(postItem).join('')}</div>${sb?`<div style="margin-top:10px"><a class="btn sm" href="#write">글쓰기</a></div>`:''}</div>
     <div class="panel">${secHead('전문가 인사이트','정부지원금 최신 공고','#support')}
       ${latest.length?latest.map(noticeMini).join(''):'<div class="note">공고 피드를 불러오는 중입니다.</div>'}
       <div class="note" style="margin-top:10px">${FEED.updatedAt?'기업마당 공고 · '+fmtTime(FEED.updatedAt)+' 동기화':''}</div></div>
@@ -559,14 +594,6 @@ function viewListings(){
       <div class="listcol">${rows.map(l=>{const d=Math.round((1-l.ask/l.avm)*100);return `<button type="button" class="lrow ${l.id===selListing?'sel':''}" data-pick="${l.id}"><span class="kind" style="font-size:12px;color:var(--muted);font-weight:600">${esc(l.kind)} · ${esc(l.area)}</span><span style="font-weight:600">${esc(l.title)}</span><span class="price"><b class="num" style="font-size:17px">${won(l.ask)}</b>${d>0?`<span class="drop">AI 추정가 대비 -${d}%</span>`:''}</span><span class="note">실거래 ${won(l.real)} · AI 추정 ${won(l.avm)} · ${esc(l.size)}</span></button>`}).join('')||'<div class="empty">조건에 맞는 매물이 없어요.</div>'}</div>
     </div><p class="note">지도와 매물은 화면 구성을 보여주는 예시입니다. AI 추정 시세는 참고 지표이며 실제 거래가와 다를 수 있습니다.</p></section>`;
 }
-let commCat='전체';
-function viewCommunity(){
-  const rows=POSTS.filter(p=>commCat==='전체'||p.cat===commCat);
-  return `<section class="block">${secHead('커뮤니티','투자 경험을 나누는 곳')}
-    <div class="tabs" id="commTabs">${['전체','투자후기','Q&A','시장분석'].map(t=>`<button type="button" aria-pressed="${t===commCat}" data-cat="${t}">${t}</button>`).join('')}</div>
-    <div class="panel">${rows.map(postItem).join('')}</div></section>`;
-}
-
 function insightNav(cur){return `<nav class="subnav" aria-label="전문가 인사이트">
   <a href="#insight" ${cur==='insight'?'aria-current="page"':''}>전문가 칼럼</a>
   <a href="#rates" ${cur==='rates'?'aria-current="page"':''}>금리 동향</a>
@@ -970,8 +997,8 @@ function markField(f,name,text){
 function showFieldErrors(f,errs){
   clearFieldErrors(f);
   const els=errs.map(([n,t])=>markField(f,n,t)).filter(Boolean);
-  const msg=$('#listingMsg');
-  msg.textContent=errs.length?`빨간색으로 표시된 ${errs.length}개 항목을 확인해 주세요.`:'';
+  const msg=f.querySelector('.formmsg');
+  if(msg) msg.textContent=errs.length?`빨간색으로 표시된 ${errs.length}개 항목을 확인해 주세요.`:'';
   const first=els[0];
   if(first){
     const fs=first.closest('fieldset.sub'); if(fs&&fs.hidden) fs.hidden=false;
@@ -1033,7 +1060,7 @@ function dbErrorFields(e,f){
   const nn=m.match(/null value in column "([a-z_0-9]+)"/); if(nn&&f.elements[nn[1]]) return [[nn[1],'필수 항목이에요. 입력해 주세요.']];
   return [];
 }
-document.addEventListener('input',e=>{const box=e.target.closest?.('#listingForm .fld.err');if(box){box.classList.remove('err');box.querySelector('.ferr')?.remove();const fs=box.closest('fieldset.sub');if(fs&&!fs.querySelector('.fld.err'))fs.classList.remove('err')}});
+document.addEventListener('input',e=>{const box=e.target.closest?.('form .fld.err');if(box){box.classList.remove('err');box.querySelector('.ferr')?.remove();const fs=box.closest('fieldset.sub');if(fs&&!fs.querySelector('.fld.err'))fs.classList.remove('err')}});
 document.addEventListener('change',e=>{if(e.target.closest?.('#listingForm')&&e.target.type==='date'){const box=e.target.closest('.fld.err');if(box){box.classList.remove('err');box.querySelector('.ferr')?.remove()}}});
 
 async function submitListing(f){
@@ -1089,12 +1116,13 @@ function viewAdmin(){
   if(!isAdmin()) return '<div class="empty">관리자만 볼 수 있어요.</div>';
   AFTER.push(loadAdmin);
   return `<h1 style="font-size:26px;font-weight:800;margin-bottom:14px">관리자</h1>
-  <nav class="subnav">${[['agents','중개사 심사'],['members','회원'],['reports','허위매물 신고'],['hidden','비공개 매물']].map(([k,t])=>`<a href="#admin" data-atab="${k}" ${ADMIN_TAB===k?'aria-current="page"':''}>${t}</a>`).join('')}</nav>
+  <nav class="subnav">${[['agents','중개사 심사'],['members','회원'],['reports','허위매물 신고'],['hidden','비공개 매물'],['community','커뮤니티 신고']].map(([k,t])=>`<a href="#admin" data-atab="${k}" ${ADMIN_TAB===k?'aria-current="page"':''}>${t}</a>`).join('')}</nav>
   <div class="panel" id="adminBox"><div class="note">불러오는 중입니다.</div></div>`;
 }
 async function loadAdmin(){
   const box=$('#adminBox'); if(!box) return;
   if(ADMIN_TAB==='members'){ await loadAdminMembers(box); return; }
+  if(ADMIN_TAB==='community'){ await loadAdminCommunity(box); return; }
   if(ADMIN_TAB==='agents'){
     const {data,error}=await sb.rpc('admin_agents'); if(error){box.innerHTML=esc(errMsg(error));return}
     const order={pending:0,rejected:1,approved:2,suspended:3};
@@ -1525,13 +1553,14 @@ function viewMy(){
   const regionCount=r=>AUC.items.filter(i=>i.sido===r&&aucDday(i)[1]!=='closed').length;
   return `<section class="block"><div class="sec-head"><div><div class="eyebrow">마이페이지</div><h2>${esc(p.nickname||'회원')}님</h2></div>
     <div class="acts">${a?`<a class="btn" href="#agent">중개사 센터</a>`:''}<span class="dday ${p.plan&&p.plan!=='free'?'open':'closed'}">${p.plan&&p.plan!=='free'?esc(p.plan)+' 요금제':'무료 회원'}</span></div></div>
-    <nav class="subnav">${[['favs',`관심 목록 ${rows.length}`],['info','내 정보'],['account','계정 관리']].map(([k,t])=>`<a href="#my" data-mytab="${k}" ${MY_TAB===k?'aria-current="page"':''}>${t}</a>`).join('')}</nav>
+    <nav class="subnav">${[['favs',`관심 목록 ${rows.length}`],['posts','내가 쓴 글'],['info','내 정보'],['account','계정 관리']].map(([k,t])=>`<a href="#my" data-mytab="${k}" ${MY_TAB===k?'aria-current="page"':''}>${t}</a>`).join('')}</nav>
     ${MY_TAB==='favs'?`
       ${regions.length?`<div class="trustbar"><span class="note" style="font-weight:700">관심 지역 공매</span>${regions.map(r=>`<button type="button" class="tchip" data-goregion="${esc(r)}">${esc(r)} <span class="num">${regionCount(r)}</span></button>`).join('')}</div>`:''}
       ${rows.length?`<div class="panel">${rows.map(r=>{const [sl,sc]=favStatus(r);return `<div class="post" style="grid-template-columns:auto 1fr auto;display:grid;align-items:center;gap:10px">
         <span class="chip-s">${KIND_NAME[r.kind]}</span><a href="${favLink(r)}" class="t">${esc(r.title||r.ref_id)}</a>
         <span class="acts" style="align-items:center"><span class="dday ${sc}">${esc(sl)}</span>${heartBtn(r.kind,r.ref_id,r.title)}</span></div>`}).join('')}</div>`
       :`<div class="empty">아직 담은 게 없어요. 공매·매물·지원사업 상세 화면의 하트를 누르면 여기에 모여요.</div>`}`:''}
+    ${MY_TAB==='posts'?(AFTER.push(loadMyPosts),`<div class="panel" id="myPosts"><div class="note">불러오는 중…</div></div>`):''}
     ${MY_TAB==='info'?`<div class="formcard wide" style="margin:0">
       <form id="profileForm" class="fgrid">
         <label class="fld"><span>이메일</span><input value="${esc(AUTH.session.user.email)}" disabled></label>
@@ -1585,7 +1614,7 @@ function footerInfo(){
   const c=COMPANY, parts=[['상호',c.name],['대표',c.ceo],['사업자등록번호',c.bizNo],['통신판매업 신고',c.mailOrderNo],['주소',c.address],['이메일',c.email],['전화',c.phone]].filter(([,v])=>v);
   return `<nav><a href="#terms">이용약관</a><a href="#privacy"><b>개인정보처리방침</b></a><a href="#insight">전문가 인사이트</a><a href="#support">정부지원금</a><a href="#auctions">경매·공매</a></nav>
     ${parts.length?`<div class="bizinfo">${parts.map(([k,v])=>`<span>${k} ${esc(v)}</span>`).join('')}</div>`:''}
-    <div>리얼픽은 매물 검색, 경매·공매와 실거래가 비교, 지원사업 공고, 금리 정보를 한곳에서 제공합니다. 매물은 등록 심사를 거친 개업공인중개사가 올리며, 커뮤니티·칼럼은 예시입니다. 공매·실거래·공고 정보는 공공기관 공개 자료이고, 시세 추정과 AI 답변은 참고용입니다.</div>`;
+    <div>리얼픽은 매물 검색, 경매·공매와 실거래가 비교, 지원사업 공고, 금리 정보를 한곳에서 제공합니다. 매물은 등록 심사를 거친 개업공인중개사가 올리며, 전문가 칼럼은 예시입니다. 공매·실거래·공고 정보는 공공기관 공개 자료이고, 시세 추정과 AI 답변은 참고용입니다.</div>`;
 }
 
 /* ---------- 관리자: 회원 ---------- */
@@ -1628,7 +1657,7 @@ document.addEventListener('submit',async e=>{
   if(f.id==='leaveForm'){e.preventDefault();const m=$('#leaveMsg');if(f.confirm.value.trim()!=='탈퇴합니다'){m.textContent='"탈퇴합니다"라고 정확히 적어주세요.';return}
     const btn=f.querySelector('[type=submit]');btn.disabled=true;m.textContent='탈퇴 처리 중…';
     try{
-      for(const bucket of ['listing-photos','agent-licenses']){
+      for(const bucket of ['listing-photos','agent-licenses','post-photos']){
         const {data:files}=await sb.storage.from(bucket).list(uid(),{limit:1000});
         if(files?.length) await sb.storage.from(bucket).remove(files.map(x=>`${uid()}/${x.name}`));
       }
@@ -1636,6 +1665,303 @@ document.addEventListener('submit',async e=>{
       await sb.auth.signOut(); toast('탈퇴했어요. 그동안 이용해 주셔서 고맙습니다.'); location.hash='#home';
     }catch(err){m.textContent=errMsg(err);btn.disabled=false}
     return}
+},true);
+
+/* ---------- 커뮤니티 (게시글·댓글·추천·신고) ---------- */
+const CCATS=['자유','투자후기','Q&A','시장분석','경매·공매'];
+const CREASONS=['광고·홍보','욕설·비방','허위 정보','개인정보 노출','음란·불법','기타'];
+const CPAGE=20;
+const C={cat:'전체',q:'',sort:'new',page:1,rows:null,total:0,err:null,key:''};
+const POSTD={};
+let POST_PHOTOS=[];
+const ccKey=()=>JSON.stringify([C.cat,C.q,C.sort,C.page]);
+function relTime(d){
+  const s=(Date.now()-Date.parse(d))/1e3;
+  if(s<60) return '방금'; if(s<3600) return Math.floor(s/60)+'분 전'; if(s<86400) return Math.floor(s/3600)+'시간 전';
+  if(s<7*86400) return Math.floor(s/86400)+'일 전'; return kst(d).slice(0,10);
+}
+const badgeHtml=b=>b?`<span class="ubadge ${b==='운영자'?'adm':''}">${esc(b)}</span>`:'';
+const byline=x=>`<span class="who">${esc(x.author_nick||'회원')}${badgeHtml(x.author_badge)}</span>`;
+function richBody(t){
+  return esc(t).replace(/https:\/\/[^\s<>"']+/g,u=>`<a href="${u}" target="_blank" rel="noopener nofollow ugc">${u}</a>`);
+}
+const catChip=p=>p.category==='공지'?'<span class="pinb">공지</span>':`${p.pinned?'<span class="pinb">고정</span>':''}<span class="cat">${esc(p.category)}</span>`;
+function postRow(p){
+  const ex=(p.body||'').replace(/\s+/g,' ').slice(0,140);
+  return `<a class="post cpost" href="#post-${p.id}">
+    <span class="ctop">${catChip(p)}</span>
+    <span class="t">${esc(p.title)}${p.photos?.length?' <span class="pic" aria-label="사진 있음">사진</span>':''}${p.comment_count?` <span class="ccount">[${p.comment_count}]</span>`:''}</span>
+    ${ex?`<span class="ex">${esc(ex)}</span>`:''}
+    <span class="meta">${byline(p)}<span>${relTime(p.created_at)}</span><span>조회 <span class="num">${(p.views||0).toLocaleString()}</span></span><span>추천 <span class="num">${p.like_count||0}</span></span></span></a>`;
+}
+
+/* 목록 */
+async function loadPosts(){
+  const key=ccKey(); C.key=key;
+  let q=sb.from('posts').select('id,category,title,body,author_nick,author_badge,views,like_count,comment_count,created_at,pinned,photos',{count:'exact'}).eq('status','active');
+  if(C.cat!=='전체') q=q.eq('category',C.cat);
+  const s=C.q.replace(/[%,()*\\"]/g,' ').trim();
+  if(s) q=q.or(`title.ilike."%${s}%",body.ilike."%${s}%"`);
+  if(C.sort==='like') q=q.order('like_count',{ascending:false});
+  else if(C.sort==='comment') q=q.order('comment_count',{ascending:false});
+  else if(C.cat==='전체'&&!s) q=q.order('pinned',{ascending:false});
+  q=q.order('created_at',{ascending:false}).range((C.page-1)*CPAGE,C.page*CPAGE-1);
+  const {data,error,count}=await q;
+  if(C.key!==key) return;
+  C.rows=data||[]; C.total=count||0; C.err=error?errMsg(error):null;
+  const box=$('#commList'); if(box) box.innerHTML=commListHtml();
+}
+function commListHtml(){
+  if(C.err) return `<div class="empty">${esc(C.err)}</div>`;
+  if(!C.rows) return '<div class="note" style="padding:16px 0">불러오는 중…</div>';
+  if(!C.rows.length) return `<div class="empty">${C.q?'검색 결과가 없어요.':'아직 글이 없어요. 첫 글을 남겨 보세요.'}<div style="margin-top:12px"><a class="btn primary" href="#write">글쓰기</a></div></div>`;
+  const pages=Math.max(1,Math.ceil(C.total/CPAGE)), cur=C.page;
+  const from=Math.max(1,Math.min(cur-2,pages-4)), nums=[]; for(let i=from;i<=Math.min(pages,from+4);i++) nums.push(i);
+  return C.rows.map(postRow).join('')+(pages>1?`<nav class="pager" aria-label="페이지">
+    <button type="button" data-cpg="${cur-1}" ${cur<=1?'disabled':''} aria-label="이전">‹</button>
+    ${nums.map(n=>`<button type="button" data-cpg="${n}" aria-current="${n===cur}">${n}</button>`).join('')}
+    <button type="button" data-cpg="${cur+1}" ${cur>=pages?'disabled':''} aria-label="다음">›</button></nav>`:'');
+}
+let commCat='전체';
+function viewCommunity(){
+  if(!sb){
+    const rows=POSTS.filter(p=>commCat==='전체'||p.cat===commCat);
+    return `<section class="block">${secHead('커뮤니티','투자 경험을 나누는 곳')}
+      <div class="tabs" id="commTabs">${['전체','투자후기','Q&A','시장분석'].map(t=>`<button type="button" aria-pressed="${t===commCat}" data-cat="${t}">${t}</button>`).join('')}</div>
+      <div class="panel">${rows.map(postItem).join('')}</div><p class="note">예시 글입니다. 서버가 연결되면 회원이 직접 글을 쓸 수 있어요.</p></section>`;
+  }
+  AFTER.push(loadPosts);
+  return `<section class="block"><div class="sec-head"><div><div class="eyebrow">커뮤니티</div><h2>투자 경험을 나누는 곳</h2></div><a class="btn primary" href="#write">글쓰기</a></div>
+    <div class="ctool">
+      <div class="tabs" id="cTabs" style="margin:0">${['전체',...CCATS,'공지'].map(t=>`<button type="button" aria-pressed="${t===C.cat}" data-ccat="${esc(t)}">${esc(t)}</button>`).join('')}</div>
+      <form id="cSearch" class="csearch" role="search"><input id="cQ" value="${esc(C.q)}" placeholder="제목·내용 검색" maxlength="40" aria-label="커뮤니티 검색">
+        <select id="cSort" aria-label="정렬">${[['new','최신순'],['like','추천순'],['comment','댓글순']].map(([v,t])=>`<option value="${v}" ${C.sort===v?'selected':''}>${t}</option>`).join('')}</select>
+        <button class="btn" type="submit">검색</button></form>
+    </div>
+    <div class="panel" id="commList">${C.key===ccKey()?commListHtml():'<div class="note" style="padding:16px 0">불러오는 중…</div>'}</div>
+    <p class="note">광고·비방·개인정보 노출 글은 신고 3건이 쌓이면 운영자 확인 전까지 숨겨져요.</p></section>`;
+}
+
+/* 메인 화면 베스트 글 */
+async function loadHomePosts(cat){
+  const box=$('#homePosts'); if(!box||!sb) return;
+  const since=new Date(Date.now()-30*864e5).toISOString();
+  const base=()=>{let q=sb.from('posts').select('id,category,title,body,author_nick,author_badge,views,like_count,comment_count,created_at,pinned,photos').eq('status','active').neq('category','공지');if(cat&&cat!=='전체')q=q.eq('category',cat);return q};
+  let {data}=await base().gt('created_at',since).order('like_count',{ascending:false}).order('comment_count',{ascending:false}).order('created_at',{ascending:false}).limit(4);
+  if(!data?.length) ({data}=await base().order('created_at',{ascending:false}).limit(4));
+  const b=$('#homePosts'); if(!b) return;
+  b.innerHTML=data?.length?data.map(postRow).join(''):`<div class="note" style="padding:14px 0">아직 글이 없어요. <a href="#write" style="color:var(--accent);font-weight:700">첫 글 쓰기</a></div>`;
+}
+
+/* 글 상세 */
+async function loadPost(id){
+  const [pr,cr]=await Promise.all([
+    sb.from('posts').select('*').eq('id',id).maybeSingle(),
+    sb.from('comments').select('*').eq('post_id',id).order('created_at',{ascending:true}).limit(500)
+  ]);
+  let liked=false;
+  if(pr.data&&uid()){const {data}=await sb.from('post_likes').select('post_id').eq('post_id',id).eq('user_id',uid()).maybeSingle();liked=!!data}
+  POSTD[id]=pr.data?{p:pr.data,cs:cr.data||[],liked}:{missing:true};
+  if(route()==='post-'+id) render();
+}
+function viewPost(id){
+  const back=`<a class="back" href="#community">← 커뮤니티</a>`;
+  if(!sb) return back+'<div class="empty">서버 연결 후 볼 수 있어요.</div>';
+  const d=POSTD[id];
+  if(!d){AFTER.push(()=>loadPost(id));return back+'<div class="empty">글을 불러오는 중입니다.</div>'}
+  if(d.missing) return back+'<div class="empty">삭제됐거나 숨겨진 글이에요.</div>';
+  AFTER.push(()=>{let seen={};try{seen=JSON.parse(sessionStorage.getItem('rp-pseen')||'{}')}catch(e){} if(!seen[id]){sb.rpc('bump_post_view',{p_id:id});seen[id]=1;try{sessionStorage.setItem('rp-pseen',JSON.stringify(seen))}catch(e){}}});
+  const p=d.p, me=uid(), mine=p.author===me, adm=isAdmin();
+  const photos=(p.photos||[]).map(safeUrl).filter(Boolean);
+  const cmts=d.cs;
+  return `${back}
+  <article class="panel cdetail">
+    <div class="ctop">${catChip(p)}${p.status==='hidden'?`<span class="dday closed">숨김 · ${esc(p.hidden_reason||'')}</span>`:''}</div>
+    <h1>${esc(p.title)}</h1>
+    <div class="meta">${byline(p)}<span class="num">${kst(p.created_at)}</span>${p.edited_at?'<span>수정됨</span>':''}<span>조회 <span class="num">${(p.views||0).toLocaleString()}</span></span></div>
+    <div class="cbody">${richBody(p.body)}</div>
+    ${photos.length?`<div class="gallery" style="margin-top:16px">${photos.map((u,i)=>`<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="첨부 사진 ${i+1}" loading="lazy"></a>`).join('')}</div>`:''}
+    <div class="cact">
+      <button type="button" class="btn likebtn" data-plike="${p.id}" aria-pressed="${d.liked}">${d.liked?'♥':'♡'} 추천 <span class="num">${p.like_count||0}</span></button>
+      <button type="button" class="btn" data-copy="${esc(location.href.split('#')[0]+'#post-'+p.id)}">링크 복사</button>
+      <span style="flex:1"></span>
+      ${mine||adm?`<a class="btn sm" href="#write-${p.id}">수정</a><button type="button" class="btn sm" data-pdel="${p.id}">삭제</button>`:''}
+      ${adm?`<button type="button" class="btn sm" data-ppin="${p.id}" data-on="${p.pinned}">${p.pinned?'고정 해제':'맨 위 고정'}</button><button type="button" class="btn sm" data-phide="${p.id}" data-on="${p.status==='hidden'}">${p.status==='hidden'?'다시 공개':'숨기기'}</button>`:''}
+      ${me&&!mine?`<button type="button" class="btn sm" data-crep="post:${p.id}">신고</button>`:''}
+    </div>
+    <div id="crep-post-${p.id}"></div>
+  </article>
+  <section class="panel ccomments" id="comments">
+    <h2>댓글 <span class="num">${cmts.filter(c=>c.status==='active').length}</span></h2>
+    ${cmts.length?cmts.map(c=>`<div class="cmt ${c.status==='hidden'?'hid':''}" id="c-${c.id}">
+      <div class="meta">${byline(c)}${c.author===p.author?'<span class="ubadge op">글쓴이</span>':''}<span>${relTime(c.created_at)}</span>${c.edited_at?'<span>수정됨</span>':''}${c.status==='hidden'?'<span style="color:var(--hot)">숨김</span>':''}
+        <span style="flex:1"></span>${c.author===me||adm?`<button type="button" class="linkbtn" data-cdel="${c.id}">삭제</button>`:''}${adm?`<button type="button" class="linkbtn" data-chide="${c.id}" data-on="${c.status==='hidden'}">${c.status==='hidden'?'다시 공개':'숨기기'}</button>`:''}${me&&c.author!==me?`<button type="button" class="linkbtn" data-crep="comment:${c.id}">신고</button>`:''}</div>
+      <p>${richBody(c.body)}</p><div id="crep-comment-${c.id}"></div></div>`).join(''):'<p class="note" style="margin:6px 0 14px">첫 댓글을 남겨 보세요.</p>'}
+    ${me?`<form id="commentForm" class="cform" data-post="${p.id}" data-keep novalidate>
+        <label class="fld"><span class="sr">댓글</span><textarea name="body" rows="3" maxlength="1000" placeholder="댓글을 남겨 주세요. 서로 존중하는 표현을 써 주세요."></textarea></label>
+        <div class="cform-row"><small class="note" id="cmtCount">0 / 1,000</small><button class="btn primary" type="submit">댓글 등록</button></div>
+        <p class="formmsg" role="status"></p></form>`
+      :`<p class="note" style="font-size:14px">댓글을 쓰려면 <a href="#login" style="color:var(--accent);font-weight:700">로그인</a>해 주세요.</p>`}
+  </section>`;
+}
+function reportFormHtml(kind,id){
+  return `<form class="creport" data-kind="${kind}" data-id="${id}">
+    <select name="reason" aria-label="신고 사유">${CREASONS.map(r=>`<option>${r}</option>`).join('')}</select>
+    <input name="detail" maxlength="500" placeholder="자세한 내용 (선택)" aria-label="자세한 내용">
+    <button class="btn sm primary" type="submit">신고하기</button><button class="btn sm" type="button" data-crepx>취소</button></form>`;
+}
+
+/* 글쓰기·수정 */
+function viewWrite(id){
+  if(!sb) return notConnected();
+  if(!AUTH.ready) return '<div class="empty">불러오는 중입니다.</div>';
+  if(!AUTH.session) return `<div class="formcard"><h1>글쓰기</h1><p class="note">글을 쓰려면 로그인해 주세요.</p><div><a class="btn primary" href="#login">로그인</a> <a class="btn" href="#signup">회원가입</a></div></div>`;
+  if(id&&!DETAIL['pedit-'+id]){
+    AFTER.push(async()=>{const {data}=await sb.from('posts').select('*').eq('id',id).maybeSingle();DETAIL['pedit-'+id]=data&&(data.author===uid()||isAdmin())?data:{missing:true};POST_PHOTOS=[...(data?.photos||[])];render()});
+    return '<div class="empty">글을 불러오는 중입니다.</div>';
+  }
+  const p=id?DETAIL['pedit-'+id]:null;
+  if(p?.missing) return '<div class="empty">수정할 수 없는 글이에요.</div>';
+  if(!id) POST_PHOTOS=[];
+  const cats=isAdmin()?['공지',...CCATS]:CCATS;
+  const curCat=p?.category||(C.cat!=='전체'&&C.cat!=='공지'?C.cat:'자유');
+  return `<a class="back" href="${id?'#post-'+id:'#community'}">← ${id?'글로 돌아가기':'커뮤니티'}</a><div class="formcard wide"><h1>${id?'글 수정':'글쓰기'}</h1>
+  <form id="postForm" class="fgrid" data-keep data-id="${id||''}" novalidate>
+    <label class="fld"><span>카테고리 *</span><select name="category">${cats.map(c=>`<option ${c===curCat?'selected':''}>${c}</option>`).join('')}</select></label>
+    ${isAdmin()?`<label class="chk" style="align-self:end"><input type="checkbox" name="pinned" ${p?.pinned?'checked':''}> 맨 위에 고정</label>`:'<div></div>'}
+    <label class="fld wide"><span>제목 *</span><input name="title" maxlength="100" value="${esc(p?.title||'')}" placeholder="제목 (2~100자)"></label>
+    <label class="fld wide"><span>내용 *</span><textarea name="body" rows="14" maxlength="10000" placeholder="투자 경험, 질문, 시장 이야기를 자유롭게 나눠 주세요.&#10;전화번호·주소 같은 개인정보와 광고 글은 올리지 말아 주세요.">${esc(p?.body||'')}</textarea><small class="note" id="bodyCount">${[...(p?.body||'')].length.toLocaleString()} / 10,000</small></label>
+    <div class="fld wide"><span>사진 (최대 5장)</span>
+      <div class="thumbs" id="pThumbs">${pthumbs()}</div>
+      <input name="photos" type="file" accept="image/jpeg,image/png,image/webp" multiple></div>
+    <p class="formmsg wide" role="status"></p>
+    <div class="wide" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" type="submit">${id?'저장하기':'올리기'}</button><a class="btn" href="${id?'#post-'+id:'#community'}">취소</a></div>
+  </form></div>`;
+}
+const pthumbs=()=>POST_PHOTOS.map((u,i)=>`<div class="th"><img src="${esc(safeUrl(u))}" alt=""><button type="button" class="icon" data-rmpphoto="${i}" aria-label="사진 빼기">✕</button></div>`).join('');
+function validatePost(f){
+  const E=[], len=n=>[...(f.elements[n].value||'').trim()].length;
+  const t=len('title'), b=len('body');
+  if(!t) E.push(['title','제목을 입력해 주세요.']); else if(t<2) E.push(['title','2자 이상 입력해 주세요.']); else if(t>100) E.push(['title',`100자 이하로 줄여 주세요. (지금 ${t}자)`]);
+  if(!b) E.push(['body','내용을 입력해 주세요.']); else if(b<5) E.push(['body',`5자 이상 입력해 주세요. (지금 ${b}자)`]); else if(b>10000) E.push(['body',`10,000자 이하로 줄여 주세요. (지금 ${b}자)`]);
+  const nf=f.photos.files.length;
+  if(POST_PHOTOS.length+nf>5) E.push(['photos',`사진은 5장까지예요. (지금 ${POST_PHOTOS.length+nf}장)`]);
+  if([...f.photos.files].some(x=>x.size>20e6)) E.push(['photos','20MB가 넘는 사진이 있어요.']);
+  return E;
+}
+async function submitPost(f){
+  const errs=validatePost(f); if(errs.length){showFieldErrors(f,errs);return}
+  clearFieldErrors(f);
+  const msg=f.querySelector('.formmsg'), btn=f.querySelector('[type=submit]'); btn.disabled=true; msg.textContent='저장하는 중…';
+  try{
+    const urls=[], files=[...f.photos.files].slice(0,5-POST_PHOTOS.length);
+    for(const [i,file] of files.entries()){
+      msg.textContent=`사진 올리는 중… (${i+1}/${files.length})`;
+      const blob=await shrinkImage(file), ext=blob.type==='image/png'?'png':blob.type==='image/webp'?'webp':'jpg';
+      const path=`${uid()}/${Date.now()}-${i}.${ext}`;
+      const up=await sb.storage.from('post-photos').upload(path,blob,{contentType:blob.type||'image/jpeg'});
+      if(up.error) throw up.error;
+      urls.push(sb.storage.from('post-photos').getPublicUrl(path).data.publicUrl);
+    }
+    const row={category:f.category.value,title:f.title.value.trim(),body:f.body.value.trim(),photos:[...POST_PHOTOS,...urls].filter(safeUrl).slice(0,5)};
+    if(isAdmin()) row.pinned=!!f.pinned?.checked;
+    const id=f.dataset.id;
+    const res=id?await sb.from('posts').update(row).eq('id',id).select('id').single():await sb.from('posts').insert(row).select('id').single();
+    if(res.error) throw res.error;
+    delete DETAIL['pedit-'+id]; delete POSTD[res.data.id]; POST_PHOTOS=[]; C.key='';
+    toast(id?'저장했어요':'글을 올렸어요'); location.hash='#post-'+res.data.id;
+  }catch(e){
+    btn.disabled=false;
+    const m=String(e?.message||'');
+    if(/하루|운영자만|로그인/.test(m)){msg.textContent=m;return}
+    const fe=[]; if(/title/.test(m)) fe.push(['title','제목 길이를 확인해 주세요.']); if(/body/.test(m)) fe.push(['body','내용 길이를 확인해 주세요.']);
+    if(fe.length){showFieldErrors(f,fe);return}
+    msg.innerHTML=esc(errMsg(e))+(m?`<br><small style="color:var(--muted)">오류 내용: ${esc(m)}</small>`:'');
+  }
+}
+
+/* 내가 쓴 글 (마이페이지) */
+async function loadMyPosts(){
+  const box=$('#myPosts'); if(!box) return;
+  const {data,error}=await sb.from('posts').select('id,category,title,body,author_nick,author_badge,views,like_count,comment_count,created_at,pinned,photos,status').eq('author',uid()).order('created_at',{ascending:false}).limit(100);
+  if(!$('#myPosts')) return;
+  $('#myPosts').innerHTML=error?esc(errMsg(error)):data.length?data.map(p=>postRow(p).replace('<span class="ctop">',`<span class="ctop">${p.status==='hidden'?'<span class="dday closed">숨김</span>':''}`)).join(''):`<div class="empty">아직 쓴 글이 없어요. <a href="#write" style="color:var(--accent);font-weight:700">글쓰기</a></div>`;
+}
+
+/* 관리자: 커뮤니티 신고 */
+async function loadAdminCommunity(box){
+  let {data,error}=await sb.rpc('admin_community_reports');
+  if(error){box.innerHTML=esc(errMsg(error));return}
+  data=data||[];
+  box.innerHTML=data.length?data.map(r=>`<div class="post">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="chip-s">${r.kind==='post'?'글':'댓글'}</span>
+      <a class="t" href="#post-${r.post_id}">${esc(r.title||'(삭제된 글)')}</a>
+      <span class="dday ${r.target_status==='hidden'?'soon':'open'}">${r.target_status==='hidden'?'숨김':'공개 중'}</span><span class="note">처리 안 된 신고 ${r.open_count}건 · 작성자 ${esc(r.author_nick||'')}</span></div>
+    ${r.snippet?`<div class="note" style="white-space:pre-wrap">${esc(r.snippet)}</div>`:''}
+    ${(r.reasons||[]).slice(0,5).map(x=>`<div class="note">· ${esc(x)}</div>`).join('')}
+    <div class="acts" style="margin-top:6px"><button class="btn sm primary" type="button" data-cres="${r.kind}:${r.target_id}:hide">위반 확인 · 숨기기</button><button class="btn sm" type="button" data-cres="${r.kind}:${r.target_id}:restore">문제 없음${r.target_status==='hidden'?' · 다시 공개':''}</button></div></div>`).join('')
+    :'<div class="empty">처리할 신고가 없어요.</div>';
+}
+
+/* 이벤트 */
+document.addEventListener('click',async e=>{
+  const t=e.target;
+  const cc=t.closest('[data-ccat]'); if(cc){C.cat=cc.dataset.ccat;C.page=1;render();return}
+  const cp=t.closest('[data-cpg]'); if(cp&&!cp.disabled){C.page=+cp.dataset.cpg;render();scrollTo({top:0});return}
+  const rp=t.closest('[data-rmpphoto]'); if(rp){POST_PHOTOS.splice(+rp.dataset.rmpphoto,1);const th=$('#pThumbs');if(th)th.innerHTML=pthumbs();return}
+  const lk=t.closest('[data-plike]');
+  if(lk){
+    if(!AUTH.session){toast('로그인하면 추천할 수 있어요');return}
+    const id=lk.dataset.plike, d=POSTD[id]; if(!d||lk.disabled) return; lk.disabled=true;
+    const res=d.liked?await sb.from('post_likes').delete().eq('post_id',id).eq('user_id',uid()):await sb.from('post_likes').insert({post_id:id});
+    lk.disabled=false;
+    if(res.error&&!/duplicate/.test(res.error.message)){toast(errMsg(res.error));return}
+    d.liked=!d.liked; d.p.like_count=Math.max(0,(d.p.like_count||0)+(d.liked?1:-1)); C.key=''; render(); return;
+  }
+  const pd=t.closest('[data-pdel]');
+  if(pd){const id=pd.dataset.pdel; if(!armed('pdel'+id,pd,'한 번 더 누르면 삭제'))return;
+    const d=POSTD[id]; const {error}=await sb.from('posts').delete().eq('id',id); if(error){toast(errMsg(error));return}
+    const paths=(d?.p.photos||[]).map(u=>(u.split('/post-photos/')[1]||'')).filter(Boolean); if(paths.length) sb.storage.from('post-photos').remove(paths);
+    delete POSTD[id]; C.key=''; toast('삭제했어요'); location.hash='#community'; return}
+  const pp=t.closest('[data-ppin]'); if(pp){const id=pp.dataset.ppin;const {error}=await sb.from('posts').update({pinned:pp.dataset.on!=='true'}).eq('id',id);if(error){toast(errMsg(error));return}C.key='';toast('바꿨어요');loadPost(id);return}
+  const ph=t.closest('[data-phide]'); if(ph){const id=ph.dataset.phide, on=ph.dataset.on==='true';const {error}=await sb.rpc('admin_resolve_report',{p_kind:'post',p_target:id,p_action:on?'restore':'hide'});if(error){toast(errMsg(error));return}C.key='';toast(on?'다시 공개했어요':'숨겼어요');loadPost(id);return}
+  const cd=t.closest('[data-cdel]'); if(cd){const id=cd.dataset.cdel; if(!armed('cdel'+id,cd,'한 번 더 누르면 삭제'))return;
+    const {error}=await sb.from('comments').delete().eq('id',id); if(error){toast(errMsg(error));return}
+    const pid=route().slice(5); C.key=''; toast('댓글을 지웠어요'); loadPost(pid); return}
+  const ch=t.closest('[data-chide]'); if(ch){const on=ch.dataset.on==='true';const {error}=await sb.rpc('admin_resolve_report',{p_kind:'comment',p_target:ch.dataset.chide,p_action:on?'restore':'hide'});if(error){toast(errMsg(error));return}toast(on?'다시 공개했어요':'숨겼어요');loadPost(route().slice(5));return}
+  const cr=t.closest('[data-crep]'); if(cr){const [kind,id]=cr.dataset.crep.split(':');const box=$(`#crep-${kind}-${id}`);if(box)box.innerHTML=box.innerHTML?'':reportFormHtml(kind,id);return}
+  if(t.closest('[data-crepx]')){const f=t.closest('form');if(f)f.parentElement.innerHTML='';return}
+  const rs=t.closest('[data-cres]'); if(rs){const [kind,id,act]=rs.dataset.cres.split(':');const {error}=await sb.rpc('admin_resolve_report',{p_kind:kind,p_target:id,p_action:act});if(error){toast(errMsg(error));return}C.key='';toast('처리했어요');loadAdmin();return}
+});
+document.addEventListener('input',e=>{
+  if(e.target.closest?.('#commentForm')&&e.target.name==='body'){const c=$('#cmtCount');if(c)c.textContent=`${[...e.target.value].length.toLocaleString()} / 1,000`}
+  if(e.target.closest?.('#postForm')&&e.target.name==='body'){const c=$('#bodyCount');if(c)c.textContent=`${[...e.target.value].length.toLocaleString()} / 10,000`}
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='cSort'){C.sort=e.target.value;C.page=1;render();return}
+  if(e.target.closest?.('#postForm')&&e.target.name==='photos'){const box=e.target.closest('.fld.err');if(box){box.classList.remove('err');box.querySelector('.ferr')?.remove()}}
+});
+document.addEventListener('submit',async e=>{
+  const f=e.target;
+  if(f.id==='cSearch'){e.preventDefault();e.stopImmediatePropagation();C.q=$('#cQ').value.trim();C.page=1;render();return}
+  if(f.id==='postForm'){e.preventDefault();e.stopImmediatePropagation();submitPost(f);return}
+  if(f.id==='commentForm'){e.preventDefault();e.stopImmediatePropagation();
+    const ta=f.body, body=ta.value.trim(), msg=f.querySelector('.formmsg'), btn=f.querySelector('[type=submit]');
+    if(!body){showFieldErrors(f,[['body','댓글 내용을 입력해 주세요.']]);return}
+    if([...body].length>1000){showFieldErrors(f,[['body','1,000자 이하로 줄여 주세요.']]);return}
+    clearFieldErrors(f); btn.disabled=true; msg.textContent='';
+    const pid=f.dataset.post;
+    const {error}=await sb.from('comments').insert({post_id:pid,body});
+    btn.disabled=false;
+    if(error){const m=String(error.message||'');msg.textContent=/하루|달 수 없는|로그인/.test(m)?m:errMsg(error);return}
+    ta.value=''; C.key=''; await loadPost(pid);
+    setTimeout(()=>{const last=[...document.querySelectorAll('.cmt')].pop();last?.scrollIntoView({behavior:'smooth',block:'center'})},50);
+    return}
+  if(f.matches('form.creport')){e.preventDefault();e.stopImmediatePropagation();
+    const btn=f.querySelector('[type=submit]'); btn.disabled=true;
+    const {error}=await sb.from('community_reports').insert({kind:f.dataset.kind,target_id:f.dataset.id,reason:f.reason.value,detail:f.detail.value.trim()||null});
+    if(error){btn.disabled=false;toast(/creports_one_per_user|duplicate/.test(error.message)?'이미 신고했어요.':errMsg(error));return}
+    f.parentElement.innerHTML='<p class="note" style="margin:6px 0">신고했어요. 운영자가 확인할게요.</p>'; return}
 },true);
 
 /* ---------- 라우터 ---------- */
@@ -1656,6 +1982,9 @@ function render(){
   else if(r==='privacy'){html=viewPrivacy();nav=''}
   else if(r.startsWith('auc-')){html=viewAuction(r.slice(4));nav='auctions'}
   else if(r==='community') html=viewCommunity();
+  else if(r==='write'){html=viewWrite(null);nav='community'}
+  else if(r.startsWith('write-')){html=viewWrite(r.slice(6));nav='community'}
+  else if(r.startsWith('post-')){if(lastRoute!==r)delete POSTD[r.slice(5)];html=viewPost(r.slice(5));nav='community'}
   else if(r==='insight') html=viewInsight();
   else if(r==='rates'){html=viewRates();nav='insight'}
   else if(r==='support'){html=viewSupport();nav='insight'}
@@ -1677,7 +2006,7 @@ document.addEventListener('click',async e=>{
   const ask=t.closest('[data-ask]'); if(ask){openChat(ask.dataset.ask);return}
   if(t.closest('[data-open-chat]')){e.preventDefault();openChat();return}
   if(t.closest('[data-goloss]')){LF.loss=true}
-  const ht=t.closest('#homeTabs [data-cat]'); if(ht){const c=ht.dataset.cat;document.querySelectorAll('#homeTabs button').forEach(b=>b.setAttribute('aria-pressed',b===ht));$('#homePosts').innerHTML=POSTS.filter(p=>c==='전체'||p.cat===c).slice(0,4).map(postItem).join('');return}
+  const ht=t.closest('#homeTabs [data-cat]'); if(ht){const c=ht.dataset.cat;document.querySelectorAll('#homeTabs button').forEach(b=>b.setAttribute('aria-pressed',b===ht));if(sb){loadHomePosts(c);return}$('#homePosts').innerHTML=POSTS.filter(p=>c==='전체'||p.cat===c).slice(0,4).map(postItem).join('');return}
   const ct=t.closest('#commTabs [data-cat]'); if(ct){commCat=ct.dataset.cat;render();return}
   const kt=t.closest('#kindTabs [data-kind]'); if(kt){listingKind=kt.dataset.kind;render();return}
   const pk=t.closest('[data-pick]'); if(pk){selListing=+pk.dataset.pick;render();return}
