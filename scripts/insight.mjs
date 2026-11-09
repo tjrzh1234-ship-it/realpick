@@ -15,7 +15,8 @@ const MODEL = process.env.INSIGHT_MODEL || "claude-haiku-5-5";
 
 // 부동산 관련 판단: 제목·부제에 강한 단어 1개, 또는 본문에 2종류 이상
 const STRONG = /부동산|주택|아파트|전세|월세|임대차|임대주택|청약|분양|재건축|재개발|정비사업|공시가격|공시지가|주담대|주택담보|전세사기|종부세|종합부동산세|취득세|양도세|양도소득세|재산세|리츠|그린벨트|개발제한구역|신도시|택지|공공임대|매입임대|빌라|오피스텔|PF|건설경기|미분양|토지거래|LTV|DSR|집값|주거/;
-const WEAK = /부동산|주택|아파트|전세|월세|청약|분양|재건축|재개발|공시가격|주택담보|임대|토지|신도시|택지|건설|미분양|금리|대출|LTV|DSR|주거|공급/g;
+const WEAK = /부동산|주택|아파트|전세|월세|청약|분양|재건축|재개발|공시가격|주택담보|토지|신도시|택지|미분양|LTV|DSR/g;
+const STRONG_SUB = new RegExp(STRONG.source.replace("|주거", ""));
 
 const dec = s => String(s ?? "")
   .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
@@ -89,10 +90,12 @@ function normalize(b) {
     body
   };
 }
+// 제목에 강한 단어 → 포함 / 부제에만 있으면 본문에도 관련 단어 2종류 이상 / 그 외엔 본문 3종류 이상
 function isRealEstate(n) {
-  if (STRONG.test(n.title) || STRONG.test(n.subtitle)) return true;
-  const hits = new Set((n.body.slice(0, 3000).match(WEAK) || []));
-  return hits.size >= 3;
+  const hits = new Set((n.body.slice(0, 3000).match(WEAK) || [])).size;
+  if (STRONG.test(n.title)) return true;
+  if (STRONG_SUB.test(n.subtitle) && hits >= 2) return true;
+  return hits >= 3;
 }
 
 /* AI 해설 */
@@ -155,7 +158,7 @@ export async function buildInsight(key, { readJson, writeJson, nowKST }) {
 
   // 오래된 글 정리
   const cutoff = Date.now() - KEEP_DAYS * 864e5;
-  let items = [...byId.values()].filter(i => !i.date || Date.parse(i.date) >= cutoff)
+  let items = [...byId.values()].filter(i => (!i.date || Date.parse(i.date) >= cutoff) && isRealEstate(i))
     .sort((a, b) => (b.date || "").localeCompare(a.date || "")).slice(0, MAX_ITEMS);
 
   // AI 해설 (새 글 또는 본문이 바뀐 글만)
@@ -169,8 +172,9 @@ export async function buildInsight(key, { readJson, writeJson, nowKST }) {
       try { n.ai = await aiNote(n, aiKey); n.aiFor = sig; aiDone++; }
       catch (e) { aiFail++; if (aiFail <= 2) console.log("AI 해설 실패: " + e.message); if (/HTTP 40[13]/.test(e.message)) break; }
     }
-    // AI가 부동산과 거의 관련 없다고 본 글은 뺀다
-    items = items.filter(i => !i.ai || i.ai.relevance >= 1);
+    // AI가 부동산과 관련이 약하다고 본 글(0~1점)은 뺀다
+    // (지우지 않고 숨김 표시만 한다: 지우면 다음 실행 때 다시 받아와 AI 비용이 또 든다)
+    items.forEach(i => { i.hide = !!i.ai && i.ai.relevance < 2; });
   }
 
   await writeJson("insight.json", {
