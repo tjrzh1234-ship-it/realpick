@@ -273,6 +273,31 @@ fieldset.sub legend small,.fld small{font-weight:400;color:var(--faint)}
 .chk input{width:18px;height:18px;accent-color:var(--accent)}
 .formmsg{margin:0;font-size:14px;color:var(--hot);min-height:1em}
 .fld.err>span{color:var(--hot)}
+.mbar{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.msearch{display:flex;gap:6px;flex:1;justify-content:flex-end;min-width:280px}
+.msearch input,.msearch select{font:inherit;font-size:14px;color:var(--fg);background:var(--sunk);border:0;border-radius:12px;padding:9px 12px;min-width:0}
+.msearch input{flex:1;max-width:300px}
+.mcats{margin-bottom:12px}
+.mwrap{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;height:min(72vh,760px);min-height:460px}
+.mmap{border-radius:20px;overflow:hidden;background:var(--sunk);border:1px solid var(--line);position:relative}
+.mnokey{height:100%;display:grid;place-content:center;gap:8px;text-align:center;padding:24px;max-width:420px;margin:auto}
+.mlist{overflow:auto;border:1px solid var(--line);border-radius:20px;background:var(--surface);padding:6px;overscroll-behavior:contain}
+.mlist-h{padding:10px 12px 8px;font-size:14px;position:sticky;top:-6px;background:var(--surface);z-index:1}
+.mitem{display:grid;gap:3px;padding:12px;border-radius:14px;color:inherit;transition:background .15s}
+.mitem:hover{background:var(--sunk)}
+.mitem.sel{background:var(--accent-soft);box-shadow:inset 0 0 0 1.5px var(--accent)}
+.mitem .mtop{display:flex;gap:6px;align-items:center;font-size:12px}
+.mitem .mt{font-weight:700;font-size:14.5px;line-height:1.4;overflow-wrap:anywhere}
+.mitem .mp{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:15px}
+.mdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:0}
+.mdot.auc{background:#ff6b3d}.mdot.house{background:#12a26a}.mdot.agent{background:#3366ff}
+.mbadge{font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:999px}
+.mbadge.auc{background:var(--hot-soft);color:var(--hot)}.mbadge.house{background:var(--ok-soft);color:var(--ok)}.mbadge.agent{background:var(--accent-soft);color:var(--accent)}
+.mpop{position:relative;display:grid;gap:5px;min-width:220px;max-width:280px;background:var(--surface);color:var(--fg);border-radius:16px;padding:14px 16px;box-shadow:0 10px 30px rgb(30 45 90/.22);font-size:13.5px;line-height:1.45}
+.mpop b{font-size:14.5px}
+.mpop .btn{justify-self:start;margin-top:4px}
+.mpop-x{position:absolute;right:6px;top:6px;width:26px;height:26px;font-size:12px}
+@media (max-width:860px){.mwrap{grid-template-columns:1fr;height:auto}.mmap{height:52vh;min-height:320px}.mlist{max-height:none}.msearch{justify-content:stretch}.msearch input{max-width:none}}
 .inscard{color:inherit}
 .inscard h3{font-size:16.5px}
 .inscard:hover h3{color:var(--accent)}
@@ -628,6 +653,10 @@ async function loadFeed(){
     const r=await fetch('insight.json',{cache:'no-store'});
     if(r.ok){const j=await r.json(); if(Array.isArray(j.items)) INS={...j,items:j.items.filter(i=>!i.hide),loaded:true};}
   }catch(e){}
+  try{
+    const r=await fetch('housing.json',{cache:'no-store'});
+    if(r.ok){const j=await r.json(); if(Array.isArray(j.items)) HOUSING={...j,loaded:true};}
+  }catch(e){} HOUSING.loaded=true;
   render();
 }
 
@@ -1266,6 +1295,12 @@ function dbErrorFields(e,f){
 document.addEventListener('input',e=>{const box=e.target.closest?.('form .fld.err');if(box){box.classList.remove('err');box.querySelector('.ferr')?.remove();const fs=box.closest('fieldset.sub');if(fs&&!fs.querySelector('.fld.err'))fs.classList.remove('err')}});
 document.addEventListener('change',e=>{if(e.target.closest?.('#listingForm')&&e.target.type==='date'){const box=e.target.closest('.fld.err');if(box){box.classList.remove('err');box.querySelector('.ferr')?.remove()}}});
 
+async function geocodeAddr(full,alt){
+  if(!(await ensureKakao())||!kakao.maps.services) return null;
+  const g=new kakao.maps.services.Geocoder();
+  const one=q=>new Promise(res=>{try{g.addressSearch(q,(r,st)=>res(st===kakao.maps.services.Status.OK&&r[0]?[+(+r[0].y).toFixed(6),+(+r[0].x).toFixed(6)]:null))}catch(e){res(null)}});
+  return (await one(full))||(alt&&alt!==full?await one(alt):null);
+}
 async function submitListing(f){
   const errs=validateListing(f);
   if(errs.length){showFieldErrors(f,errs);return}
@@ -1296,8 +1331,14 @@ async function submitListing(f){
       recent_deal:num('recent_deal'), recent_deal_ym:txt('recent_deal_ym'), description:txt('description'),
       photos:[...FORM_PHOTOS,...urls].filter(safeUrl).slice(0,10)
     };
+    // 지도 표시용 좌표 (카카오 지도 키가 있을 때만)
+    msg.textContent='위치를 찾는 중…';
+    const xy=await geocodeAddr(`${row.sido} ${row.sigungu||''} ${row.address||''}`.replace(/\s+/g,' '),row.address);
+    if(xy){row.lat=xy[0];row.lng=xy[1]}
     const id=f.dataset.id;
-    const res=id?await sb.from('listings').update(row).eq('id',id):await sb.from('listings').insert(row);
+    const save=r=>id?sb.from('listings').update(r).eq('id',id):sb.from('listings').insert(r);
+    let res=await save(row);
+    if(res.error&&xy&&/lat|lng/.test(res.error.message||'')){delete row.lat;delete row.lng;res=await save(row)}   // 좌표 칸을 아직 안 만든 경우
     if(res.error) throw res.error;
     delete DETAIL['edit-'+id]; if(id) delete DETAIL[id]; FORM_PHOTOS=[];
     toast(id?'저장했어요':'매물을 올렸어요'); loadMarket(); location.hash='#agent';
@@ -2189,12 +2230,180 @@ document.addEventListener('click',e=>{
   const s=e.target.closest('[data-bslide]'); if(s){bannerGo(BAN.i+ +s.dataset.bslide);return}
   const g=e.target.closest('[data-bgo]'); if(g){bannerGo(+g.dataset.bgo);return}
 });
+/* ---------- 매물 검색: 공매 + 분양·임대 공고 + 중개사 매물을 한 지도에 ---------- */
+let HOUSING={updatedAt:null,items:[],loaded:false};
+const MF={src:'전체',cat:'전체',sido:'전체',cheap:false,loss:false,q:'',sel:null,center:null,level:null,inView:true};
+const MSRC=[['전체','전체'],['auc','공매'],['house','분양·임대'],['agent','중개사 매물']];
+const MCATS=[['전체',null],['아파트','apt'],['오피스텔','offi'],['빌라·다세대','rh'],['단독·다가구','sh'],['토지','land'],['상가·업무','nrg'],['공장·창고','indu']];
+const LKIND={아파트:'apt',오피스텔:'offi',상가:'nrg',사무실:'nrg',꼬마빌딩:'nrg',다가구:'sh',단독주택:'sh',토지:'land','공장·창고':'indu'};
+function houseCat(h){const k=(h.kind||'')+' '+(h.group||'');return /아파트|APT|민영|국민|분양주택|공공분양|신혼희망/.test(k)?'apt':/오피스텔/.test(k)?'offi':/도시형|다세대|연립/.test(k)?'rh':/토지/.test(k)?'land':/상가/.test(k)?'nrg':/임대|행복|전세/.test(k)?'apt':null}
+const hDday=h=>{if(!h.end)return h.notice&&h.notice>new Date(TODAY).toISOString().slice(0,10)?['공고 예정','upcoming']:['공고 중','open'];const d=Math.round((Date.parse(h.end+'T00:00:00+09:00')-TODAY)/864e5);if(h.start&&Date.parse(h.start+'T00:00:00+09:00')>TODAY)return ['접수 예정','upcoming'];return d<0?['접수 마감','closed']:[d===0?'오늘 마감':'D-'+d,d<=3?'soon':'open']};
+const manwon=v=>v?wonKRW(v*1e4):'';
+function mapPoints(){
+  const pts=[];
+  if(MF.src==='전체'||MF.src==='auc') for(const i of AUC.items){ if(aucDday(i)[1]==='closed') continue;
+    pts.push({key:'a'+i.id,t:'auc',la:i.la,lo:i.lo,approx:i.geo==='d',cat:i.cat,sido:i.sido,href:'#auc-'+i.id,title:i.title,text:i.title+' '+i.addr+' '+(i.org||''),
+      line:`${esc(i.sido||'')} · ${esc((i.usage||'').split(' > ').pop())}`,price:wonKRW(i.minp),dday:aucDday(i),
+      badge:i.compare&&!i.compare.skip&&i.compare.minVsEst<0?`시세보다 ${Math.abs(i.compare.minVsEst).toFixed(0)}% 낮음`:'',cheap:!!(i.compare&&!i.compare.skip&&i.compare.minVsEst<=-30),sort:i.compare&&!i.compare.skip?i.compare.minVsEst:99});}
+  if(MF.src==='전체'||MF.src==='house') for(const h of HOUSING.items){ const dd=hDday(h); if(dd[1]==='closed') continue;
+    pts.push({key:'h'+h.id,t:'house',la:h.la,lo:h.lo,approx:h.geo==='d',cat:houseCat(h),sido:h.sido,href:'#h-'+h.id,title:h.name,text:h.name+' '+(h.addr||h.region||'')+' '+(h.org||''),
+      line:`${esc(h.sido||h.region||'')} · ${esc(h.src)} ${esc(h.kind||h.group||'')}`,price:h.priceMin?`분양가 ${manwon(h.priceMin)}${h.priceMax&&h.priceMax!==h.priceMin?' ~ '+manwon(h.priceMax):''}`:(h.households?`${h.households.toLocaleString()}세대`:''),dday:dd,badge:h.households&&h.priceMin?`${h.households.toLocaleString()}세대`:'',sort:50});}
+  if(MF.src==='전체'||MF.src==='agent') for(const l of MARKET.items){ const loss=lossInfo(l);
+    pts.push({key:'l'+l.id,t:'agent',la:l.lat,lo:l.lng,cat:LKIND[l.kind]||null,sido:l.sido,href:'#l-'+l.id,title:l.title,text:l.title+' '+l.address+' '+l.sigungu+' '+(l.agent?.office_name||''),
+      line:`${esc(l.sido)} ${esc(l.sigungu)} · ${esc(l.kind)}`,price:priceText(l),dday:null,badge:loss?`직전 거래가 -${loss.pct}%`:'',loss:!!loss,sort:loss?-loss.pct:60});}
+  const {sidos,words}=splitRegionQuery(MF.q);
+  const cat=MCATS.find(c=>c[0]===MF.cat)?.[1];
+  return pts.filter(p=>(!cat||p.cat===cat)&&(MF.sido==='전체'||p.sido===MF.sido)&&(!sidos||sidos.includes(p.sido))&&(!MF.cheap||p.t!=='auc'||p.cheap)&&(!MF.loss||p.t!=='agent'||p.loss)&&(!words.length||textHit(p.text,words)));
+}
+const KMAP={map:null,clusterer:null,markers:new Map(),overlay:null,ready:false,failed:false,loading:null,pts:[]};
+function ensureKakao(){
+  const key=(CFG.kakaoJsKey||'').trim();
+  if(!key) return Promise.resolve(false);
+  if(window.kakao?.maps?.LatLng) return Promise.resolve(true);
+  if(KMAP.loading) return KMAP.loading;
+  KMAP.loading=new Promise(res=>{
+    const s=document.createElement('script');
+    s.src=`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(key)}&libraries=services,clusterer&autoload=false`;
+    s.onload=()=>{try{kakao.maps.load(()=>res(true))}catch(e){res(false)}};
+    s.onerror=()=>res(false);
+    document.head.appendChild(s);
+    setTimeout(()=>res(!!window.kakao?.maps?.LatLng),9000);
+  }).then(ok=>{if(!ok)KMAP.failed=true;return ok});
+  return KMAP.loading;
+}
+const PIN_COLOR={auc:'#ff6b3d',house:'#12a26a',agent:'#3366ff'};
+function pinImage(t,sel){
+  const c=PIN_COLOR[t]||'#3366ff', r=sel?13:9, s=r*2+6;
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}"><circle cx="${s/2}" cy="${s/2}" r="${r}" fill="${c}" stroke="#fff" stroke-width="3"/></svg>`;
+  return new kakao.maps.MarkerImage('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg),new kakao.maps.Size(s,s),{offset:new kakao.maps.Point(s/2,s/2)});
+}
+function mapListHtml(rows,total){
+  const shown=rows.slice(0,120);
+  return `<div class="mlist-h"><b class="num">${rows.length.toLocaleString()}</b>건${KMAP.ready&&MF.inView?' <span class="note">· 지금 지도 화면 기준</span>':''}</div>`
+   +(shown.length?shown.map(p=>`<a class="mitem ${p.key===MF.sel?'sel':''}" href="${p.href}" data-mkey="${esc(p.key)}">
+      <span class="mtop"><span class="mdot ${p.t}"></span><span class="note">${p.t==='auc'?'공매':p.t==='house'?'분양·임대':'중개사 매물'}</span>${p.dday?`<span class="dday ${p.dday[1]}">${esc(p.dday[0])}</span>`:''}${p.approx?'<span class="note" title="번지를 찾지 못해 동 중심에 표시">· 위치 대략</span>':''}</span>
+      <span class="mt">${esc(p.title)}</span><span class="note">${p.line}</span>
+      <span class="mp"><b class="num">${esc(p.price||'')}</b>${p.badge?`<span class="mbadge ${p.t}">${esc(p.badge)}</span>`:''}</span></a>`).join('')
+     +(rows.length>shown.length?`<p class="note" style="padding:10px 4px">${(rows.length-shown.length).toLocaleString()}건 더 있어요. 지도를 확대하거나 조건을 좁혀 보세요.</p>`:'')
+    :`<div class="empty" style="margin:8px">${KMAP.ready&&MF.inView?'이 화면 안에는 물건이 없어요. 지도를 옮기거나 축소해 보세요.':'조건에 맞는 물건이 없어요.'}</div>`);
+}
+function refreshMapList(){
+  const all=KMAP.pts; let rows=all;
+  if(KMAP.ready&&MF.inView){const b=KMAP.map.getBounds();rows=all.filter(p=>p.la&&b.contain(new kakao.maps.LatLng(p.la,p.lo)))}
+  rows=rows.slice().sort((a,b)=>a.sort-b.sort);
+  if(KMAP.ready&&MF.inView) rows=rows.concat(all.filter(p=>!p.la).sort((a,b)=>a.sort-b.sort));   // 위치를 못 찾은 공고는 뒤에 붙인다
+  const box=$('#mlist'); if(box) box.innerHTML=mapListHtml(rows,all.length);
+}
+function viewMap(){
+  const pts=mapPoints(); KMAP.pts=pts;
+  const noXY=pts.filter(p=>!p.la).length, hasKey=!!(CFG.kakaoJsKey||'').trim();
+  const counts={auc:0,house:0,agent:0}; {const s=MF.src;MF.src='전체';mapPoints().forEach(p=>counts[p.t]++);MF.src=s}
+  AFTER.push(initMap);
+  return `<section class="block" style="margin-top:28px">
+    <div class="sec-head"><div><div class="eyebrow">매물 검색</div><h2>지도로 보는 공매·분양·매물</h2></div></div>
+    <form class="mbar" id="mfForm">
+      <div class="tabs" style="margin:0">${MSRC.map(([k,l])=>`<button type="button" aria-pressed="${k===MF.src}" data-msrc="${k}">${k!=='전체'?`<span class="mdot ${k}"></span>`:''}${l}${k!=='전체'?` <span class="num" style="opacity:.6">${counts[k].toLocaleString()}</span>`:''}</button>`).join('')}</div>
+      <div class="msearch"><input id="mfQ" value="${esc(MF.q)}" placeholder="지역·단지명 검색 (예: 수성구, 범어동)" autocomplete="off" aria-label="지역·단지명 검색">
+        <select id="mfSido" aria-label="시도"><option value="전체">전국</option>${SIDOS.map(s=>`<option ${s===MF.sido?'selected':''}>${s}</option>`).join('')}</select>
+        <button class="btn primary" type="submit">검색</button></div>
+    </form>
+    <div class="tabs mcats">${MCATS.map(([k])=>`<button type="button" aria-pressed="${k===MF.cat}" data-mcat="${k}">${k}</button>`).join('')}
+      <button type="button" aria-pressed="${MF.cheap}" data-mcheap style="margin-left:auto">시세보다 30%↓ 공매</button><button type="button" aria-pressed="${MF.loss}" data-mloss>직전 거래가보다 싼 매물</button></div>
+    <div class="mwrap">
+      <div class="mmap" id="kmap">${hasKey?'<div class="note" style="padding:20px">지도를 불러오는 중…</div>':`<div class="mnokey"><b>지도 키가 아직 없어요</b><span class="note">config.js에 카카오 지도 키(kakaoJsKey)를 넣으면 여기에 지도가 보여요. 오른쪽 목록은 지금도 쓸 수 있어요.</span></div>`}</div>
+      <div class="mlist" id="mlist">${mapListHtml(pts.slice().sort((a,b)=>a.sort-b.sort),pts.length)}</div>
+    </div>
+    <p class="note"><span class="mdot auc"></span>공매(온비드) <span class="mdot house" style="margin-left:8px"></span>분양·임대(청약홈·LH) <span class="mdot agent" style="margin-left:8px"></span>중개사 매물 · 위치는 주소로 찾은 대략적인 지점이에요${noXY?` · 위치를 못 찾은 ${noXY.toLocaleString()}건은 목록에만 있어요`:''}. 중개사 매물은 등록 심사를 거친 개업공인중개사가 올립니다.</p>
+  </section>`;
+}
+async function initMap(){
+  const el=$('#kmap'); if(!el) return;
+  KMAP.ready=false;
+  if(!(await ensureKakao())){ if((CFG.kakaoJsKey||'').trim()&&$('#kmap')) $('#kmap').innerHTML='<div class="mnokey"><b>지도를 불러오지 못했어요</b><span class="note">카카오 개발자 콘솔에서 이 사이트 주소(도메인)가 등록됐는지, 카카오맵 사용 설정이 켜졌는지 확인해 주세요.</span></div>'; return }
+  if(!$('#kmap')) return;
+  el.innerHTML='';
+  const center=MF.center||new kakao.maps.LatLng(36.35,127.85);
+  const map=new kakao.maps.Map(el,{center,level:MF.level||13,maxLevel:13});
+  map.addControl(new kakao.maps.ZoomControl(),kakao.maps.ControlPosition.RIGHT);
+  const clusterer=new kakao.maps.MarkerClusterer({map,averageCenter:true,minLevel:6,gridSize:70,minClusterSize:3,disableClickZoom:false,
+    styles:[{width:'44px',height:'44px',background:'rgba(51,102,255,.88)',borderRadius:'50%',color:'#fff',textAlign:'center',fontWeight:'800',lineHeight:'44px',fontSize:'13px',boxShadow:'0 4px 12px rgba(30,45,90,.25)',border:'3px solid rgba(255,255,255,.9)'}]});
+  KMAP.map=map; KMAP.clusterer=clusterer; KMAP.markers=new Map(); KMAP.overlay=null;
+  const imgs={auc:pinImage('auc'),house:pinImage('house'),agent:pinImage('agent')};
+  const ms=[];
+  for(const p of KMAP.pts){ if(!p.la) continue;
+    const m=new kakao.maps.Marker({position:new kakao.maps.LatLng(p.la,p.lo),image:imgs[p.t],title:p.title});
+    kakao.maps.event.addListener(m,'click',()=>selectPoint(p.key,true));
+    KMAP.markers.set(p.key,m); ms.push(m); }
+  clusterer.addMarkers(ms);
+  KMAP.ready=true;
+  if(!MF.center&&(MF.sido!=='전체'||MF.q)) fitPoints();
+  kakao.maps.event.addListener(map,'idle',()=>{MF.center=map.getCenter();MF.level=map.getLevel();refreshMapList()});
+  refreshMapList();
+  if(MF.sel) selectPoint(MF.sel,false);
+}
+function fitPoints(){
+  if(!KMAP.ready) return; const b=new kakao.maps.LatLngBounds(); let n=0;
+  KMAP.pts.forEach(p=>{if(p.la){b.extend(new kakao.maps.LatLng(p.la,p.lo));n++}});
+  if(n) KMAP.map.setBounds(b,40,40,40,40);
+}
+function selectPoint(key,fromMap){
+  MF.sel=key; const p=KMAP.pts.find(x=>x.key===key); if(!p||!KMAP.ready) return;
+  if(KMAP.overlay) KMAP.overlay.setMap(null);
+  if(p.la){
+    const pos=new kakao.maps.LatLng(p.la,p.lo);
+    const box=document.createElement('div'); box.className='mpop';
+    box.innerHTML=`<button type="button" class="icon mpop-x" aria-label="닫기">✕</button><span class="note">${p.line}</span><b>${esc(p.title.length>34?p.title.slice(0,34)+'…':p.title)}</b><span><b class="num">${esc(p.price||'')}</b>${p.badge?` <span class="mbadge ${p.t}">${esc(p.badge)}</span>`:''}</span><a class="btn sm primary" href="${p.href}">자세히 보기</a>`;
+    box.querySelector('.mpop-x').onclick=()=>{KMAP.overlay?.setMap(null);};
+    KMAP.overlay=new kakao.maps.CustomOverlay({position:pos,content:box,yAnchor:1.15,zIndex:5,clickable:true});
+    KMAP.overlay.setMap(KMAP.map);
+    if(!fromMap){ if(KMAP.map.getLevel()>5) KMAP.map.setLevel(5); KMAP.map.panTo(pos); }
+  }
+  document.querySelectorAll('.mitem.sel').forEach(x=>x.classList.remove('sel'));
+  const li=document.querySelector(`.mitem[data-mkey="${CSS.escape(key)}"]`);
+  if(li){li.classList.add('sel'); if(fromMap) li.scrollIntoView({block:'nearest',behavior:'smooth'});}
+}
+function mapRefilter(fit){
+  MF.sel=null; const keepCenter=!fit;
+  if(!keepCenter){MF.center=null;MF.level=null}
+  render();
+}
+document.addEventListener('click',e=>{
+  const t=e.target;
+  const s=t.closest('[data-msrc]'); if(s){MF.src=s.dataset.msrc;mapRefilter(false);return}
+  const c=t.closest('[data-mcat]'); if(c){MF.cat=c.dataset.mcat;mapRefilter(false);return}
+  if(t.closest('[data-mcheap]')){MF.cheap=!MF.cheap;if(MF.cheap&&MF.src==='agent')MF.src='auc';mapRefilter(false);return}
+  if(t.closest('[data-mloss]')){MF.loss=!MF.loss;if(MF.loss&&MF.src!=='agent')MF.src='agent';mapRefilter(false);return}
+  const it=t.closest('.mitem'); if(it&&KMAP.ready&&innerWidth>860&&!e.metaKey&&!e.ctrlKey){
+    const p=KMAP.pts.find(x=>x.key===it.dataset.mkey);
+    if(p?.la&&MF.sel!==p.key){e.preventDefault();selectPoint(p.key,false);return}
+  }
+});
+document.addEventListener('change',e=>{if(e.target.id==='mfSido'){MF.sido=e.target.value;mapRefilter(true)}});
+document.addEventListener('submit',e=>{if(e.target.id==='mfForm'){e.preventDefault();e.stopImmediatePropagation();MF.q=$('#mfQ').value.trim();mapRefilter(true)}},true);
+
+/* 분양·임대 공고 상세 */
+function viewHouse(id){
+  const back='<a class="back" href="#listings">← 매물 검색</a>';
+  const h=HOUSING.items.find(x=>x.id===id);
+  if(!h) return back+`<div class="empty">${HOUSING.loaded?'접수가 끝났거나 없는 공고예요.':'불러오는 중입니다.'}</div>`;
+  const dd=hDday(h); const row=(k,v)=>v?`<dt>${k}</dt><dd>${v}</dd>`:'';
+  return `${back}<div class="dgrid"><div style="min-width:0">
+    <div class="dhead"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="dday ${dd[1]}">${esc(dd[0])}</span><span class="chip-s trust">${esc(h.src)}</span><span style="font-size:12px;font-weight:700;color:var(--accent)">${esc(h.kind||h.group||'')}</span></div><h1>${esc(h.name)}</h1></div>
+    ${h.priceMin||h.households?`<div class="ticket">${h.priceMin?`<div><div class="k">분양가(최고가 기준)</div><div class="v num">${manwon(h.priceMin)}${h.priceMax&&h.priceMax!==h.priceMin?' ~ '+manwon(h.priceMax):''}</div></div>`:''}${h.households?`<div><div class="k">공급 규모</div><div class="v num">${h.households.toLocaleString()}세대</div></div>`:''}${h.arMin?`<div><div class="k">공급 면적</div><div class="v num">${h.arMin}${h.arMax&&h.arMax!==h.arMin?'~'+h.arMax:''}㎡</div></div>`:''}</div>`:''}
+    <div class="dsec"><h2>공고 정보</h2><dl class="facts" style="background:transparent;padding:0;gap:8px 16px">
+      ${row('위치',esc(h.addr||h.region||''))}${row('공고일',esc(h.notice||''))}${row('청약 접수',h.start||h.end?esc((h.start||'')+' ~ '+(h.end||'')):'')}${row('당첨자 발표',esc(h.winner||''))}${row('입주 예정',esc(h.moveIn||''))}${row('공고 상태',esc(h.status||''))}${row('사업주체',esc(h.org||''))}${row('문의',esc(h.tel||''))}</dl>
+      <p class="note" style="margin-top:12px">자격 조건·공급 금액·일정은 반드시 원문 모집공고에서 확인하세요. 분양가는 주택형별 최고가 기준이에요.</p></div>
+  </div><aside class="side"><div class="panel"><div style="font-weight:800;margin-bottom:8px">청약·신청은 원문에서</div><a class="btn primary" style="width:100%;justify-content:center" href="${esc(safeUrl(h.url)||'https://www.applyhome.co.kr')}" target="_blank" rel="noopener">${h.src==='LH'?'LH 청약플러스':'청약홈'} 공고 보기</a></div>
+    <div class="panel note" style="font-size:13px">자료: ${h.src==='LH'?'한국토지주택공사(LH)':'한국부동산원 청약홈'} (공공데이터포털)${HOUSING.updatedAt&&fmtTime(HOUSING.updatedAt)?'<br>'+fmtTime(HOUSING.updatedAt)+' 갱신':''}</div></aside></div>`;
+}
+
 /* ---------- 라우터 ---------- */
 function route(){return (location.hash||'#home').slice(1)||'home'}
 function render(){
   const r=route(); const app=$('#app');
   let html, nav=r;
-  if(r==='listings'){html=sb?viewMarket():viewListings()}
+  if(r==='listings'){html=viewMap()}
+  else if(r.startsWith('h-')){html=viewHouse(r.slice(2));nav='listings'}
   else if(r==='login'||r==='signup'){html=viewAuth(r);nav=''}
   else if(r==='agent'){html=viewAgent();nav=''}
   else if(r==='listing-new'){html=viewListingForm(null);nav=''}
@@ -2232,7 +2441,7 @@ document.addEventListener('click',async e=>{
   const t=e.target;
   const ask=t.closest('[data-ask]'); if(ask){openChat(ask.dataset.ask);return}
   if(t.closest('[data-open-chat]')){e.preventDefault();openChat();return}
-  if(t.closest('[data-goloss]')){LF.loss=true}
+  if(t.closest('[data-goloss]')){LF.loss=true;MF.src='agent';MF.loss=true}
   const ht=t.closest('#homeTabs [data-cat]'); if(ht){const c=ht.dataset.cat;document.querySelectorAll('#homeTabs button').forEach(b=>b.setAttribute('aria-pressed',b===ht));if(sb){loadHomePosts(c);return}$('#homePosts').innerHTML=POSTS.filter(p=>c==='전체'||p.cat===c).slice(0,4).map(postItem).join('');return}
   const ct=t.closest('#commTabs [data-cat]'); if(ct){commCat=ct.dataset.cat;render();return}
   const kt=t.closest('#kindTabs [data-kind]'); if(kt){listingKind=kt.dataset.kind;render();return}
