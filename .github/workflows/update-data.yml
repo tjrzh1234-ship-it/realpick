@@ -27,16 +27,19 @@ jobs:
       - name: 실거래가 캐시 불러오기
         uses: actions/cache/restore@v4
         with:
-          path: rtms-cache.json
+          path: |
+            rtms-cache.json
+            geo-cache.json
           key: rtms-${{ github.run_id }}
           restore-keys: rtms-
 
-      - name: 공고·금리·공매·정책뉴스 수집
+      - name: 공고·금리·공매·정책뉴스·분양 수집
         env:
           BIZINFO_API_KEY: ${{ secrets.BIZINFO_API_KEY }}
           ECOS_API_KEY: ${{ secrets.ECOS_API_KEY }}
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          KAKAO_REST_KEY: ${{ secrets.KAKAO_REST_KEY }}
         run: node scripts/update.mjs
 
       - name: 실거래가 캐시 저장
@@ -44,7 +47,9 @@ jobs:
         continue-on-error: true
         uses: actions/cache/save@v4
         with:
-          path: rtms-cache.json
+          path: |
+            rtms-cache.json
+            geo-cache.json
           key: rtms-${{ github.run_id }}
 
       - name: 바뀐 내용이 있으면 저장
@@ -53,8 +58,8 @@ jobs:
           git config user.name "realpick-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # 예전에 저장소에 올라간 캐시 파일은 저장소에서만 뺀다
-          if git ls-files --error-unmatch rtms-cache.json >/dev/null 2>&1; then git rm --cached -q rtms-cache.json; fi
-          for f in notices.json rates.json auctions.json insight.json; do
+          for c in rtms-cache.json geo-cache.json; do if git ls-files --error-unmatch $c >/dev/null 2>&1; then git rm --cached -q $c; fi; done
+          for f in notices.json rates.json auctions.json insight.json housing.json; do
             if [ -f "$f" ]; then git add "$f"; fi
           done
           if git diff --cached --quiet; then
