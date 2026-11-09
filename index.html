@@ -293,6 +293,7 @@ fieldset.sub legend small,.fld small{font-weight:400;color:var(--faint)}
 .mdot.auc{background:#ff6b3d}.mdot.house{background:#12a26a}.mdot.agent{background:#3366ff}
 .mbadge{font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:999px}
 .mbadge.auc{background:var(--hot-soft);color:var(--hot)}.mbadge.house{background:var(--ok-soft);color:var(--ok)}.mbadge.agent{background:var(--accent-soft);color:var(--accent)}
+.merr{position:absolute;left:12px;bottom:12px;z-index:10;background:var(--hot);color:#fff;font-size:12px;padding:6px 10px;border-radius:8px}
 .mbub{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:7px 12px;background:rgb(51 102 255/.92);color:#fff;font:inherit;font-size:12.5px;box-shadow:0 4px 14px rgb(30 45 90/.25);cursor:pointer;white-space:nowrap;transition:transform .15s}
 .mbub:hover{transform:scale(1.06);background:#2449d8}
 .mbub b{font-weight:700;opacity:.9}.mbub span{font-weight:800}
@@ -2352,6 +2353,12 @@ function groupBubbles(pts,keyFn,labelFn,big){
 }
 function drawLayer(){
   if(!KMAP.ready) return;
+  try{ drawLayerInner() }catch(e){
+    console.error('[리얼픽 지도]',e);
+    const el=$('#kmap'); if(el&&!el.querySelector('.merr')){const d=document.createElement('div');d.className='merr';d.textContent='지도 표시 오류: '+(e?.message||e);el.appendChild(d)}
+  }
+}
+function drawLayerInner(){
   clearLayer();
   const lv=KMAP.map.getLevel(), inB=inBoundsFn();
   const vis=KMAP.pts.filter(p=>p.la&&inB(p));
@@ -2375,7 +2382,7 @@ async function initMap(){
   KMAP.map=map; KMAP.layer=[]; KMAP.overlay=null;
   KMAP.imgs=KMAP.imgs||{auc:pinImage('auc'),house:pinImage('house'),agent:pinImage('agent')};
   KMAP.ready=true;
-  if(!MF.center&&(MF.sido!=='전체'||MF.q)) fitPoints();
+  if(MF.fit||(!MF.center&&(MF.sido!=='전체'||MF.q))){MF.fit=false;fitPoints()}
   let t=null;
   kakao.maps.event.addListener(map,'idle',()=>{clearTimeout(t);t=setTimeout(()=>{MF.center=map.getCenter();MF.level=map.getLevel();drawLayer();refreshMapList()},120)});
   drawLayer(); refreshMapList();
@@ -2384,7 +2391,8 @@ async function initMap(){
 function fitPoints(){
   if(!KMAP.ready) return; const b=new kakao.maps.LatLngBounds(); let n=0;
   KMAP.pts.forEach(p=>{if(p.la){b.extend(new kakao.maps.LatLng(p.la,p.lo));n++}});
-  if(n) KMAP.map.setBounds(b,40,40,40,40);
+  if(n===1){const p=KMAP.pts.find(p=>p.la);KMAP.map.setLevel(5);KMAP.map.setCenter(new kakao.maps.LatLng(p.la,p.lo))}
+  else if(n) KMAP.map.setBounds(b,40,40,40,40);
 }
 function selectPoint(key,fromMap){
   MF.sel=key; const p=KMAP.pts.find(x=>x.key===key); if(!p||!KMAP.ready) return;
@@ -2402,9 +2410,8 @@ function selectPoint(key,fromMap){
   const li=document.querySelector(`.mitem[data-mkey="${CSS.escape(key)}"]`);
   if(li){li.classList.add('sel'); if(fromMap) li.scrollIntoView({block:'nearest',behavior:'smooth'});}
 }
-function mapRefilter(fit){
-  MF.sel=null; const keepCenter=!fit;
-  if(!keepCenter){MF.center=null;MF.level=null}
+function mapRefilter(){
+  MF.sel=null; MF.fit=true;              // 조건을 바꾸면 해당 물건들이 다 보이도록 지도를 맞춘다
   render();
 }
 document.addEventListener('click',e=>{
