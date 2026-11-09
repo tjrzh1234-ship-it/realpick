@@ -294,6 +294,8 @@ fieldset.sub legend small,.fld small{font-weight:400;color:var(--faint)}
 .mbadge{font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:999px}
 .mbadge.auc{background:var(--hot-soft);color:var(--hot)}.mbadge.house{background:var(--ok-soft);color:var(--ok)}.mbadge.agent{background:var(--accent-soft);color:var(--accent)}
 .merr{position:absolute;left:12px;bottom:12px;z-index:10;background:var(--hot);color:#fff;font-size:12px;padding:6px 10px;border-radius:8px}
+.mlist-sep{margin:10px 6px 4px;padding:12px;border-radius:12px;background:var(--sunk);font-size:13.5px;font-weight:700;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}
+.mlist-sep .note{font-weight:400;flex-basis:100%}
 .mbub{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:7px 12px;background:rgb(51 102 255/.92);color:#fff;font:inherit;font-size:12.5px;box-shadow:0 4px 14px rgb(30 45 90/.25);cursor:pointer;white-space:nowrap;transition:transform .15s}
 .mbub:hover{transform:scale(1.06);background:#2449d8}
 .mbub b{font-weight:700;opacity:.9}.mbub span{font-weight:800}
@@ -2324,15 +2326,18 @@ function pinImage(t,sel){
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}"><circle cx="${s/2}" cy="${s/2}" r="${r}" fill="${c}" stroke="#fff" stroke-width="3"/></svg>`;
   return new kakao.maps.MarkerImage('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg),new kakao.maps.Size(s,s),{offset:new kakao.maps.Point(s/2,s/2)});
 }
-function mapListHtml(rows,total){
-  const shown=rows.slice(0,120);
-  return `<div class="mlist-h"><b class="num">${rows.length.toLocaleString()}</b>건${KMAP.ready&&MF.inView?' <span class="note">· 지금 지도 화면 기준</span>':''}</div>`
-   +(shown.length?shown.map(p=>`<a class="mitem ${p.key===MF.sel?'sel':''}" href="${p.href}" data-mkey="${esc(p.key)}">
+const mitemHtml=p=>`<a class="mitem ${p.key===MF.sel?'sel':''}" href="${p.href}" data-mkey="${esc(p.key)}">
       <span class="mtop"><span class="mdot ${p.t}"></span><span class="note">${p.t==='auc'?'공매':p.t==='house'?'분양·임대':'중개사 매물'}</span>${p.dday?`<span class="dday ${p.dday[1]}">${esc(p.dday[0])}</span>`:''}${p.approx?'<span class="note" title="번지를 찾지 못해 동 중심에 표시">· 위치 대략</span>':''}</span>
       <span class="mt">${esc(p.title)}</span><span class="note">${p.line}</span>
-      <span class="mp"><b class="num">${esc(p.price||'')}</b>${p.badge?`<span class="mbadge ${p.t}">${esc(p.badge)}</span>`:''}</span></a>`).join('')
+      <span class="mp"><b class="num">${esc(p.price||'')}</b>${p.badge?`<span class="mbadge ${p.t}">${esc(p.badge)}</span>`:''}</span></a>`;
+function mapListHtml(rows,total,noXY=[]){
+  const shown=rows.slice(0,120);
+  return `<div class="mlist-h"><b class="num">${rows.length.toLocaleString()}</b>건${KMAP.ready&&MF.inView?' <span class="note">· 지금 지도 화면 기준</span>':''}</div>`
+   +(shown.length?shown.map(mitemHtml).join('')
      +(rows.length>shown.length?`<p class="note" style="padding:10px 4px">${(rows.length-shown.length).toLocaleString()}건 더 있어요. 지도를 확대하거나 조건을 좁혀 보세요.</p>`:'')
-    :`<div class="empty" style="margin:8px">${KMAP.ready&&MF.inView?'이 화면 안에는 물건이 없어요. 지도를 옮기거나 축소해 보세요.':'조건에 맞는 물건이 없어요.'}</div>`);
+    :`<div class="empty" style="margin:8px">${KMAP.ready&&MF.inView?'이 화면 안에는 지도에 찍힌 물건이 없어요. 지도를 옮기거나 축소해 보세요.':'조건에 맞는 물건이 없어요.'}</div>`)
+   +(noXY.length?`<div class="mlist-sep">지도에 위치가 없는 ${noXY.length.toLocaleString()}건 <span class="note">(LH 공고처럼 시·도까지만 공개되거나, 위치를 아직 못 찾은 물건)</span>
+       <button type="button" class="btn sm" data-noxy>${MF.noxy?'접기':'펼쳐 보기'}</button></div>${MF.noxy?noXY.slice(0,150).map(mitemHtml).join(''):''}`:'');
 }
 function inBoundsFn(){
   const b=KMAP.map.getBounds(), sw=b.getSouthWest(), ne=b.getNorthEast();
@@ -2343,8 +2348,8 @@ function refreshMapList(){
   const all=KMAP.pts; let rows=all;
   if(KMAP.ready&&MF.inView){const f=inBoundsFn();rows=all.filter(p=>p.la&&f(p))}
   rows=rows.slice().sort((a,b)=>a.sort-b.sort);
-  if(KMAP.ready&&MF.inView) rows=rows.concat(all.filter(p=>!p.la).sort((a,b)=>a.sort-b.sort));   // 위치를 못 찾은 공고는 뒤에 붙인다
-  const box=$('#mlist'); if(box){box.innerHTML=mapListHtml(rows,all.length);box.scrollTop=0}
+  const noXY=KMAP.ready&&MF.inView?all.filter(p=>!p.la).sort((a,b)=>a.sort-b.sort):[];   // 주소가 없어 지도에 못 찍는 공고(LH 등)
+  const box=$('#mlist'); if(box){box.innerHTML=mapListHtml(rows,all.length,noXY);box.scrollTop=0}
 }
 function viewMap(){
   const pts=mapPoints(); KMAP.pts=pts;
@@ -2468,6 +2473,7 @@ document.addEventListener('click',e=>{
   const c=t.closest('[data-mcat]'); if(c){MF.cat=c.dataset.mcat;mapRefilter(false);return}
   if(t.closest('[data-mcheap]')){MF.cheap=!MF.cheap;if(MF.cheap&&MF.src==='agent')MF.src='auc';mapRefilter(false);return}
   if(t.closest('[data-mloss]')){MF.loss=!MF.loss;if(MF.loss&&MF.src!=='agent')MF.src='agent';mapRefilter(false);return}
+  if(t.closest('[data-noxy]')){MF.noxy=!MF.noxy;refreshMapList();return}
   const it=t.closest('.mitem'); if(it&&KMAP.ready&&innerWidth>860&&!e.metaKey&&!e.ctrlKey){
     const p=KMAP.pts.find(x=>x.key===it.dataset.mkey);
     if(p?.la&&MF.sel!==p.key){e.preventDefault();selectPoint(p.key,false);return}
