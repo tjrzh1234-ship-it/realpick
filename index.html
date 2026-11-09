@@ -422,7 +422,7 @@ footer{border-top:1px solid var(--line);background:var(--surface);padding-block:
 footer .wrap{display:grid;gap:8px}
 footer nav{display:flex;gap:16px;flex-wrap:wrap;font-weight:600}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:9px;font-size:14px;z-index:40}
-@media (prefers-reduced-motion:no-preference){.view{animation:in .25s ease-out}@keyframes in{from{transform:translateY(6px)}to{transform:none}}}
+@media (prefers-reduced-motion:no-preference){.view.enter{animation:in .25s ease-out}@keyframes in{from{transform:translateY(6px)}to{transform:none}}}
 
 /* ===== 부드러운 화면 (soft theme) : 위 기본값을 덮어쓴다 ===== */
 :root{
@@ -478,7 +478,7 @@ a.post:hover .t{color:var(--accent)}
 section.block{margin-top:64px}
 footer{background:var(--sunk);border-top:0}
 .toast{border-radius:999px;padding:11px 20px;box-shadow:var(--shadow-h)}
-@media (prefers-reduced-motion:no-preference){.view{animation:in .35s cubic-bezier(.2,.7,.2,1)}@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}}
+@media (prefers-reduced-motion:no-preference){.view.enter{animation:in .35s cubic-bezier(.2,.7,.2,1)}@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}}
 
 /* 메인: 배너 슬라이드 */
 .banner{position:relative;border-radius:28px;overflow:hidden;box-shadow:var(--shadow)}
@@ -540,6 +540,36 @@ footer{background:var(--sunk);border-top:0}
   body.dock .fab{display:none}
   body.dock header.top{margin-right:-376px;padding-right:376px}
 }
+
+/* 휴대폰: 위 메뉴 대신 앱처럼 아래 탭바 */
+.tabbar{display:none}
+@media (max-width:820px){
+  .top .wrap{flex-wrap:nowrap;height:58px;padding-block:0;gap:8px}
+  .logo{flex:1;font-size:20px}
+  nav.gnb{display:none}
+  .top-actions{gap:6px}
+  .top-actions .btn{padding:7px 13px;font-size:13.5px}
+  .top-actions .btn:not(.primary){display:inline-flex;border:0;background:transparent;padding-inline:8px}
+  .top-actions #logoutBtn,.top-actions a[href="#agent"],.top-actions a[href="#admin"]{display:none}
+  .tabbar{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:24;
+    background:color-mix(in srgb,var(--surface) 94%,transparent);backdrop-filter:saturate(1.6) blur(14px);-webkit-backdrop-filter:saturate(1.6) blur(14px);
+    border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px))}
+  .tabbar a{display:grid;justify-items:center;gap:3px;padding:4px 0;font-size:11.5px;font-weight:600;color:var(--faint)}
+  .tabbar svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .tabbar a[aria-current="page"]{color:var(--accent)}
+  body{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))}
+  .fab{bottom:calc(80px + env(safe-area-inset-bottom,0px));right:14px;width:54px;height:54px;padding:0;border-radius:50%;font-size:0;display:grid;place-items:center}
+  .fab::before{content:"AI";font-size:16px;font-weight:900;letter-spacing:-.02em}
+  .tabs{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  .tabs::-webkit-scrollbar{display:none}
+  .tabs button{flex:0 0 auto}
+  .tabs [style*="margin-left:auto"]{margin-left:0!important}
+  .sec-head h2{font-size:21px}
+  .drawer{bottom:calc(72px + env(safe-area-inset-bottom,0px));right:8px;left:8px;width:auto;height:min(560px,calc(100dvh - 150px))}
+  .toast{bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  main.wrap{padding-top:14px}
+  section.block:first-child{margin-top:4px}
+}
 </style>
 
 </head>
@@ -562,6 +592,13 @@ footer{background:var(--sunk);border-top:0}
 </header>
 
 <main class="wrap" id="app"></main>
+<nav class="tabbar" aria-label="하단 메뉴">
+  <a href="#home" data-nav="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg>홈</a>
+  <a href="#listings" data-nav="listings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>지도</a>
+  <a href="#auctions" data-nav="auctions"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 4 6 6M11 7l6 6M12.5 5.5l-6 6 3 3 6-6"/><path d="m9.5 14.5-6 6M14 20h7"/></svg>공매</a>
+  <a href="#community" data-nav="community"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg>커뮤니티</a>
+  <a href="#insight" data-nav="insight"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5"/><path d="M8 7h7M8 11h5"/></svg>인사이트</a>
+</nav>
 
 <footer>
   <div class="wrap">
@@ -667,6 +704,8 @@ async function loadFeed(){
 
 /* ---------- 공통 조각 ---------- */
 const ICON = {
+  home: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/>',
+  book: '<path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5"/><path d="M8 7h7M8 11h5"/>',
   map:'<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>',
   gavel:'<path d="M14 4l6 6M11 7l6 6M12.5 5.5l-6 6 3 3 6-6M8 13l-5 5"/><path d="M13 20h8"/>',
   chat:'<path d="M4 5h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/>',
@@ -2323,7 +2362,7 @@ function viewMap(){
     <div class="tabs mcats">${MCATS.map(([k])=>`<button type="button" aria-pressed="${k===MF.cat}" data-mcat="${k}">${k}</button>`).join('')}
       <button type="button" aria-pressed="${MF.cheap}" data-mcheap style="margin-left:auto">시세보다 30%↓ 공매</button><button type="button" aria-pressed="${MF.loss}" data-mloss>직전 거래가보다 싼 매물</button></div>
     <div class="mwrap">
-      <div class="mmap" id="kmap">${hasKey?'<div class="note" style="padding:20px">지도를 불러오는 중…</div>':`<div class="mnokey"><b>지도 키가 아직 없어요</b><span class="note">config.js에 카카오 지도 키(kakaoJsKey)를 넣으면 여기에 지도가 보여요. 오른쪽 목록은 지금도 쓸 수 있어요.</span></div>`}</div>
+      <div class="mmap" id="kmap">${KMAP.map?'':hasKey?'<div class="note" style="padding:20px">지도를 불러오는 중…</div>':`<div class="mnokey"><b>지도 키가 아직 없어요</b><span class="note">config.js에 카카오 지도 키(kakaoJsKey)를 넣으면 여기에 지도가 보여요. 오른쪽 목록은 지금도 쓸 수 있어요.</span></div>`}</div>
       <div class="mlist" id="mlist">${mapListHtml(pts.slice().sort((a,b)=>a.sort-b.sort),pts.length)}</div>
     </div>
     <p class="note"><span class="mdot auc"></span>공매(온비드) <span class="mdot house" style="margin-left:8px"></span>분양·임대(청약홈·LH) <span class="mdot agent" style="margin-left:8px"></span>중개사 매물 · 위치는 주소로 찾은 대략적인 지점이에요${noXY?` · 위치를 못 찾은 ${noXY.toLocaleString()}건은 목록에만 있어요`:''}. 중개사 매물은 등록 심사를 거친 개업공인중개사가 올립니다.</p>
@@ -2371,15 +2410,24 @@ function drawLayerInner(){
   }
 }
 async function initMap(){
-  const el=$('#kmap'); if(!el) return;
-  KMAP.ready=false;
-  if(!(await ensureKakao())){ if((CFG.kakaoJsKey||'').trim()&&$('#kmap')) $('#kmap').innerHTML='<div class="mnokey"><b>지도를 불러오지 못했어요</b><span class="note">카카오 개발자 콘솔에서 이 사이트 주소(도메인)가 등록됐는지, 카카오맵 사용 설정이 켜졌는지 확인해 주세요.</span></div>'; return }
+  const gen=KMAP.gen=(KMAP.gen||0)+1;
   if(!$('#kmap')) return;
+  if(!KMAP.map&&!(await ensureKakao())){ if((CFG.kakaoJsKey||'').trim()&&$('#kmap')) $('#kmap').innerHTML='<div class="mnokey"><b>지도를 불러오지 못했어요</b><span class="note">카카오 개발자 콘솔에서 이 사이트 주소(도메인)가 등록됐는지, 카카오맵 사용 설정이 켜졌는지 확인해 주세요.</span></div>'; return }
+  if(gen!==KMAP.gen) return;              // 기다리는 동안 화면이 다시 그려졌으면 마지막 호출만 지도를 만든다
+  const el=$('#kmap'); if(!el) return;
+  // 같은 페이지를 다시 그릴 때는 이미 만든 지도를 그대로 옮겨 붙인다 (지도를 새로 만들면 깜빡인다)
+  if(KMAP.map&&KMAP.el&&KMAP.el!==el&&window.kakao?.maps){
+    el.replaceWith(KMAP.el); KMAP.map.relayout(); KMAP.ready=true;
+    if(MF.fit){MF.fit=false;fitPoints()}
+    drawLayer(); refreshMapList(); if(MF.sel) selectPoint(MF.sel,false);
+    return;
+  }
+  KMAP.ready=false;
   el.innerHTML='';
   const center=MF.center||new kakao.maps.LatLng(36.35,127.85);
   const map=new kakao.maps.Map(el,{center,level:MF.level||12,maxLevel:13});
   map.addControl(new kakao.maps.ZoomControl(),kakao.maps.ControlPosition.RIGHT);
-  KMAP.map=map; KMAP.layer=[]; KMAP.overlay=null;
+  KMAP.map=map; KMAP.el=el; KMAP.layer=[]; KMAP.overlay=null;
   KMAP.imgs=KMAP.imgs||{auc:pinImage('auc'),house:pinImage('house'),agent:pinImage('agent')};
   KMAP.ready=true;
   if(MF.fit||(!MF.center&&(MF.sido!=='전체'||MF.q))){MF.fit=false;fitPoints()}
@@ -2446,6 +2494,7 @@ function viewHouse(id){
 
 /* ---------- 라우터 ---------- */
 function route(){return (location.hash||'#home').slice(1)||'home'}
+let PAINTED=null;   // 마지막으로 그린 페이지: 같은 페이지를 데이터 때문에 다시 그릴 땐 깜빡임 효과를 넣지 않는다
 function render(){
   const r=route(); const app=$('#app');
   let html, nav=r;
@@ -2472,7 +2521,7 @@ function render(){
   else if(r==='support'){html=viewSupport();nav='insight'}
   else if(r.startsWith('notice-')){html=viewNotice(r.slice(7));nav='insight'}
   else {html=viewHome();nav='home'}
-  app.innerHTML=`<div class="view">${html}</div>`;
+  app.innerHTML=`<div class="view${r!==PAINTED?' enter':''}">${html}</div>`; PAINTED=r;
   const run=AFTER; AFTER=[]; run.forEach(fn=>{try{fn()}catch(e){console.error(e)}});
   document.querySelectorAll('[data-nav]').forEach(a=>{a.dataset.nav===nav?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current')});
   paintArt(); if(r==='listings') paintMap();
