@@ -607,8 +607,9 @@ footer{background:var(--sunk);border-top:0}
   body.dock .bmkmini{display:none}
   body.dock .drawer,body.dock .drawer[hidden]{top:calc(42vh + 36px)}
   body.dock .bmkdock.closed ~ .drawer{top:calc(84px + 62px)}
-  body.dock:not(.has-bmk) .bmkdock{display:none}
-  body.dock:not(.has-bmk) .drawer,body.dock:not(.has-bmk) .drawer[hidden]{top:calc(84px + env(safe-area-inset-top,0px))}
+  body.dock:not(.has-bmk) .bmkdock{height:auto}
+  body.dock:not(.has-bmk) .bmkdock .bmk-list{flex:0 0 auto}
+  body.dock:not(.has-bmk) .drawer,body.dock:not(.has-bmk) .drawer[hidden]{top:calc(84px + 132px)}
 }
 </style>
 
@@ -2571,8 +2572,8 @@ function renderBookmarks(){
   const member=!!(sb&&AUTH.session), n=member?bmkItems().length:0;
   document.body.classList.toggle('has-bmk',member);
   const head=`<div class="bmk-h"><button type="button" class="bmk-toggle" data-bmktoggle aria-expanded="${BMK.open}"><span class="bmk-star">♥</span>내 북마크 <b class="num">${n}</b></button>${member?'<a href="#listings" class="note" data-bmkmap>지도에서 보기</a>':''}</div>`;
-  const body=member?bmkListHtml(30):`<p class="note bmk-empty"><a href="#login">로그인</a>하면 관심 매물을 북마크해서 여기서 모아 볼 수 있어요.</p>`;
-  const dock=$('#bmkdock'); if(dock){dock.innerHTML=head+`<div class="bmk-list">${body}</div>`;dock.classList.toggle('closed',!BMK.open)}
+  const body=member?bmkListHtml(30):`<p class="note bmk-empty"><a href="#login">로그인</a>하면 관심 있는 공매·분양·매물을 ♡로 담아 여기서 모아 볼 수 있어요.</p>`;
+  const dock=$('#bmkdock'); if(dock){dock.innerHTML=head+`<div class="bmk-list">${body}</div>`;dock.classList.toggle('closed',member&&!BMK.open)}
   const mini=$('#bmkmini'); if(mini){mini.innerHTML=member?head+(BMK.open?`<div class="bmk-list">${bmkListHtml(10)}</div>`:''):'';mini.hidden=!member}
 }
 document.addEventListener('click',e=>{
