@@ -572,6 +572,44 @@ footer{background:var(--sunk);border-top:0}
   main.wrap{padding-top:14px}
   section.block:first-child{margin-top:4px}
 }
+
+/* 북마크 */
+.bmkdock{display:none}
+.bmk-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.bmk-toggle{border:0;background:none;font:inherit;font-weight:800;font-size:15px;color:var(--fg);display:flex;align-items:center;gap:6px;padding:0;cursor:pointer}
+.bmk-toggle b{color:var(--accent)}
+.bmk-toggle::after{content:"▾";font-size:12px;color:var(--faint);transition:transform .2s}
+.bmk-toggle[aria-expanded="false"]::after{transform:rotate(-90deg)}
+.bmk-star{color:var(--hot)}
+.bmk-list{overflow:auto;padding:6px;flex:1;overscroll-behavior:contain}
+.bmk-item{display:flex;align-items:flex-start;gap:6px;padding:9px 8px;border-radius:12px;transition:background .15s}
+.bmk-item:hover{background:var(--sunk)}
+.bmk-item .mdot{margin-top:6px;flex:0 0 auto}
+.bmk-item.gone{opacity:.5}
+.bmk-main{flex:1;min-width:0;display:grid;gap:3px;color:inherit}
+.bmk-t{font-size:13.5px;font-weight:700;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.bmk-m{font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.bmk-m .dday{font-size:10.5px;padding:1px 6px}
+.bmk-x{width:26px;height:26px;font-size:11px;color:var(--faint);flex:0 0 auto}
+.bmk-empty{padding:12px 14px;margin:0;font-size:13px;line-height:1.6}
+.bmk-empty a{color:var(--accent);font-weight:700}
+.bmk-more{display:block;text-align:center;padding:8px;font-size:13px;font-weight:700;color:var(--accent)}
+.bmkmini{border-bottom:1px solid var(--line);max-height:38%;display:flex;flex-direction:column;flex:0 0 auto}
+.bmkmini[hidden]{display:none}
+.bmkmini .bmk-h{border-bottom:0;padding:10px 14px}
+.bmkmini .bmk-list{padding-top:0}
+@media (min-width:1360px){
+  body.dock .bmkdock{display:flex;flex-direction:column;position:fixed;right:16px;width:344px;top:calc(84px + env(safe-area-inset-top,0px));height:calc(42vh - 60px);z-index:26;
+    background:var(--surface);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow-h);overflow:hidden}
+  body.dock .bmkdock.closed{height:auto}
+  body.dock .bmkdock.closed .bmk-list{display:none}
+  body.dock .bmkdock .bmk-h{border-bottom:1px solid var(--line)}
+  body.dock .bmkmini{display:none}
+  body.dock .drawer,body.dock .drawer[hidden]{top:calc(42vh + 36px)}
+  body.dock .bmkdock.closed ~ .drawer{top:calc(84px + 62px)}
+  body.dock:not(.has-bmk) .bmkdock{display:none}
+  body.dock:not(.has-bmk) .drawer,body.dock:not(.has-bmk) .drawer[hidden]{top:calc(84px + env(safe-area-inset-top,0px))}
+}
 </style>
 
 </head>
@@ -610,8 +648,10 @@ footer{background:var(--sunk);border-top:0}
 </footer>
 
 <button class="fab" id="fab" type="button">AI 채팅</button>
+<aside class="bmkdock" id="bmkdock" aria-label="내 북마크"></aside>
 <div class="drawer" id="drawer" hidden>
   <header><span class="ttl"><i>AI</i>리얼픽 AI 상담</span><button class="icon" id="closeChat" type="button" aria-label="닫기"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></header>
+  <div class="bmkmini" id="bmkmini"></div>
   <div class="msgs" id="msgs"><div class="msg ai">지역, 예산, 종류를 말씀해 주시면 지금 진행 중인 공매와 등록 매물에서 후보를 골라 체크할 점과 함께 정리해 드려요. 정부지원사업 공고나 금리도 물어보세요.<br><span class="note">예: 대구 수성구 3억 이하 아파트 공매 있어? · 감정가보다 많이 떨어진 토지 공매 알려줘</span></div></div>
   <div id="chatQuota" class="chatquota"></div>
   <form id="chatForm"><input id="chatIn" placeholder="예: 대구 수성구 5억 이하 상가 투자 어때?" autocomplete="off"><button class="btn primary" type="submit">보내기</button></form>
@@ -1066,7 +1106,7 @@ function realCard(l){
   return `<a class="lcard" href="#l-${l.id}">
     <div class="lthumb">${ph?`<img src="${esc(ph)}" alt="" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block">`:`<canvas data-art="${parseInt(l.id.slice(0,6),16)%97+1}"></canvas>`}${loss?`<span class="tag">직전 거래가 -${loss.pct}%</span>`:''}</div>
     <div class="lbody">
-      <div class="kind">${esc(l.kind)} · ${esc(l.sido)} ${esc(l.sigungu)}</div>
+      <div class="kind" style="display:flex;align-items:center;gap:6px">${esc(l.kind)} · ${esc(l.sido)} ${esc(l.sigungu)}<span style="margin-left:auto">${memberHeart('listing',l.id,l.title)}</span></div>
       <div class="ttl">${esc(l.title)}</div>
       <div class="price"><b class="num">${esc(priceText(l))}</b></div>
       <dl class="kv"><dt>면적</dt><dd class="num">${(+l.area_m2).toLocaleString()}㎡ (${pyeong(l.area_m2)}평)</dd><dt>입주</dt><dd>${esc(l.move_in)}</dd><dt>중개</dt><dd>${esc(l.agent?.office_name||'')}</dd></dl>
@@ -1693,7 +1733,7 @@ function aucCard(it){
   const [dl,dc]=aucDday(it);
   return `<a class="lcard acard" href="#auc-${esc(it.id)}">
     <div class="lbody">
-      <div class="row1" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><span class="dday ${dc}">${dl}</span><span class="kind">${esc(it.sido||'-')} · ${esc((it.usage||'-').split(' > ').pop())}</span>${trustOf(it.org)?`<span class="chip-s trust">${esc(trustOf(it.org))}</span>`:''}</div>
+      <div class="row1" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${AUTH.session&&sb?`<span style="margin-left:auto;order:9">${heartBtn('auction',it.id,it.title)}</span>`:''}<span class="dday ${dc}">${dl}</span><span class="kind">${esc(it.sido||'-')} · ${esc((it.usage||'-').split(' > ').pop())}</span>${trustOf(it.org)?`<span class="chip-s trust">${esc(trustOf(it.org))}</span>`:''}</div>
       <div class="ttl">${esc(it.title)}</div>
       <div class="price"><b class="num">${wonKRW(it.minp)}</b>${it.ratio?`<span class="drop" style="color:var(--muted)">감정가의 ${it.ratio}%</span>`:''}</div>
       <dl class="kv"><dt>감정가</dt><dd class="num">${wonKRW(it.apsl)}</dd><dt>유찰</dt><dd class="num">${it.fails||0}회</dd><dt>입찰 마감</dt><dd class="num">${esc(it.bidEnd||'-')}</dd></dl>
@@ -1767,6 +1807,7 @@ async function loadFavs(){
   const local=[...favs].filter(id=>!FAV.set.has(favKey('notice',id)));
   if(local.length){ const rows=local.slice(0,200).map(id=>({kind:'notice',ref_id:id,title:(FEED.items.find(n=>n.pblancId===id)||{}).pblancNm||null}));
     const {error}=await sb.from('favorites').insert(rows); if(!error){rows.forEach(r=>FAV.set.add(favKey('notice',r.ref_id)));favs=new Set();saveFavs();} }
+  renderBookmarks();
 }
 async function toggleFav(kind,id,title,btn){
   if(!(sb&&AUTH.session)){
@@ -1779,8 +1820,11 @@ async function toggleFav(kind,id,title,btn){
   on?FAV.set.add(k):FAV.set.delete(k);
   if(on) FAV.rows?.unshift({kind,ref_id:id,title,created_at:new Date().toISOString()}); else FAV.rows=(FAV.rows||[]).filter(r=>favKey(r.kind,r.ref_id)!==k);
   document.querySelectorAll(`[data-heart="${CSS.escape(kind+'|'+id)}"]`).forEach(b=>b.setAttribute('aria-pressed',on));
-  toast(on?'관심 목록에 담았어요':'관심 목록에서 뺐어요');
+  toast(on?'북마크에 담았어요':'북마크에서 뺐어요');
+  renderBookmarks();
+  if(MF.fav&&route()==='listings'&&!on) render();
 }
+const memberHeart=(kind,id,title)=>AUTH.session&&sb?heartBtn(kind,id,title):'';
 const heartBtn=(kind,id,title)=>`<button class="icon heart" type="button" data-heart="${esc(kind+'|'+id)}" data-title="${esc(title||'')}" aria-pressed="${isFav(kind,id)}" aria-label="관심 목록에 담기">${svg('heart')}</button>`;
 
 /* ---------- 가입·로그인 ---------- */
@@ -2302,6 +2346,7 @@ function mapPoints(){
       line:`${esc(l.sido)} ${esc(l.sigungu)} · ${esc(l.kind)}`,price:priceText(l),dday:null,badge:loss?`직전 거래가 -${loss.pct}%`:'',loss:!!loss,sort:loss?-loss.pct:60});}
   const {sidos,words}=splitRegionQuery(MF.q);
   const cat=MCATS.find(c=>c[0]===MF.cat)?.[1];
+  if(MF.fav&&AUTH.session) return pts.filter(p=>FAV.set.has(favKey(FKIND[p.t],p.key.slice(1))));
   return pts.filter(p=>(!cat||p.cat===cat)&&(MF.sido==='전체'||p.sido===MF.sido)&&(!sidos||sidos.includes(p.sido))&&(!MF.cheap||p.t!=='auc'||p.cheap)&&(!MF.loss||p.t!=='agent'||p.loss)&&(!words.length||textHit(p.text,words)));
 }
 const KMAP={map:null,clusterer:null,markers:new Map(),overlay:null,ready:false,failed:false,loading:null,pts:[]};
@@ -2326,8 +2371,9 @@ function pinImage(t,sel){
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}"><circle cx="${s/2}" cy="${s/2}" r="${r}" fill="${c}" stroke="#fff" stroke-width="3"/></svg>`;
   return new kakao.maps.MarkerImage('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg),new kakao.maps.Size(s,s),{offset:new kakao.maps.Point(s/2,s/2)});
 }
+const FKIND={auc:'auction',house:'house',agent:'listing'};
 const mitemHtml=p=>`<a class="mitem ${p.key===MF.sel?'sel':''}" href="${p.href}" data-mkey="${esc(p.key)}">
-      <span class="mtop"><span class="mdot ${p.t}"></span><span class="note">${p.t==='auc'?'공매':p.t==='house'?'분양·임대':'중개사 매물'}</span>${p.dday?`<span class="dday ${p.dday[1]}">${esc(p.dday[0])}</span>`:''}${p.approx?'<span class="note" title="번지를 찾지 못해 동 중심에 표시">· 위치 대략</span>':''}</span>
+      <span class="mtop">${AUTH.session&&sb?`<span style="margin-left:auto;order:9">${heartBtn(FKIND[p.t],p.key.slice(1),p.title)}</span>`:''}<span class="mdot ${p.t}"></span><span class="note">${p.t==='auc'?'공매':p.t==='house'?'분양·임대':'중개사 매물'}</span>${p.dday?`<span class="dday ${p.dday[1]}">${esc(p.dday[0])}</span>`:''}${p.approx?'<span class="note" title="번지를 찾지 못해 동 중심에 표시">· 위치 대략</span>':''}</span>
       <span class="mt">${esc(p.title)}</span><span class="note">${p.line}</span>
       <span class="mp"><b class="num">${esc(p.price||'')}</b>${p.badge?`<span class="mbadge ${p.t}">${esc(p.badge)}</span>`:''}</span></a>`;
 function mapListHtml(rows,total,noXY=[]){
@@ -2365,7 +2411,7 @@ function viewMap(){
         <button class="btn primary" type="submit">검색</button></div>
     </form>
     <div class="tabs mcats">${MCATS.map(([k])=>`<button type="button" aria-pressed="${k===MF.cat}" data-mcat="${k}">${k}</button>`).join('')}
-      <button type="button" aria-pressed="${MF.cheap}" data-mcheap style="margin-left:auto">시세보다 30%↓ 공매</button><button type="button" aria-pressed="${MF.loss}" data-mloss>직전 거래가보다 싼 매물</button></div>
+      <button type="button" aria-pressed="${MF.cheap}" data-mcheap style="margin-left:auto">시세보다 30%↓ 공매</button><button type="button" aria-pressed="${MF.loss}" data-mloss>직전 거래가보다 싼 매물</button>${AUTH.session&&sb?`<button type="button" aria-pressed="${!!MF.fav}" data-mfav>♥ 북마크만</button>`:''}</div>
     <div class="mwrap">
       <div class="mmap" id="kmap">${KMAP.map?'':hasKey?'<div class="note" style="padding:20px">지도를 불러오는 중…</div>':`<div class="mnokey"><b>지도 키가 아직 없어요</b><span class="note">config.js에 카카오 지도 키(kakaoJsKey)를 넣으면 여기에 지도가 보여요. 오른쪽 목록은 지금도 쓸 수 있어요.</span></div>`}</div>
       <div class="mlist" id="mlist">${mapListHtml(pts.slice().sort((a,b)=>a.sort-b.sort),pts.length)}</div>
@@ -2472,6 +2518,7 @@ document.addEventListener('click',e=>{
   const s=t.closest('[data-msrc]'); if(s){MF.src=s.dataset.msrc;mapRefilter(false);return}
   const c=t.closest('[data-mcat]'); if(c){MF.cat=c.dataset.mcat;mapRefilter(false);return}
   if(t.closest('[data-mcheap]')){MF.cheap=!MF.cheap;if(MF.cheap&&MF.src==='agent')MF.src='auc';mapRefilter(false);return}
+  if(t.closest('[data-mfav]')){MF.fav=!MF.fav;mapRefilter();return}
   if(t.closest('[data-mloss]')){MF.loss=!MF.loss;if(MF.loss&&MF.src!=='agent')MF.src='agent';mapRefilter(false);return}
   if(t.closest('[data-noxy]')){MF.noxy=!MF.noxy;refreshMapList();return}
   const it=t.closest('.mitem'); if(it&&KMAP.ready&&innerWidth>860&&!e.metaKey&&!e.ctrlKey){
@@ -2494,9 +2541,44 @@ function viewHouse(id){
     <div class="dsec"><h2>공고 정보</h2><dl class="facts" style="background:transparent;padding:0;gap:8px 16px">
       ${row('위치',esc(h.addr||h.region||''))}${row('공고일',esc(h.notice||''))}${row('청약 접수',h.start||h.end?esc((h.start||'')+' ~ '+(h.end||'')):'')}${row('당첨자 발표',esc(h.winner||''))}${row('입주 예정',esc(h.moveIn||''))}${row('공고 상태',esc(h.status||''))}${row('사업주체',esc(h.org||''))}${row('문의',esc(h.tel||''))}</dl>
       <p class="note" style="margin-top:12px">자격 조건·공급 금액·일정은 반드시 원문 모집공고에서 확인하세요. 분양가는 주택형별 최고가 기준이에요.</p></div>
-  </div><aside class="side"><div class="panel"><div style="font-weight:800;margin-bottom:8px">청약·신청은 원문에서</div><a class="btn primary" style="width:100%;justify-content:center" href="${esc(safeUrl(h.url)||'https://www.applyhome.co.kr')}" target="_blank" rel="noopener">${h.src==='LH'?'LH 청약플러스':'청약홈'} 공고 보기</a></div>
+  </div><aside class="side"><div class="panel"><div style="font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">청약·신청은 원문에서 ${memberHeart('house',h.id,h.name)}</div><a class="btn primary" style="width:100%;justify-content:center" href="${esc(safeUrl(h.url)||'https://www.applyhome.co.kr')}" target="_blank" rel="noopener">${h.src==='LH'?'LH 청약플러스':'청약홈'} 공고 보기</a></div>
     <div class="panel note" style="font-size:13px">자료: ${h.src==='LH'?'한국토지주택공사(LH)':'한국부동산원 청약홈'} (공공데이터포털)${HOUSING.updatedAt&&fmtTime(HOUSING.updatedAt)?'<br>'+fmtTime(HOUSING.updatedAt)+' 갱신':''}</div></aside></div>`;
 }
+
+
+/* ---------- 내 북마크 (오른쪽 떠 있는 영역 위쪽 / 휴대폰은 AI 창 위쪽) ---------- */
+const BMK={open:true};
+try{BMK.open=localStorage.getItem('rp-bmk-open')!=='0'}catch(e){}
+function bmkItems(){
+  return (FAV.rows||[]).filter(r=>r.kind!=='notice').map(r=>{
+    if(r.kind==='auction'){const it=AUC.items.find(x=>x.id===r.ref_id);const dd=it?aucDday(it):['마감','closed'];
+      return {r,t:'auc',href:'#auc-'+r.ref_id,title:it?.title||r.title||r.ref_id,meta:it?`최저가 ${wonKRW(it.minp)}`:'목록에서 내려간 물건',dd,gone:!it||dd[1]==='closed'}}
+    if(r.kind==='house'){const h=HOUSING.items.find(x=>x.id===r.ref_id);const dd=h?hDday(h):['마감','closed'];
+      return {r,t:'house',href:'#h-'+r.ref_id,title:h?.name||r.title||'분양 공고',meta:h?(h.priceMin?`분양가 ${manwon(h.priceMin)}~`:(h.src+' '+(h.kind||''))):'접수가 끝난 공고',dd,gone:!h||dd[1]==='closed'}}
+    const l=MARKET.items.find(x=>x.id===r.ref_id);
+    return {r,t:'agent',href:'#l-'+r.ref_id,title:l?.title||r.title||'매물',meta:l?priceText(l):'내려간 매물',dd:null,gone:!l};
+  });
+}
+function bmkListHtml(max){
+  const its=bmkItems();
+  if(!its.length) return `<p class="note bmk-empty">관심 있는 매물의 ♡를 누르면 여기에 모여요.<br>공매·분양·중개사 매물 모두 담을 수 있어요.</p>`;
+  return its.slice(0,max).map(x=>`<div class="bmk-item ${x.gone?'gone':''}"><span class="mdot ${x.t}"></span>
+      <a href="${x.href}" class="bmk-main"><span class="bmk-t">${esc(x.title)}</span><span class="bmk-m">${x.dd?`<span class="dday ${x.dd[1]}">${esc(x.dd[0])}</span>`:''}${esc(x.meta)}</span></a>
+      <button type="button" class="icon bmk-x" data-heart="${esc(x.r.kind+'|'+x.r.ref_id)}" aria-pressed="true" aria-label="북마크에서 빼기">✕</button></div>`).join('')
+    +(its.length>max?`<a class="bmk-more" href="#my">${(its.length-max).toLocaleString()}건 더 보기 →</a>`:'');
+}
+function renderBookmarks(){
+  const member=!!(sb&&AUTH.session), n=member?bmkItems().length:0;
+  document.body.classList.toggle('has-bmk',member);
+  const head=`<div class="bmk-h"><button type="button" class="bmk-toggle" data-bmktoggle aria-expanded="${BMK.open}"><span class="bmk-star">♥</span>내 북마크 <b class="num">${n}</b></button>${member?'<a href="#listings" class="note" data-bmkmap>지도에서 보기</a>':''}</div>`;
+  const body=member?bmkListHtml(30):`<p class="note bmk-empty"><a href="#login">로그인</a>하면 관심 매물을 북마크해서 여기서 모아 볼 수 있어요.</p>`;
+  const dock=$('#bmkdock'); if(dock){dock.innerHTML=head+`<div class="bmk-list">${body}</div>`;dock.classList.toggle('closed',!BMK.open)}
+  const mini=$('#bmkmini'); if(mini){mini.innerHTML=member?head+(BMK.open?`<div class="bmk-list">${bmkListHtml(10)}</div>`:''):'';mini.hidden=!member}
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest('[data-bmktoggle]')){BMK.open=!BMK.open;try{localStorage.setItem('rp-bmk-open',BMK.open?'1':'0')}catch(_){}renderBookmarks();return}
+  if(e.target.closest('[data-bmkmap]')){MF.fav=true;MF.fit=true;}
+},true);
 
 /* ---------- 라우터 ---------- */
 function route(){return (location.hash||'#home').slice(1)||'home'}
@@ -2528,6 +2610,7 @@ function render(){
   else if(r.startsWith('notice-')){html=viewNotice(r.slice(7));nav='insight'}
   else {html=viewHome();nav='home'}
   app.innerHTML=`<div class="view${r!==PAINTED?' enter':''}">${html}</div>`; PAINTED=r;
+  renderBookmarks();
   const run=AFTER; AFTER=[]; run.forEach(fn=>{try{fn()}catch(e){console.error(e)}});
   document.querySelectorAll('[data-nav]').forEach(a=>{a.dataset.nav===nav?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current')});
   paintArt(); if(r==='listings') paintMap();
