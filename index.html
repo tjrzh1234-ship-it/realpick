@@ -2430,7 +2430,7 @@ async function initMap(){
   KMAP.ready=false;
   el.innerHTML='';
   const center=MF.center||new kakao.maps.LatLng(36.35,127.85);
-  const map=new kakao.maps.Map(el,{center,level:MF.level||12,maxLevel:13});
+  const map=new kakao.maps.Map(el,{center,level:MF.level||(innerWidth<860?13:12),maxLevel:13});
   map.addControl(new kakao.maps.ZoomControl(),kakao.maps.ControlPosition.RIGHT);
   KMAP.map=map; KMAP.el=el; KMAP.layer=[]; KMAP.overlay=null;
   KMAP.imgs=KMAP.imgs||{auc:pinImage('auc'),house:pinImage('house'),agent:pinImage('agent')};
