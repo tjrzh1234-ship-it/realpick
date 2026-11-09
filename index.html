@@ -293,6 +293,10 @@ fieldset.sub legend small,.fld small{font-weight:400;color:var(--faint)}
 .mdot.auc{background:#ff6b3d}.mdot.house{background:#12a26a}.mdot.agent{background:#3366ff}
 .mbadge{font-size:11.5px;font-weight:800;padding:2px 8px;border-radius:999px}
 .mbadge.auc{background:var(--hot-soft);color:var(--hot)}.mbadge.house{background:var(--ok-soft);color:var(--ok)}.mbadge.agent{background:var(--accent-soft);color:var(--accent)}
+.mbub{display:inline-flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:7px 12px;background:rgb(51 102 255/.92);color:#fff;font:inherit;font-size:12.5px;box-shadow:0 4px 14px rgb(30 45 90/.25);cursor:pointer;white-space:nowrap;transition:transform .15s}
+.mbub:hover{transform:scale(1.06);background:#2449d8}
+.mbub b{font-weight:700;opacity:.9}.mbub span{font-weight:800}
+.mbub.big{padding:9px 14px;font-size:13.5px}
 .mpop{position:relative;display:grid;gap:5px;min-width:220px;max-width:280px;background:var(--surface);color:var(--fg);border-radius:16px;padding:14px 16px;box-shadow:0 10px 30px rgb(30 45 90/.22);font-size:13.5px;line-height:1.45}
 .mpop b{font-size:14.5px}
 .mpop .btn{justify-self:start;margin-top:4px}
@@ -1639,6 +1643,7 @@ function aucDday(it){
 function compareBadge(c,big){
   if(!c) return '';
   if(c.skip) return `<div class="note">${esc(c.skip)}</div>`;
+  if(c.minVsEst<=-85) return `<div class="note">주변 시세와 차이가 너무 커서 비교하기 어려워요 (지분·일부 면적 매각 가능성)</div>`;
   const p=c.minVsEst, cheap=p<0;
   return `<div class="cmp ${cheap?'cheap':'dear'}${big?' big':''}"><b class="num">${cheap?'▼':'▲'} ${Math.abs(p).toFixed(1)}%</b><span>주변 시세 추정 <b class="num">${wonKRW(c.est)}</b> 대비 최저가</span></div>`;
 }
@@ -2239,17 +2244,19 @@ const LKIND={아파트:'apt',오피스텔:'offi',상가:'nrg',사무실:'nrg',�
 function houseCat(h){const k=(h.kind||'')+' '+(h.group||'');return /아파트|APT|민영|국민|분양주택|공공분양|신혼희망/.test(k)?'apt':/오피스텔/.test(k)?'offi':/도시형|다세대|연립/.test(k)?'rh':/토지/.test(k)?'land':/상가/.test(k)?'nrg':/임대|행복|전세/.test(k)?'apt':null}
 const hDday=h=>{if(!h.end)return h.notice&&h.notice>new Date(TODAY).toISOString().slice(0,10)?['공고 예정','upcoming']:['공고 중','open'];const d=Math.round((Date.parse(h.end+'T00:00:00+09:00')-TODAY)/864e5);if(h.start&&Date.parse(h.start+'T00:00:00+09:00')>TODAY)return ['접수 예정','upcoming'];return d<0?['접수 마감','closed']:[d===0?'오늘 마감':'D-'+d,d<=3?'soon':'open']};
 const manwon=v=>v?wonKRW(v*1e4):'';
+// 최저가가 추정 시세의 15% 미만이면(85% 넘게 싸다고 나오면) 지분·일부 면적 등 비교가 맞지 않는 경우가 대부분이라 표시하지 않는다
+const okCmp=i=>i.compare&&!i.compare.skip&&i.compare.minVsEst>-85;
 function mapPoints(){
   const pts=[];
   if(MF.src==='전체'||MF.src==='auc') for(const i of AUC.items){ if(aucDday(i)[1]==='closed') continue;
-    pts.push({key:'a'+i.id,t:'auc',la:i.la,lo:i.lo,approx:i.geo==='d',cat:i.cat,sido:i.sido,href:'#auc-'+i.id,title:i.title,text:i.title+' '+i.addr+' '+(i.org||''),
+    pts.push({key:'a'+i.id,t:'auc',la:i.la,lo:i.lo,g2:(i.sido||'')+' '+(i.sgg||''),approx:i.geo==='d',cat:i.cat,sido:i.sido,href:'#auc-'+i.id,title:i.title,text:i.title+' '+i.addr+' '+(i.org||''),
       line:`${esc(i.sido||'')} · ${esc((i.usage||'').split(' > ').pop())}`,price:wonKRW(i.minp),dday:aucDday(i),
-      badge:i.compare&&!i.compare.skip&&i.compare.minVsEst<0?`시세보다 ${Math.abs(i.compare.minVsEst).toFixed(0)}% 낮음`:'',cheap:!!(i.compare&&!i.compare.skip&&i.compare.minVsEst<=-30),sort:i.compare&&!i.compare.skip?i.compare.minVsEst:99});}
+      badge:okCmp(i)&&i.compare.minVsEst<0?`시세보다 ${Math.abs(i.compare.minVsEst).toFixed(0)}% 낮음`:'',cheap:!!(okCmp(i)&&i.compare.minVsEst<=-30),sort:okCmp(i)?i.compare.minVsEst:99});}
   if(MF.src==='전체'||MF.src==='house') for(const h of HOUSING.items){ const dd=hDday(h); if(dd[1]==='closed') continue;
-    pts.push({key:'h'+h.id,t:'house',la:h.la,lo:h.lo,approx:h.geo==='d',cat:houseCat(h),sido:h.sido,href:'#h-'+h.id,title:h.name,text:h.name+' '+(h.addr||h.region||'')+' '+(h.org||''),
+    pts.push({key:'h'+h.id,t:'house',la:h.la,lo:h.lo,g2:(h.sido||'')+' '+((h.addr||'').split(/\s+/)[1]||''),approx:h.geo==='d',cat:houseCat(h),sido:h.sido,href:'#h-'+h.id,title:h.name,text:h.name+' '+(h.addr||h.region||'')+' '+(h.org||''),
       line:`${esc(h.sido||h.region||'')} · ${esc(h.src)} ${esc(h.kind||h.group||'')}`,price:h.priceMin?`분양가 ${manwon(h.priceMin)}${h.priceMax&&h.priceMax!==h.priceMin?' ~ '+manwon(h.priceMax):''}`:(h.households?`${h.households.toLocaleString()}세대`:''),dday:dd,badge:h.households&&h.priceMin?`${h.households.toLocaleString()}세대`:'',sort:50});}
   if(MF.src==='전체'||MF.src==='agent') for(const l of MARKET.items){ const loss=lossInfo(l);
-    pts.push({key:'l'+l.id,t:'agent',la:l.lat,lo:l.lng,cat:LKIND[l.kind]||null,sido:l.sido,href:'#l-'+l.id,title:l.title,text:l.title+' '+l.address+' '+l.sigungu+' '+(l.agent?.office_name||''),
+    pts.push({key:'l'+l.id,t:'agent',la:l.lat,lo:l.lng,g2:(l.sido||'')+' '+(l.sigungu||''),cat:LKIND[l.kind]||null,sido:l.sido,href:'#l-'+l.id,title:l.title,text:l.title+' '+l.address+' '+l.sigungu+' '+(l.agent?.office_name||''),
       line:`${esc(l.sido)} ${esc(l.sigungu)} · ${esc(l.kind)}`,price:priceText(l),dday:null,badge:loss?`직전 거래가 -${loss.pct}%`:'',loss:!!loss,sort:loss?-loss.pct:60});}
   const {sidos,words}=splitRegionQuery(MF.q);
   const cat=MCATS.find(c=>c[0]===MF.cat)?.[1];
@@ -2263,7 +2270,7 @@ function ensureKakao(){
   if(KMAP.loading) return KMAP.loading;
   KMAP.loading=new Promise(res=>{
     const s=document.createElement('script');
-    s.src=`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(key)}&libraries=services,clusterer&autoload=false`;
+    s.src=`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(key)}&libraries=services&autoload=false`;
     s.onload=()=>{try{kakao.maps.load(()=>res(true))}catch(e){res(false)}};
     s.onerror=()=>res(false);
     document.head.appendChild(s);
@@ -2287,12 +2294,17 @@ function mapListHtml(rows,total){
      +(rows.length>shown.length?`<p class="note" style="padding:10px 4px">${(rows.length-shown.length).toLocaleString()}건 더 있어요. 지도를 확대하거나 조건을 좁혀 보세요.</p>`:'')
     :`<div class="empty" style="margin:8px">${KMAP.ready&&MF.inView?'이 화면 안에는 물건이 없어요. 지도를 옮기거나 축소해 보세요.':'조건에 맞는 물건이 없어요.'}</div>`);
 }
+function inBoundsFn(){
+  const b=KMAP.map.getBounds(), sw=b.getSouthWest(), ne=b.getNorthEast();
+  const s=sw.getLat(), w=sw.getLng(), n=ne.getLat(), e=ne.getLng();
+  return p=>p.la>=s&&p.la<=n&&p.lo>=w&&p.lo<=e;
+}
 function refreshMapList(){
   const all=KMAP.pts; let rows=all;
-  if(KMAP.ready&&MF.inView){const b=KMAP.map.getBounds();rows=all.filter(p=>p.la&&b.contain(new kakao.maps.LatLng(p.la,p.lo)))}
+  if(KMAP.ready&&MF.inView){const f=inBoundsFn();rows=all.filter(p=>p.la&&f(p))}
   rows=rows.slice().sort((a,b)=>a.sort-b.sort);
   if(KMAP.ready&&MF.inView) rows=rows.concat(all.filter(p=>!p.la).sort((a,b)=>a.sort-b.sort));   // 위치를 못 찾은 공고는 뒤에 붙인다
-  const box=$('#mlist'); if(box) box.innerHTML=mapListHtml(rows,all.length);
+  const box=$('#mlist'); if(box){box.innerHTML=mapListHtml(rows,all.length);box.scrollTop=0}
 }
 function viewMap(){
   const pts=mapPoints(); KMAP.pts=pts;
@@ -2316,6 +2328,41 @@ function viewMap(){
     <p class="note"><span class="mdot auc"></span>공매(온비드) <span class="mdot house" style="margin-left:8px"></span>분양·임대(청약홈·LH) <span class="mdot agent" style="margin-left:8px"></span>중개사 매물 · 위치는 주소로 찾은 대략적인 지점이에요${noXY?` · 위치를 못 찾은 ${noXY.toLocaleString()}건은 목록에만 있어요`:''}. 중개사 매물은 등록 심사를 거친 개업공인중개사가 올립니다.</p>
   </section>`;
 }
+/* 지도 그리기: 수천 개 점을 한꺼번에 올리면 느려지므로
+   - 멀리서 볼 때(레벨 10↑): 시·도별 숫자 동그라미
+   - 중간(레벨 7~9):        시·군·구별 숫자 동그라미
+   - 가까이(레벨 6↓):       화면 안의 물건만 점으로 (600개까지, 넘으면 시·군·구 묶음)
+   지도를 움직이는 동안은 다시 그리지 않고, 멈춘 뒤에 한 번만 그린다. */
+const SIDO_CENTER={서울:[37.5665,126.978],부산:[35.1796,129.0756],대구:[35.8714,128.6014],인천:[37.4563,126.7052],광주:[35.1595,126.8526],대전:[36.3504,127.3845],울산:[35.5384,129.3114],세종:[36.48,127.289],경기:[37.4138,127.5183],강원:[37.8228,128.1555],충북:[36.6357,127.4917],충남:[36.5184,126.8],전북:[35.7175,127.153],전남:[34.8679,126.991],경북:[36.4919,128.8889],경남:[35.4606,128.2132],제주:[33.4996,126.5312],전남광주:[34.95,126.95]};
+function clearLayer(){
+  (KMAP.layer||[]).forEach(o=>o.setMap(null)); KMAP.layer=[];
+}
+function bubble(lat,lng,label,count,big){
+  const el=document.createElement('button'); el.type='button'; el.className='mbub'+(big?' big':'');
+  el.innerHTML=`<b>${esc(label)}</b><span class="num">${count.toLocaleString()}</span>`;
+  el.onclick=()=>{const lv=KMAP.map.getLevel();KMAP.map.setLevel(Math.max(4,lv-(big?3:3)),{anchor:new kakao.maps.LatLng(lat,lng),animate:{duration:250}})};
+  const o=new kakao.maps.CustomOverlay({position:new kakao.maps.LatLng(lat,lng),content:el,yAnchor:.5,xAnchor:.5,zIndex:2,clickable:true});
+  o.setMap(KMAP.map); KMAP.layer.push(o);
+}
+function groupBubbles(pts,keyFn,labelFn,big){
+  const g=new Map();
+  for(const p of pts){ if(!p.la) continue; const k=keyFn(p); if(!k) continue;
+    const x=g.get(k)||{n:0,la:0,lo:0,p}; x.n++; x.la+=p.la; x.lo+=p.lo; g.set(k,x); }
+  for(const [k,x] of g){ const c=big&&SIDO_CENTER[k]; bubble(c?c[0]:x.la/x.n,c?c[1]:x.lo/x.n,labelFn(k,x),x.n,big); }
+}
+function drawLayer(){
+  if(!KMAP.ready) return;
+  clearLayer();
+  const lv=KMAP.map.getLevel(), inB=inBoundsFn();
+  const vis=KMAP.pts.filter(p=>p.la&&inB(p));
+  if(lv>=10){ groupBubbles(KMAP.pts,p=>p.sido,k=>k,true); return; }
+  if(lv>=7||vis.length>600){ groupBubbles(vis,p=>p.g2.trim()||p.sido,k=>k.split(' ').slice(1).join(' ')||k,false); return; }
+  for(const p of vis){
+    const m=new kakao.maps.Marker({position:new kakao.maps.LatLng(p.la,p.lo),image:KMAP.imgs[p.t],title:p.title,zIndex:3});
+    kakao.maps.event.addListener(m,'click',()=>selectPoint(p.key,true));
+    m.setMap(KMAP.map); KMAP.layer.push(m);
+  }
+}
 async function initMap(){
   const el=$('#kmap'); if(!el) return;
   KMAP.ready=false;
@@ -2323,22 +2370,15 @@ async function initMap(){
   if(!$('#kmap')) return;
   el.innerHTML='';
   const center=MF.center||new kakao.maps.LatLng(36.35,127.85);
-  const map=new kakao.maps.Map(el,{center,level:MF.level||13,maxLevel:13});
+  const map=new kakao.maps.Map(el,{center,level:MF.level||12,maxLevel:13});
   map.addControl(new kakao.maps.ZoomControl(),kakao.maps.ControlPosition.RIGHT);
-  const clusterer=new kakao.maps.MarkerClusterer({map,averageCenter:true,minLevel:6,gridSize:70,minClusterSize:3,disableClickZoom:false,
-    styles:[{width:'44px',height:'44px',background:'rgba(51,102,255,.88)',borderRadius:'50%',color:'#fff',textAlign:'center',fontWeight:'800',lineHeight:'44px',fontSize:'13px',boxShadow:'0 4px 12px rgba(30,45,90,.25)',border:'3px solid rgba(255,255,255,.9)'}]});
-  KMAP.map=map; KMAP.clusterer=clusterer; KMAP.markers=new Map(); KMAP.overlay=null;
-  const imgs={auc:pinImage('auc'),house:pinImage('house'),agent:pinImage('agent')};
-  const ms=[];
-  for(const p of KMAP.pts){ if(!p.la) continue;
-    const m=new kakao.maps.Marker({position:new kakao.maps.LatLng(p.la,p.lo),image:imgs[p.t],title:p.title});
-    kakao.maps.event.addListener(m,'click',()=>selectPoint(p.key,true));
-    KMAP.markers.set(p.key,m); ms.push(m); }
-  clusterer.addMarkers(ms);
+  KMAP.map=map; KMAP.layer=[]; KMAP.overlay=null;
+  KMAP.imgs=KMAP.imgs||{auc:pinImage('auc'),house:pinImage('house'),agent:pinImage('agent')};
   KMAP.ready=true;
   if(!MF.center&&(MF.sido!=='전체'||MF.q)) fitPoints();
-  kakao.maps.event.addListener(map,'idle',()=>{MF.center=map.getCenter();MF.level=map.getLevel();refreshMapList()});
-  refreshMapList();
+  let t=null;
+  kakao.maps.event.addListener(map,'idle',()=>{clearTimeout(t);t=setTimeout(()=>{MF.center=map.getCenter();MF.level=map.getLevel();drawLayer();refreshMapList()},120)});
+  drawLayer(); refreshMapList();
   if(MF.sel) selectPoint(MF.sel,false);
 }
 function fitPoints(){
