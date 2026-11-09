@@ -626,7 +626,7 @@ async function loadFeed(){
   }catch(e){}
   try{
     const r=await fetch('insight.json',{cache:'no-store'});
-    if(r.ok){const j=await r.json(); if(Array.isArray(j.items)) INS={...j,loaded:true};}
+    if(r.ok){const j=await r.json(); if(Array.isArray(j.items)) INS={...j,items:j.items.filter(i=>!i.hide),loaded:true};}
   }catch(e){}
   render();
 }
