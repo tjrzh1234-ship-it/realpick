@@ -38,36 +38,40 @@ export async function geocodeAll(key, { readJson, writeJson }) {
       return cache[q];
     } catch { failed++; return undefined; }
   }
-  async function locate(exactText, areaText) {
+  async function locate(exactText, areaText, cityFallback = false) {
     const lot = lotAddress(exactText);
     const a = await ask(lot); if (a) return [...a, "a"];
     const area = areaAddress(areaText || exactText);
     const b = await ask(area); if (b) return [...b, "d"];
+    if (cityFallback) {                                   // 분양 공고: "○○지구 A-6블록"처럼 번지가 없으면 시·군·구 중심
+      const city = String(areaText || exactText).split(/\s+/).slice(0, 2).join(" ");
+      const c = await ask(city); if (c) return [...c, "d"];
+    }
     return null;
   }
-  async function run(items, getText) {
+  async function run(items, getText, cityFallback = false) {
     let i = 0;
     const worker = async () => {
       while (i < items.length) {
         const it = items[i++];
         if (it.la && it.geo === "a") continue;
         const [exact, area] = getText(it);
-        const r = await locate(exact, area);
+        const r = await locate(exact, area, cityFallback);
         if (r) [it.la, it.lo, it.geo] = r;
       }
     };
     await Promise.all(Array.from({ length: CONCURRENCY }, worker));
   }
 
+  const hs = await readJson("housing.json", null);
+  if (hs?.items) {
+    await run(hs.items.filter(i => i.addr), it => [it.addr, it.addr], true);
+    await writeJson("housing.json", hs, true);
+  }
   const auc = await readJson("auctions.json", null);
   if (auc?.items) {
     await run(auc.items, it => [it.title, it.addr]);
     await writeJson("auctions.json", auc, true);
-  }
-  const hs = await readJson("housing.json", null);
-  if (hs?.items) {
-    await run(hs.items.filter(i => i.addr), it => [it.addr, it.addr]);
-    await writeJson("housing.json", hs, true);
   }
   await writeJson("geo-cache.json", cache, true);
   const withXY = (auc?.items || []).filter(i => i.la).length;
