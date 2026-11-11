@@ -874,11 +874,11 @@ function homeHousing(){
   const dd=h=>{const [l,c]=hDday(h);if(c==='upcoming'&&h.start){const d=Math.round((Date.parse(h.start+'T00:00:00+09:00')-TODAY)/864e5);return [`접수 D-${d}`,'upcoming']}return [l==='공고 중'?'접수 중':l,c]};
   return `<section class="block" id="homeHouse">${secHead('청약홈 · LH 공고','지금 청약할 수 있는 분양·임대','#listings','전체 공고 보기')}
     <div class="tabs hgtabs">${HGRP.map(([k,l])=>`<button type="button" data-hhg="${k}" aria-pressed="${HHG===k}">${l}</button>`).join('')}</div>
-    ${cards.length?`<div class="rail">${cards.map(h=>{const [l,c]=dd(h);return `<a class="lcard hcard" href="#house-${esc(h.id)}">
+    ${cards.length?`<div class="rail">${cards.map(h=>{const [l,c]=dd(h);return `<a class="lcard hcard" href="#h-${esc(h.id)}">
       <div class="lbody"><div class="hc-top"><span class="dday ${c==='soon'?'soon':'hgo'}">${esc(l)}</span><span class="kind">${esc(h.group==='아파트 분양'?'아파트 분양 · '+(h.kind||''):h.group||h.kind||'')}</span></div>
       <div class="ttl">${esc(h.name)}</div><div class="kind">${esc((h.addr||h.region||h.sido||'').replace(/특별시|광역시|특별자치도|특별자치시/,'').replace(/\s*\d.*$/,''))}</div>
       <dl class="hc-dl"><dt>분양가</dt><dd class="num"><b>${esc(price(h))}</b></dd>${h.households?`<dt>세대수</dt><dd class="num">${h.households.toLocaleString()}세대</dd>`:''}<dt>접수</dt><dd class="num">${h.start?md(h.start)+' ~ ':''}${md(h.end)||'공고문 확인'}</dd></dl></div></a>`}).join('')}</div>`:''}
-    ${lines.length?`<div class="hlines">${lines.map(h=>`<a href="#house-${esc(h.id)}"><span class="chip-s lh">${esc((h.src==='LH'?'LH ':'')+(h.kind||h.group||''))}</span><span class="hl-n">${esc(h.name)}</span><span class="note">${esc(h.sido||'')}${h.end?' · 마감 '+md(h.end):''}</span></a>`).join('')}</div>`:''}
+    ${lines.length?`<div class="hlines">${lines.map(h=>`<a href="#h-${esc(h.id)}"><span class="chip-s lh">${esc((h.src==='LH'?'LH ':'')+(h.kind||h.group||''))}</span><span class="hl-n">${esc(h.name)}</span><span class="note">${esc(h.sido||'')}${h.end?' · 마감 '+md(h.end):''}</span></a>`).join('')}</div>`:''}
     ${!cards.length&&!lines.length?'<p class="note">이 종류는 지금 접수 중인 공고가 없어요.</p>':''}
     <p class="note" style="margin-top:8px">자료: 한국부동산원 청약홈, LH 청약플러스 · 매일 갱신</p></section>`;
 }
@@ -1150,6 +1150,8 @@ function viewNotice(id){
 let AFTER=[];
 /* ================= 매물: 중개사 회원 등록 (Supabase) ================= */
 const CFG = window.REALPICK_CONFIG || {};
+// 비밀번호 재설정 메일의 링크로 들어왔는지 (Supabase가 주소 뒤에 type=recovery 를 붙여 보낸다)
+const PW_RECOVERY=/type=recovery/.test(location.hash+location.search);
 const sb = (CFG.supabaseUrl && CFG.supabaseAnonKey && window.supabase?.createClient)
   ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey) : null;
 const AUTH = {session:null, agent:null, ready:!sb};
@@ -1205,9 +1207,11 @@ async function initAuth(){
   if(!sb){renderHeader();return}
   const {data:{session}}=await sb.auth.getSession();
   AUTH.session=session; await loadMe(); AUTH.ready=true; renderHeader(); render();
+  if(PW_RECOVERY&&session){ location.hash='#my'; setTimeout(()=>{const f=$('#pwForm');if(f){f.scrollIntoView({block:'center'});f.pw.focus()}toast('새 비밀번호를 정해 주세요')},400) }
   sb.auth.onAuthStateChange((ev,s)=>{
     setTimeout(async()=>{
       AUTH.session=s; await loadMe(); renderHeader(); refreshQuota(); if(ev==='SIGNED_OUT') chatHistory=[];
+      if(ev==='PASSWORD_RECOVERY'){location.hash='#my';setTimeout(()=>{const f=$('#pwForm');if(f){f.scrollIntoView({block:'center'});f.pw.focus()}toast('새 비밀번호를 정해 주세요')},400);return}
       if(ev==='SIGNED_IN' && ['home','login','signup'].includes(route())) location.hash=(s?.user?.user_metadata?.signup_type==='agent'&&!AUTH.agent)?'#agent':'#my'; else softRender();
       if(ev==='SIGNED_OUT') loadMarket();
     },0);
