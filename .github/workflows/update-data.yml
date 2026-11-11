@@ -34,6 +34,10 @@ jobs:
           key: rtms-${{ github.run_id }}
           restore-keys: rtms-
 
+      # 공매 사진이 지도인지 건물 사진인지 가르는 데 쓰는 작은 그림 해석 도구
+      - name: 사진 판별 도구 설치
+        run: npm install --no-save --no-package-lock jpeg-js@0.4.4 pngjs@7.0.0
+
       - name: 공고·금리·공매·정책뉴스·분양 수집
         env:
           BIZINFO_API_KEY: ${{ secrets.BIZINFO_API_KEY }}
