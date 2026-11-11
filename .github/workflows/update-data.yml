@@ -30,6 +30,7 @@ jobs:
           path: |
             rtms-cache.json
             geo-cache.json
+            photo-cache.json
           key: rtms-${{ github.run_id }}
           restore-keys: rtms-
 
@@ -50,6 +51,7 @@ jobs:
           path: |
             rtms-cache.json
             geo-cache.json
+            photo-cache.json
           key: rtms-${{ github.run_id }}
 
       - name: 바뀐 내용이 있으면 저장
@@ -58,7 +60,7 @@ jobs:
           git config user.name "realpick-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # 예전에 저장소에 올라간 캐시 파일은 저장소에서만 뺀다
-          for c in rtms-cache.json geo-cache.json; do if git ls-files --error-unmatch $c >/dev/null 2>&1; then git rm --cached -q $c; fi; done
+          for c in rtms-cache.json geo-cache.json photo-cache.json; do if git ls-files --error-unmatch $c >/dev/null 2>&1; then git rm --cached -q $c; fi; done
           for f in notices.json rates.json auctions.json auction-rounds.json insight.json housing.json; do
             if [ -f "$f" ]; then git add "$f"; fi
           done
