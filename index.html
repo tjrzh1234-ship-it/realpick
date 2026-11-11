@@ -274,11 +274,34 @@ fieldset.sub legend small,.fld small{font-weight:400;color:var(--faint)}
 .formmsg{margin:0;font-size:14px;color:var(--hot);min-height:1em}
 .fld.err>span{color:var(--hot)}
 .aphotos{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:8px;margin:14px 0 4px}
-.aphotos .aph-main{grid-row:span 2;border-radius:16px;overflow:hidden;background:var(--sunk);aspect-ratio:4/3;display:block}
-.aphotos img{width:100%;height:100%;object-fit:cover;display:block}
-.aph-thumbs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.aph-thumbs a{position:relative;border-radius:12px;overflow:hidden;background:var(--sunk);aspect-ratio:4/3;display:block}
+.aph-main{position:relative;grid-row:span 2;border-radius:16px;overflow:hidden;background:var(--sunk);aspect-ratio:4/3;touch-action:pan-y}
+.aph-main>button.aph-img{all:unset;display:block;width:100%;height:100%;cursor:zoom-in}
+.aphotos img{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
+.aph-nav{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;border:0;background:rgb(255 255 255/.9);color:#111;display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 8px rgb(0 0 0/.18)}
+.aph-nav.prev{left:10px}.aph-nav.next{right:10px}
+.aph-cnt{position:absolute;right:10px;bottom:10px;background:rgb(0 0 0/.6);color:#fff;font-size:12px;font-weight:700;padding:3px 9px;border-radius:99px}
+.aph-zoom{position:absolute;right:10px;top:10px;width:36px;height:36px;border-radius:10px;border:0;background:rgb(255 255 255/.9);color:#111;display:grid;place-items:center;cursor:pointer}
+.aph-thumbs{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start}
+.aph-thumbs button{all:unset;position:relative;border-radius:12px;overflow:hidden;background:var(--sunk);aspect-ratio:4/3;display:block;cursor:pointer;box-sizing:border-box;outline:2px solid transparent;outline-offset:-2px}
+.aph-thumbs button.on{outline-color:var(--accent)}
+.aph-thumbs button:focus-visible,.aph-main button:focus-visible{outline:3px solid var(--accent)}
 .aph-thumbs span{position:absolute;inset:0;display:grid;place-items:center;background:rgb(0 0 0/.45);color:#fff;font-weight:800;font-size:18px}
+.aphotos.one{grid-template-columns:1fr}.aphotos.one .aph-main{aspect-ratio:16/9}
+#lbox{position:fixed;inset:0;z-index:300;background:#0b0d12;display:none;flex-direction:column;color:#fff}
+#lbox.open{display:flex}
+#lbox .lb-top{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;font-weight:700;font-size:14px;gap:8px}
+#lbox .lb-top button,#lbox .lb-nav{border:0;background:rgb(255 255 255/.14);color:#fff;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;cursor:pointer}
+#lbox .lb-stage{flex:1;position:relative;overflow:hidden;touch-action:none;cursor:grab}
+#lbox .lb-stage img{position:absolute;left:50%;top:50%;width:94vw;height:calc(100dvh - 150px);object-fit:contain;transform:translate(-50%,-50%);transform-origin:center;user-select:none;-webkit-user-drag:none;transition:transform .18s}
+#lbox .lb-stage.drag img{transition:none}#lbox .lb-stage.drag{cursor:grabbing}
+#lbox .lb-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2}
+#lbox .lb-nav.prev{left:12px}#lbox .lb-nav.next{right:12px}
+#lbox .lb-strip{display:flex;gap:6px;justify-content:center;padding:10px;overflow-x:auto}
+#lbox .lb-strip button{all:unset;width:64px;height:48px;border-radius:8px;overflow:hidden;opacity:.5;cursor:pointer;flex-shrink:0}
+#lbox .lb-strip button.on{opacity:1;outline:2px solid #fff}
+#lbox .lb-strip img{width:100%;height:100%;object-fit:cover}
+#lbox .lb-zb{display:flex;gap:6px}
+@media (max-width:640px){#lbox .lb-nav{display:none}}
 .aphotos.loading{grid-template-columns:1fr}
 .aphotos.loading .aph-main{aspect-ratio:16/6}
 .skel{background:linear-gradient(90deg,var(--sunk),var(--line),var(--sunk));background-size:200% 100%;animation:skel 1.2s linear infinite}
@@ -1787,15 +1810,97 @@ function obTable(rows,keys){
     <tbody>${rows.slice(0,40).map(r=>`<tr>${keys.map(k=>`<td class="${isAmtKey(k)?'r':''}">${obCell(k,r[k])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 const OB_SECTIONS=[[/apsl|evl/i,'감정평가 정보'],[/rent|lsr|lease|imch/i,'임대차 정보'],[/rgst|regi|rgt|dngi/i,'등기 주요 정보'],[/ntc|anc|pbanc|notice/i,'공고·공지 사항'],[/area|ar$|lnd/i,'면적 정보']];
+const APH={};   // 물건별로 지금 보고 있는 사진 번호
+const ICO_L='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>';
+const ICO_R='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
+const ICO_Z='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5M11 8v6M8 11h6"/></svg>';
 function aucPhotosHtml(id){
   const x=AUCX[id]?.loading?null:AUCX[id];
   if(!x) return `<div class="aphotos loading"><div class="aph-main skel"></div></div>`;
   if(!x.photos?.length) return '';
-  const p=x.photos;
-  return `<div class="aphotos"><a class="aph-main" href="${esc(p[0])}" target="_blank" rel="noopener"><img src="${esc(p[0])}" alt="물건 사진 1" loading="lazy"></a>
-    ${p.length>1?`<div class="aph-thumbs">${p.slice(1,5).map((u,i)=>`<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="물건 사진 ${i+2}" loading="lazy">${i===3&&p.length>5?`<span>+${p.length-5}</span>`:''}</a>`).join('')}</div>`:''}</div>
-    <p class="note" style="margin:6px 0 0">사진: 한국자산관리공사 온비드</p>`;
+  const p=x.photos, n=p.length, i=Math.min(APH[id]||0,n-1);
+  const thumbs=n>1?`<div class="aph-thumbs">${p.slice(0,4).map((u,k)=>{const last=k===3&&n>4;return `<button type="button" class="${k===i?'on':''}" data-aphsel="${k}" data-aphid="${esc(id)}" aria-label="사진 ${k+1} 보기"><img src="${esc(u)}" alt="" loading="lazy">${last?`<span data-aphopen="3" data-aphid="${esc(id)}">+${n-4}</span>`:''}</button>`}).join('')}</div>`:'';
+  return `<div class="aphotos${n===1?' one':''}"><div class="aph-main" data-aphswipe="${esc(id)}">
+      <button type="button" class="aph-img" data-aphopen="${i}" data-aphid="${esc(id)}" aria-label="사진 크게 보기"><img src="${esc(p[i])}" alt="물건 사진 ${i+1}"></button>
+      ${n>1?`<button type="button" class="aph-nav prev" data-aphstep="-1" data-aphid="${esc(id)}" aria-label="이전 사진">${ICO_L}</button><button type="button" class="aph-nav next" data-aphstep="1" data-aphid="${esc(id)}" aria-label="다음 사진">${ICO_R}</button>`:''}
+      <button type="button" class="aph-zoom" data-aphopen="${i}" data-aphid="${esc(id)}" aria-label="확대해서 보기">${ICO_Z}</button>
+      <span class="aph-cnt num">${i+1} / ${n}</span></div>${thumbs}</div>
+    <p class="note" style="margin:6px 0 0">사진: 한국자산관리공사 온비드 · 사진을 누르면 크게 보고 확대할 수 있어요</p>`;
 }
+function aphSet(id,i){
+  const n=AUCX[id]?.photos?.length||0; if(!n) return;
+  APH[id]=(i+n)%n;
+  const el=$('#aucPhotos'); if(el) el.innerHTML=aucPhotosHtml(id);
+}
+/* 사진 크게 보기 (같은 화면 위에 띄움 · 좌우 넘기기 · 확대/이동) */
+const LB={id:null,i:0,z:1,x:0,y:0};
+function lbEl(){
+  let el=$('#lbox'); if(el) return el;
+  el=document.createElement('div'); el.id='lbox'; el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-label','사진 크게 보기');
+  el.innerHTML=`<div class="lb-top"><span class="lb-cnt num"></span><div class="lb-zb"><button type="button" data-lbz="-1" aria-label="축소"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12"/></svg></button><button type="button" data-lbz="1" aria-label="확대"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12M12 6v12"/></svg></button><button type="button" data-lbclose aria-label="닫기"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div></div>
+    <div class="lb-stage"><button type="button" class="lb-nav prev" data-lbstep="-1" aria-label="이전 사진">${ICO_L}</button><img alt=""><button type="button" class="lb-nav next" data-lbstep="1" aria-label="다음 사진">${ICO_R}</button></div><div class="lb-strip"></div>`;
+  document.body.appendChild(el);
+  const st=el.querySelector('.lb-stage'), img=st.querySelector('img');
+  // 마우스 휠 확대
+  st.addEventListener('wheel',e=>{e.preventDefault();lbZoom(e.deltaY<0?1.25:0.8)},{passive:false});
+  // 두 번 눌러 확대/원래대로
+  st.addEventListener('dblclick',e=>{if(e.target.closest('.lb-nav'))return;LB.z>1?lbReset():lbZoom(2.5)});
+  // 끌어서 이동 · 손가락 2개로 확대 · 옆으로 밀어 넘기기
+  const pts=new Map(); let start=null, pinch=null, lastTap=0;
+  st.addEventListener('pointerdown',e=>{if(e.target.closest('.lb-nav'))return;st.setPointerCapture(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);
+    if(pts.size===1){start={x:e.clientX,y:e.clientY,ox:LB.x,oy:LB.y};st.classList.add('drag');
+      if(e.pointerType==='touch'){const t=Date.now();if(t-lastTap<300){LB.z>1?lbReset():lbZoom(2.5);start=null}lastTap=t}}
+    if(pts.size===2){const [a,b]=[...pts.values()];pinch={d:Math.hypot(a[0]-b[0],a[1]-b[1]),z:LB.z};start=null}});
+  st.addEventListener('pointermove',e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,[e.clientX,e.clientY]);
+    if(pinch&&pts.size===2){const [a,b]=[...pts.values()];LB.z=Math.min(5,Math.max(1,pinch.z*Math.hypot(a[0]-b[0],a[1]-b[1])/pinch.d));if(LB.z===1){LB.x=LB.y=0}lbApply();return}
+    if(start&&LB.z>1){LB.x=start.ox+(e.clientX-start.x);LB.y=start.oy+(e.clientY-start.y);lbApply()}
+    else if(start){img.style.transform=`translate(calc(-50% + ${e.clientX-start.x}px),-50%)`}});
+  const up=e=>{if(!pts.has(e.pointerId))return;pts.delete(e.pointerId);st.classList.remove('drag');
+    if(start&&LB.z===1){const dx=e.clientX-start.x;if(Math.abs(dx)>60)lbGo(LB.i+(dx<0?1:-1));else lbApply()}
+    if(pts.size<2)pinch=null;start=null};
+  st.addEventListener('pointerup',up);st.addEventListener('pointercancel',up);
+  return el;
+}
+function lbApply(){const img=$('#lbox .lb-stage img');if(img)img.style.transform=`translate(calc(-50% + ${LB.x}px),calc(-50% + ${LB.y}px)) scale(${LB.z})`}
+function lbZoom(f){LB.z=Math.min(5,Math.max(1,LB.z*f));if(LB.z===1){LB.x=LB.y=0}lbApply()}
+function lbReset(){LB.z=1;LB.x=LB.y=0;lbApply()}
+function lbGo(i){
+  const p=AUCX[LB.id]?.photos||[]; if(!p.length) return;
+  LB.i=(i+p.length)%p.length; lbReset();
+  const el=lbEl(); el.querySelector('.lb-stage img').src=p[LB.i];
+  el.querySelector('.lb-stage img').alt=`물건 사진 ${LB.i+1}`;
+  el.querySelector('.lb-cnt').textContent=`${LB.i+1} / ${p.length}`;
+  el.querySelectorAll('.lb-nav').forEach(b=>b.hidden=p.length<2);
+  el.querySelector('.lb-strip').innerHTML=p.length>1?p.map((u,k)=>`<button type="button" class="${k===LB.i?'on':''}" data-lbgo="${k}" aria-label="사진 ${k+1}"><img src="${esc(u)}" alt=""></button>`).join(''):'';
+  aphSet(LB.id,LB.i);
+}
+function lbOpen(id,i){LB.id=id;const el=lbEl();el.classList.add('open');document.body.style.overflow='hidden';lbGo(i);el.querySelector('[data-lbclose]').focus()}
+function lbClose(){const el=$('#lbox');if(!el)return;el.classList.remove('open');document.body.style.overflow=''}
+document.addEventListener('click',e=>{
+  const t=e.target;
+  const o=t.closest('[data-aphopen]'); if(o){e.preventDefault();if(o.closest('[data-swiped]')){e.stopPropagation();return}e.stopPropagation();lbOpen(o.dataset.aphid,+o.dataset.aphopen);return}
+  const s=t.closest('[data-aphsel]'); if(s){aphSet(s.dataset.aphid,+s.dataset.aphsel);return}
+  const st=t.closest('[data-aphstep]'); if(st){aphSet(st.dataset.aphid,(APH[st.dataset.aphid]||0)+(+st.dataset.aphstep));return}
+  if(t.closest('[data-lbclose]')){lbClose();return}
+  const z=t.closest('[data-lbz]'); if(z){lbZoom(+z.dataset.lbz>0?1.5:1/1.5);return}
+  const ls=t.closest('[data-lbstep]'); if(ls){lbGo(LB.i+(+ls.dataset.lbstep));return}
+  const lg=t.closest('[data-lbgo]'); if(lg){lbGo(+lg.dataset.lbgo);return}
+},true);
+document.addEventListener('keydown',e=>{
+  if(!$('#lbox.open'))return;
+  if(e.key==='Escape')lbClose();else if(e.key==='ArrowLeft')lbGo(LB.i-1);else if(e.key==='ArrowRight')lbGo(LB.i+1);
+  else if(e.key==='+'||e.key==='=')lbZoom(1.5);else if(e.key==='-')lbZoom(1/1.5);
+});
+// 상세 화면의 큰 사진: 손가락으로 옆으로 밀어 넘기기
+document.addEventListener('pointerdown',e=>{
+  const m=e.target.closest('[data-aphswipe]'); if(!m||e.pointerType!=='touch'||e.target.closest('.aph-nav,.aph-zoom'))return;
+  const id=m.dataset.aphswipe, x0=e.clientX, y0=e.clientY;
+  const end=ev=>{document.removeEventListener('pointerup',end);const dx=ev.clientX-x0,dy=ev.clientY-y0;
+    if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)){ev.preventDefault();aphSet(id,(APH[id]||0)+(dx<0?1:-1));m.dataset.swiped='1';setTimeout(()=>delete m.dataset.swiped,350)}};
+  document.addEventListener('pointerup',end);
+});
+// 화면을 떠나면 크게 보기 닫기
+window.addEventListener('hashchange',lbClose);
 // 온비드 날짜 "202611111000" → "2026-11-11 10:00"
 const obDt=v=>{const d=String(v||'').replace(/\D/g,'');if(/^(2999|9999)/.test(d))return '';return d.length>=12?`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)} ${d.slice(8,10)}:${d.slice(10,12)}`:d.length>=8?`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`:esc(String(v||''))};
 const obYn=v=>v==='Y'?'가능':v==='N'?'불가':'';
