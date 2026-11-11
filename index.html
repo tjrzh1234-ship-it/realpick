@@ -1917,7 +1917,10 @@ function aucPhotosHtml(id){
     if(it?.ph&&it.phk==='p') return `<div class="aphotos one"><div class="aph-main"><img src="${esc(it.ph)}" alt="물건 사진" fetchpriority="high"></div></div><p class="note" style="margin:6px 0 0">사진: 한국자산관리공사 온비드 · 나머지 사진을 불러오는 중…</p>`;
     return `<div class="aphotos loading"><div class="aph-main skel"></div></div>`;
   }
-  if(!x.photos?.length) return '';
+  if(!x.photos?.length){ // 상세 조회가 안 됐어도 목록에서 받아 둔 대표 사진은 보여준다
+    const it=AUC.items.find(i=>i.id===id);
+    return it?.ph?`<div class="aphotos one"><div class="aph-main"><img src="${esc(it.ph)}" alt="물건 사진"></div></div><p class="note" style="margin:6px 0 0">사진: 한국자산관리공사 온비드 · 나머지 사진은 온비드 원문에서 볼 수 있어요</p>`:'';
+  }
   const p=x.photos, n=p.length, i=Math.min(APH[id]||0,n-1);
   const thumbs=n>1?`<div class="aph-thumbs">${p.slice(0,4).map((u,k)=>{const last=k===3&&n>4;return `<button type="button" class="${k===i?'on':''}" data-aphsel="${k}" data-aphid="${esc(id)}" aria-label="사진 ${k+1} 보기"><img src="${esc(u)}" alt="" loading="lazy">${last?`<span data-aphopen="3" data-aphid="${esc(id)}">+${n-4}</span>`:''}</button>`}).join('')}</div>`:'';
   return `<div class="aphotos${n===1?' one':''}"><div class="aph-main" data-aphswipe="${esc(id)}">
@@ -2034,11 +2037,16 @@ function roundsHtml(it){
     <tbody>${r.map((x,i)=>{const on=i===cur,past=cur>=0&&i<cur;return `<tr class="${on?'rnd-on':past?'rnd-past':''}"><td>${i+1}회차${on?' <span class="dday soon">진행중</span>':past?' <span class="note">지남</span>':''}</td><td class="num">${esc(x[0])}</td><td class="num">${esc(x[1])}</td><td class="num r">${x[2]?wonKRW(x[2]):'-'}</td><td class="num r">${x[2]&&it.apsl?Math.round(x[2]/it.apsl*100)+'%':'-'}</td></tr>`}).join('')}</tbody></table></div>
     <p class="note" style="margin-top:8px">유찰되면 다음 회차로 넘어가며 최저입찰가가 내려가요. 실제 진행은 온비드 공고를 확인하세요.</p></div>`;
 }
+function aroundOnly(x){const a=x.around;if(!a||!Object.values(a).some(v=>v?.length))return '';return `<div class="dsec"><h2>주변 환경</h2><div class="around">${Object.entries(a).filter(([,v])=>v?.length).map(([k,v])=>`<div class="ar-col"><b>${esc(k)}</b>${v.map(p=>`<span>${esc(p.name)} <span class="note num">${p.dist>=1000?(p.dist/1000).toFixed(1)+'km':p.dist+'m'}</span></span>`).join('')}</div>`).join('')}</div><p class="note" style="margin-top:8px">직선거리 기준 · 자료: 카카오 로컬</p></div>`}
 function aucExtraHtml(it){
   const x=AUCX[it.id]?.loading?null:AUCX[it.id];
   const rnd=roundsHtml(it);
   if(!x) return rnd+`<div class="dsec"><h2>상세 정보</h2><p class="note">온비드·건축물대장·주변 시설 정보를 불러오는 중이에요…</p></div>`;
   if(x.error) return rnd+`<div class="dsec"><h2>상세 정보</h2><p class="note">${esc(x.error)}</p></div>`;
+  if(!x.detail&&x.errors?.detail){
+    const quota=/QUOTA|LIMITED|한도/.test(x.errors.detail);
+    return rnd+`<div class="dsec"><h2>상세 정보</h2><p class="note">${quota?'오늘 공공데이터 조회 한도를 다 써서 온비드 상세 정보(물건 현황·감정평가·권리관계)를 지금은 불러오지 못했어요. 내일 다시 열면 보여요.':'온비드에서 이 물건의 상세 정보를 받지 못했어요. 잠시 후 다시 열어 주세요.'} 지금은 오른쪽 <b>온비드 원문 보기</b>로 확인할 수 있어요.</p></div>`+(x.around?aroundOnly(x):'');
+  }
   const out=[];
   const S=x.detail?.scalars||{}, L=x.detail?.lists||{};
   const row=(k,v)=>v!=null&&v!==''?`<dt>${k}</dt><dd>${v}</dd>`:'';
@@ -2103,6 +2111,7 @@ async function loadAucExtra(it){
     const j=await r.json().catch(()=>({}));
     x=r.status===404?{error:'상세 정보 서버 기능(onbid-detail)이 아직 배포되지 않았어요.',photos:[]}:(j.error&&!j.detail?{error:j.message||'상세 정보를 불러오지 못했어요.',photos:[]}:j);
   }catch(e){x={error:'상세 정보를 불러오지 못했어요. 잠시 후 다시 열어 주세요.',photos:[]}}
+  if(!x.detail) x.failed=true;   // 다음에 열 때 다시 시도
   AUCX[it.id]=x;
   if(route()==='auc-'+it.id){const p=$('#aucPhotos'),e=$('#aucExtra');if(p)p.innerHTML=aucPhotosHtml(it.id);if(e)e.innerHTML=aucExtraHtml(it)}
 }
@@ -2112,6 +2121,7 @@ function viewAuction(id){
   if(!it) return `<a class="back" href="#auctions">← 경매·공매 목록</a><div class="empty">${AUC.loaded?'마감됐거나 없는 물건이에요.':'불러오는 중입니다.'}</div>`;
   const [dl,dc]=aucDday(it), c=it.compare;
   const per=a=>a?Math.round(a/10000).toLocaleString()+'만/㎡':'-';
+  if(AUCX[id]?.failed&&!AUCX[id].loading) delete AUCX[id];
   if(!AUCX[id]) AFTER.push(()=>loadAucExtra(it));
   return `<a class="back" href="#auctions">← 경매·공매 목록</a>
   <div class="dgrid"><div style="min-width:0">
