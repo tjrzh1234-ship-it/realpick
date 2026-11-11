@@ -13,6 +13,7 @@ import { buildInsight } from "./insight.mjs";
 import { buildHousing } from "./housing.mjs";
 import { geocodeAll } from "./geocode.mjs";
 import { buildPhotos } from "./photos.mjs";
+import { buildDeals } from "./deals.mjs";
 
 const ROOT = new URL("../", import.meta.url);
 const nowKST = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 19) + "+09:00";
@@ -194,6 +195,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     ["DATA_GO_KR_KEY", "분양·임대 공고", key => buildHousing(key, { readJson, writeJson, nowKST })],
     ["DATA_GO_KR_KEY", "온비드 공매·실거래 비교", key => buildAuctions(key, { readJson, writeJson, nowKST })],
     ["DATA_GO_KR_KEY", "공매 대표 사진", key => buildPhotos(key, { readJson, writeJson })],
+    ["DATA_GO_KR_KEY", "이번 주 실거래", () => buildDeals({ readJson, writeJson, nowKST })],
     ["KAKAO_REST_KEY", "지도 좌표", key => geocodeAll(key, { readJson, writeJson })]
   ];
   for (const [env, name, fn] of tasks) {
