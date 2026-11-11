@@ -1793,7 +1793,10 @@ function aucIcon(it){
 }
 function aucCard(it){
   const [dl,dc]=aucDday(it), c=it.compare;
-  const ph=AUCX[it.id]?.photos?.[0]||it.ph;
+  // 대표 사진: 건물 사진만 (지적도·위치도는 토지 물건일 때만)
+  const isLand=it.cat==='land'||/토지|대지|임야|전$|답$/.test(it.usage||'');
+  const xk=AUCX[it.id]?.kinds;
+  const ph=(xk?.[0]==='p'||(xk&&isLand)?AUCX[it.id].photos[0]:null)||(it.ph&&(it.phk==='p'||isLand)?it.ph:null);
   const cheap=c&&!c.skip&&c.minVsEst<0&&c.minVsEst>-85?Math.abs(c.minVsEst).toFixed(0):null;
   const end=(it.bidEnd||'').slice(5).replace('-','.');
   return `<a class="lcard acard" href="#auc-${esc(it.id)}">
