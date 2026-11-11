@@ -425,6 +425,16 @@ a.acard:hover .athumb img{transform:scale(1.04)}
 .acard .price{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}.acard .price b{font-size:19px}.acard .price .drop{font-size:12.5px;color:var(--muted);font-weight:600}
 .acard .ameta{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
 @media (max-width:520px){.rail:has(.acard){grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.acard .lbody{padding:10px}.acard .price b{font-size:16px}.acard .ttl{font-size:13.5px}.athumb .afail{display:none}}
+.hgtabs{margin-bottom:12px;flex-wrap:wrap}
+.hcard .lbody{gap:8px;padding:16px}.hc-top{display:flex;gap:8px;align-items:center}.dday.hgo{background:#f3eeff;color:#6236d9}
+.hcard .ttl{font-size:16px;font-weight:800;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.8em}
+.hc-dl{display:grid;grid-template-columns:56px minmax(0,1fr);gap:5px 8px;margin:4px 0 0;padding-top:10px;border-top:1px solid var(--line);font-size:13px}.hc-dl dt{color:var(--muted)}.hc-dl dd{margin:0}
+.hlines{margin-top:12px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:2px 16px}
+.hlines a{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);color:inherit;flex-wrap:wrap}.hlines a:last-child{border-bottom:0}
+.hl-n{flex:1 1 280px;font-size:14px;font-weight:500}.chip-s.lh{background:#e8f7ee;color:#127a3e}
+.dealgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}.dealgrid .panel{padding:16px 18px}
+.dealtbl td.up{color:#d9480f;font-weight:700}.dealtbl .mtable{min-width:0;width:100%}.dealtbl .tablewrap{overflow-x:auto}
+.rbar{display:grid;grid-template-columns:120px minmax(0,1fr) 48px;gap:10px;align-items:center;font-size:13.5px;margin:9px 0}.rb{height:10px;border-radius:5px;background:var(--sunk);overflow:hidden}.rb i{display:block;height:100%;background:#ff922b;border-radius:5px}.rbar b{text-align:right}
 .acheap{color:var(--accent);font-weight:700;background:var(--accent-soft);padding:1px 7px;border-radius:6px}
 .cmp{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;border-radius:8px;padding:6px 9px;font-size:13px}
 .cmp b.num{font-size:14px}
@@ -797,6 +807,10 @@ async function loadFeed(){
     const r=await fetch('housing.json',{cache:'no-store'});
     if(r.ok){const j=await r.json(); if(Array.isArray(j.items)) HOUSING={...j,loaded:true};}
   }catch(e){} HOUSING.loaded=true;
+  try{
+    const r=await fetch('deals.json',{cache:'no-store'});
+    if(r.ok){const j=await r.json(); if(Array.isArray(j.top)) DEALS=j;}
+  }catch(e){}
   render();
 }
 
@@ -844,6 +858,43 @@ function rateCard(r){
 const secHead=(eb,t,href,label='더보기')=>`<div class="sec-head"><div><div class="eyebrow">${eb}</div><h2>${t}</h2></div>${href?`<a class="more" href="${href}">${label} →</a>`:''}</div>`;
 
 /* ---------- 뷰 ---------- */
+/* ---------- 메인: 지금 청약할 수 있는 분양·임대 ---------- */
+const HGRP=[['','전체'],['apt','아파트 분양'],['rem','무순위·잔여세대'],['lhr','LH 임대'],['lhl','LH 토지·상가']];
+const hgOf=h=>h.src==='청약홈'?(/무순위|잔여/.test(h.group||'')?'rem':'apt'):/토지|상가/.test(h.group||'')?'lhl':'lhr';
+let HHG='';
+function homeHousing(){
+  const live=HOUSING.items.filter(h=>hDday(h)[1]!=='closed');
+  if(!live.length) return '';
+  const inG=h=>!HHG||hgOf(h)===HHG;
+  const byDate=(a,b)=>(a.start||a.end||'').localeCompare(b.start||b.end||'');
+  const cards=live.filter(h=>h.src==='청약홈'&&inG(h)).sort(byDate).slice(0,4);
+  const lines=live.filter(h=>h.src!=='청약홈'&&inG(h)).sort((a,b)=>(a.end||'9').localeCompare(b.end||'9')).slice(0,cards.length?3:6);
+  const md=v=>v?v.slice(5).replace('-','.'):'';
+  const price=h=>h.priceMin?(h.priceMax&&h.priceMax!==h.priceMin?`${manwon(h.priceMin)} ~ ${manwon(h.priceMax)}`:manwon(h.priceMin)):'공고문 확인';
+  const dd=h=>{const [l,c]=hDday(h);if(c==='upcoming'&&h.start){const d=Math.round((Date.parse(h.start+'T00:00:00+09:00')-TODAY)/864e5);return [`접수 D-${d}`,'upcoming']}return [l==='공고 중'?'접수 중':l,c]};
+  return `<section class="block" id="homeHouse">${secHead('청약홈 · LH 공고','지금 청약할 수 있는 분양·임대','#listings','전체 공고 보기')}
+    <div class="tabs hgtabs">${HGRP.map(([k,l])=>`<button type="button" data-hhg="${k}" aria-pressed="${HHG===k}">${l}</button>`).join('')}</div>
+    ${cards.length?`<div class="rail">${cards.map(h=>{const [l,c]=dd(h);return `<a class="lcard hcard" href="#house-${esc(h.id)}">
+      <div class="lbody"><div class="hc-top"><span class="dday ${c==='soon'?'soon':'hgo'}">${esc(l)}</span><span class="kind">${esc(h.group==='아파트 분양'?'아파트 분양 · '+(h.kind||''):h.group||h.kind||'')}</span></div>
+      <div class="ttl">${esc(h.name)}</div><div class="kind">${esc((h.addr||h.region||h.sido||'').replace(/특별시|광역시|특별자치도|특별자치시/,'').replace(/\s*\d.*$/,''))}</div>
+      <dl class="hc-dl"><dt>분양가</dt><dd class="num"><b>${esc(price(h))}</b></dd>${h.households?`<dt>세대수</dt><dd class="num">${h.households.toLocaleString()}세대</dd>`:''}<dt>접수</dt><dd class="num">${h.start?md(h.start)+' ~ ':''}${md(h.end)||'공고문 확인'}</dd></dl></div></a>`}).join('')}</div>`:''}
+    ${lines.length?`<div class="hlines">${lines.map(h=>`<a href="#house-${esc(h.id)}"><span class="chip-s lh">${esc((h.src==='LH'?'LH ':'')+(h.kind||h.group||''))}</span><span class="hl-n">${esc(h.name)}</span><span class="note">${esc(h.sido||'')}${h.end?' · 마감 '+md(h.end):''}</span></a>`).join('')}</div>`:''}
+    ${!cards.length&&!lines.length?'<p class="note">이 종류는 지금 접수 중인 공고가 없어요.</p>':''}
+    <p class="note" style="margin-top:8px">자료: 한국부동산원 청약홈, LH 청약플러스 · 매일 갱신</p></section>`;
+}
+/* ---------- 메인: 이번 주 실거래 ---------- */
+function homeDeals(){
+  const t=DEALS.top||[], r=DEALS.regions||[];
+  if(!t.length&&!r.length) return '';
+  const mx=Math.max(...r.map(x=>x.n),1);
+  return `<section class="block">${secHead('국토부 실거래가','최근 2주 최고가를 새로 쓴 아파트','','')}
+    <div class="dealgrid">
+      ${t.length?`<div class="panel dealtbl"><div class="tablewrap"><table class="mtable"><thead><tr><th>단지 · 면적</th><th class="r">거래가</th><th class="r">직전 최고가 대비</th></tr></thead><tbody>
+        ${t.slice(0,6).map(d=>`<tr><td><b>${esc(d.name)}</b><br><span class="note">${esc(d.region)} ${esc(d.umd)} · 전용 ${Math.round(d.area)}㎡ · ${esc(d.day.slice(5).replace('-','.'))} 계약</span></td><td class="r num"><b>${manwon(d.price)}</b></td><td class="r num up">+${manwon(d.up)}</td></tr>`).join('')}
+      </tbody></table></div></div>`:''}
+      ${r.length?`<div class="panel"><h3 style="margin:0 0 12px;font-size:16px">최근 2주 거래 많은 지역</h3>${r.slice(0,6).map(x=>`<div class="rbar"><span>${esc(x.name)}</span><span class="rb"><i style="width:${Math.round(x.n/mx*100)}%"></i></span><b class="num">${x.n.toLocaleString()}</b></div>`).join('')}</div>`:''}
+    </div><p class="note" style="margin-top:8px">${esc(DEALS.basis||'')} · 자료: 국토교통부 실거래가</p></section>`;
+}
 function viewHome(){
   if(sb) AFTER.push(()=>loadHomePosts('전체'));
   const latest=[...FEED.items].filter(n=>statusOf(n)!=='closed').sort((a,b)=>b.creatPnttm.localeCompare(a.creatPnttm)).slice(0,4);
@@ -884,11 +935,23 @@ function viewHome(){
     </nav></section>
 
   ${MARKET.items.length?`<section class="block">${secHead('중개사 등록 매물','새로 올라온 매물','#listings','전체 매물 보기')}
-    <div class="rail">${MARKET.items.slice(0,4).map(realCard).join('')}</div></section>`:`<section class="block">${secHead('예시 매물','이런 매물을 볼 수 있어요','#listings','매물 검색')}
-    <div class="rail">${LISTINGS.filter(l=>l.hot).slice(0,4).map(listingCard).join('')}</div><p class="note">화면 구성을 보여주는 예시입니다. 중개사가 매물을 올리면 이 자리에 실제 매물이 보입니다.</p></section>`}
+    <div class="rail">${MARKET.items.slice(0,4).map(realCard).join('')}</div></section>`:''}
 
-  ${(()=>{const top=AUC.items.filter(i=>i.compare&&i.compare.count>=5&&i.compare.minVsEst<0&&i.compare.minVsEst>-70&&aucDday(i)[1]!=='closed').sort((a,b)=>a.compare.minVsEst-b.compare.minVsEst).slice(0,4);
-    return top.length?`<section class="block">${secHead('온비드 공매 · 실거래 비교','주변 시세보다 싸게 나온 공매','#auctions','전체 보기')}<div class="rail">${top.map(aucCard).join('')}</div></section>`:''})()}
+  ${(()=>{ // 메인 공매: 건물 사진이 있는 물건 우선
+    const hasPh=i=>i.ph&&i.phk==='p';
+    const open=AUC.items.filter(i=>aucDday(i)[1]!=='closed');
+    const pick=(list,n=4)=>[...list.filter(hasPh),...list.filter(i=>!hasPh(i))].slice(0,n);
+    // 기준을 먼저 통과한 물건(시세보다 30% 이상 싸게 시작)만 후보로 두고, 그 안에서 사진 있는 것을 먼저 보여준다
+    const cheapL=open.filter(i=>i.compare&&!i.compare.skip&&i.compare.count>=5&&i.compare.minVsEst<=-30&&i.compare.minVsEst>-60).sort((a,b)=>a.compare.minVsEst-b.compare.minVsEst);
+    // 마감 임박: 7일 안에 입찰이 끝나는 물건만 후보
+    const wk=new Date(Date.now()+7*864e5).toISOString().slice(0,10);
+    const soonL=open.filter(i=>i.bidEnd&&i.bidEnd.slice(0,10)<=wk).sort((a,b)=>a.bidEnd.localeCompare(b.bidEnd));
+    const cheap=pick(cheapL), soon=pick(soonL.filter(i=>!cheap.includes(i)));
+    return (cheap.length?`<section class="block">${secHead('온비드 공매 · 실거래 비교','주변 시세보다 30% 이상 싸게 나온 공매','#auctions','전체 보기')}<div class="rail">${cheap.map(aucCard).join('')}</div></section>`:'')
+      +homeHousing()
+      +(soon.length?`<section class="block">${secHead('온비드 공매','7일 안에 입찰 마감되는 공매','#auctions','전체 보기')}<div class="rail">${soon.map(aucCard).join('')}</div></section>`:'')
+      +homeDeals();
+  })()}
 
   <section class="block"><div class="duo">
     <div class="panel">${secHead('커뮤니티','베스트 게시글','#community')}
@@ -2626,6 +2689,7 @@ document.addEventListener('click',e=>{
 });
 /* ---------- 매물 검색: 공매 + 분양·임대 공고 + 중개사 매물을 한 지도에 ---------- */
 let HOUSING={updatedAt:null,items:[],loaded:false};
+let DEALS={top:[],regions:[]};
 const MF={src:'전체',cat:'전체',sido:'전체',cheap:false,loss:false,q:'',sel:null,center:null,level:null,inView:true};
 const MSRC=[['전체','전체'],['auc','공매'],['house','분양·임대'],['agent','중개사 매물']];
 const MCATS=[['전체',null],['아파트','apt'],['오피스텔','offi'],['빌라·다세대','rh'],['단독·다가구','sh'],['토지','land'],['상가·업무','nrg'],['공장·창고','indu']];
@@ -2929,6 +2993,9 @@ document.addEventListener('click',async e=>{
   const t=e.target;
   const ask=t.closest('[data-ask]'); if(ask){openChat(ask.dataset.ask);return}
   if(t.closest('[data-open-chat]')){e.preventDefault();openChat();return}
+  const hg=t.closest('[data-hhg]'); if(hg){HHG=hg.dataset.hhg;const el=$('#homeHouse');if(el)el.outerHTML=homeHousing();return}
+  if(t.closest('#homeHouse .more')){MF.src='house'}
+  const gh=t.closest('[data-gohouse]'); if(gh){MF.src='house';MF.hgroup=gh.dataset.gohouse||''}
   if(t.closest('[data-goloss]')){LF.loss=true;MF.src='agent';MF.loss=true}
   const ht=t.closest('#homeTabs [data-cat]'); if(ht){const c=ht.dataset.cat;document.querySelectorAll('#homeTabs button').forEach(b=>b.setAttribute('aria-pressed',b===ht));if(sb){loadHomePosts(c);return}$('#homePosts').innerHTML=POSTS.filter(p=>c==='전체'||p.cat===c).slice(0,4).map(postItem).join('');return}
   const ct=t.closest('#commTabs [data-cat]'); if(ct){commCat=ct.dataset.cat;render();return}
