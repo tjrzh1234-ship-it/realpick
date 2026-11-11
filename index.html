@@ -410,7 +410,22 @@ fieldset.sub.err{border-color:var(--hot)}
 .acts{display:flex;gap:6px;flex-wrap:wrap}
 .note-in{margin-top:6px;padding:6px 8px;font-size:13px}
 a.lcard:hover{border-color:var(--accent)}
-.acard .lbody{gap:7px}
+.acard .lbody{gap:5px;padding:12px 14px 14px}
+.athumb{position:relative;aspect-ratio:16/10;background:var(--sunk);overflow:hidden}
+.athumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;transition:transform .3s ease}
+a.acard:hover .athumb img{transform:scale(1.04)}
+.athumb .aph-ph{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:4px;color:var(--muted);opacity:.7}
+.athumb .aph-ph em{font-style:normal;font-size:12px}
+.athumb:not(.noph) .aph-ph{opacity:.35}
+.athumb .dday{position:absolute;left:10px;top:10px;z-index:2;box-shadow:0 1px 4px rgb(0 0 0/.15)}
+.athumb .aheart{position:absolute;right:8px;top:8px;z-index:2;background:rgb(255 255 255/.92);border-radius:50%}
+.athumb .afail{position:absolute;left:10px;bottom:10px;z-index:2;background:rgb(0 0 0/.62);color:#fff;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:99px}
+.acard .kind{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acard .ttl{font-size:15px;font-weight:700;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.8em}
+.acard .price{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}.acard .price b{font-size:19px}.acard .price .drop{font-size:12.5px;color:var(--muted);font-weight:600}
+.acard .ameta{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+@media (max-width:520px){.rail:has(.acard){grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.acard .lbody{padding:10px}.acard .price b{font-size:16px}.acard .ttl{font-size:13.5px}.athumb .afail{display:none}}
+.acheap{color:var(--accent);font-weight:700;background:var(--accent-soft);padding:1px 7px;border-radius:6px}
 .cmp{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;border-radius:8px;padding:6px 9px;font-size:13px}
 .cmp b.num{font-size:14px}
 .cmp.cheap{background:var(--ok-soft);color:var(--ok)}
@@ -1770,15 +1785,26 @@ function compareBadge(c,big){
   const p=c.minVsEst, cheap=p<0;
   return `<div class="cmp ${cheap?'cheap':'dear'}${big?' big':''}"><b class="num">${cheap?'▼':'▲'} ${Math.abs(p).toFixed(1)}%</b><span>주변 시세 추정 <b class="num">${wonKRW(c.est)}</b> 대비 최저가</span></div>`;
 }
+const AUC_ICON={apt:'<path d="M4 21V5l8-3 8 3v16"/><path d="M9 21v-4h6v4M8 8h2M14 8h2M8 12h2M14 12h2"/>',land:'<path d="M3 19 9 9l4 6 3-4 5 8Z"/><circle cx="16" cy="6" r="2"/>',biz:'<path d="M3 21h18M5 21V8l7-4 7 4v13"/><path d="M9 21v-5h6v5M9 11h6"/>',fac:'<path d="M3 21V10l6 4V10l6 4V6h6v15Z"/>'};
+function aucIcon(it){
+  const u=(it.usage||'')+(it.cat||'');
+  const k=/토지|대지|전|답|임야|land/.test(u)&&!/주택|건물/.test(u)?'land':/공장|창고/.test(u)?'fac':/상가|근린|업무|숙박|biz/.test(u)?'biz':'apt';
+  return `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${AUC_ICON[k]}</svg>`;
+}
 function aucCard(it){
-  const [dl,dc]=aucDday(it);
+  const [dl,dc]=aucDday(it), c=it.compare;
+  const ph=AUCX[it.id]?.photos?.[0]||it.ph;
+  const cheap=c&&!c.skip&&c.minVsEst<0&&c.minVsEst>-85?Math.abs(c.minVsEst).toFixed(0):null;
+  const end=(it.bidEnd||'').slice(5).replace('-','.');
   return `<a class="lcard acard" href="#auc-${esc(it.id)}">
+    <div class="athumb${ph?'':' noph'}">${ph?`<img src="${esc(ph)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.parentNode.classList.add('noph');this.remove()">`:''}<span class="aph-ph">${aucIcon(it)}<em>사진 준비 중</em></span>
+      <span class="dday ${dc}">${dl}</span>${AUTH.session&&sb?`<span class="aheart">${heartBtn('auction',it.id,it.title)}</span>`:''}
+      ${it.fails?`<span class="afail num">유찰 ${it.fails}회</span>`:''}</div>
     <div class="lbody">
-      <div class="row1" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">${AUTH.session&&sb?`<span style="margin-left:auto;order:9">${heartBtn('auction',it.id,it.title)}</span>`:''}<span class="dday ${dc}">${dl}</span><span class="kind">${esc(it.sido||'-')} · ${esc((it.usage||'-').split(' > ').pop())}</span>${trustOf(it.org)?`<span class="chip-s trust">${esc(trustOf(it.org))}</span>`:''}</div>
+      <div class="kind">${esc(it.sido||'-')} ${esc(it.sgg||'')} · ${esc((it.usage||'-').split(' > ').pop())}${trustOf(it.org)?` <span class="chip-s trust">신탁</span>`:''}</div>
       <div class="ttl">${esc(it.title)}</div>
-      <div class="price"><b class="num">${wonKRW(it.minp)}</b>${it.ratio?`<span class="drop" style="color:var(--muted)">감정가의 ${it.ratio}%</span>`:''}</div>
-      <dl class="kv"><dt>감정가</dt><dd class="num">${wonKRW(it.apsl)}</dd><dt>유찰</dt><dd class="num">${it.fails||0}회</dd><dt>입찰 마감</dt><dd class="num">${esc(it.bidEnd||'-')}</dd></dl>
-      ${compareBadge(it.compare)}
+      <div class="price"><b class="num">${wonKRW(it.minp)}</b>${it.ratio?`<span class="drop">감정가 ${it.ratio}%</span>`:''}</div>
+      <div class="ameta num">${cheap?`<span class="acheap">시세보다 ${cheap}%↓</span>`:''}<span>마감 ${esc(end||'-')}</span></div>
     </div></a>`;
 }
 
