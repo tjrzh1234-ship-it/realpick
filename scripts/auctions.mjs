@@ -147,6 +147,10 @@ export function toAuctionItems(raw, sgg, nowDigits = nowKstDigits()) {
     if (!live.length) continue;
     const cur = live.sort((a, b) => (keyDt(a.cltrBidBgngDt) || "9").localeCompare(keyDt(b.cltrBidBgngDt) || "9"))[0];
     if (/임대/.test(cur.dspsMthodNm || "")) continue;
+    // 회차별 입찰 일정 (상세 화면용, 별도 파일로 저장): [시작, 마감, 최저입찰가]
+    const seen = new Set();
+    const rnds = rounds.map(r => [dt(r.cltrBidBgngDt), dt(r.cltrBidEndDt), num(r.lowstBidPrcIndctCont) ?? num(r.lowstBidPrc)])
+      .filter(r => r[0] && !seen.has(r[0]) && seen.add(r[0])).sort((a, b) => a[0].localeCompare(b[0])).slice(0, 40);
     const addr = (cur.zadrNm || cur.cltrAdr || cur.cltrRadr || [cur.lctnSdnm, cur.lctnSggnm, cur.lctnEmdNm].filter(Boolean).join(" ")).trim();
     const sido = sidoOf(cur.lctnSdnm, addr);
     const sggNm = String(cur.lctnSggnm || "").trim();
@@ -167,7 +171,7 @@ export function toAuctionItems(raw, sgg, nowDigits = nowKstDigits()) {
       apsl, minp, ratio: apsl && minp ? Math.round(minp / apsl * 1000) / 10 : null,
       fails: num(cur.usbdNft) ?? 0, prpt: cur.prptDivNm || "", org: cur.orgNm || cur.rqstOrgNm || "",
       method: cur.dspsMthodNm || "", status,
-      bidStart: dt(cur.cltrBidBgngDt), bidEnd: dt(cur.cltrBidEndDt),
+      bidStart: dt(cur.cltrBidBgngDt), bidEnd: dt(cur.cltrBidEndDt), rounds: rnds.length > 1 ? rnds : null,
       // 온비드 상세 주소 재료 (화면에서 주소를 만든다: 파일 크기 절약)
       link: ["onbidCltrno", "onbidPbancNo", "pbctNo", "pbctCdtnNo"].every(k => cur[k]) ? [cur.onbidCltrno, cur.onbidPbancNo, cur.pbctNo, cur.pbctCdtnNo, cur.prptDivCd || cur.cltrPrptDivCd || ""].map(String) : null
     });
@@ -348,13 +352,15 @@ export async function buildAuctions(key, { readJson, writeJson, nowKST, log = co
   // 화면에 필요한 값만 남겨 파일을 가볍게
   const slim = items.map(it => {
     const o = { ...it, area: it.cat === "land" ? it.landArea : (it.bldArea ?? it.landArea) };
-    for (const k of ["pnu", "emd", "jimok", "bundle", "sggCd"]) delete o[k];
+    for (const k of ["pnu", "emd", "jimok", "bundle", "sggCd", "rounds"]) delete o[k];
     if (!o.share) delete o.share;
     if (o.compare?.samples) o.compare = { ...o.compare, samples: o.compare.samples.slice(0, 3) };
     if (o.compare?.pending) o.compare = { pending: true, skip: o.compare.skip };
     return o;
   });
   await writeJson("rtms-cache.json", cache, true);
+  // 회차별 입찰 일정은 상세 화면에서만 쓰므로 따로 저장 (목록 파일을 가볍게)
+  await writeJson("auction-rounds.json", { updatedAt: nowKST(), rounds: Object.fromEntries(items.filter(it => it.rounds).map(it => [it.id, it.rounds])) }, true);
   await writeJson("auctions.json", {
     source: "한국자산관리공사 온비드 · 국토교통부 실거래가 (공공데이터포털)", updatedAt: nowKST(),
     note: `주변 시세 추정은 같은 동네·같은 종류의 최근 ${MONTHS}개월 실거래 ㎡당 중앙값에 물건 면적을 곱한 값입니다. 실제 시세나 낙찰가와 다를 수 있습니다.`,
