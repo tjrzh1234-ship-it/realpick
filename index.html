@@ -273,6 +273,20 @@ fieldset.sub legend small,.fld small{font-weight:400;color:var(--faint)}
 .chk input{width:18px;height:18px;accent-color:var(--accent)}
 .formmsg{margin:0;font-size:14px;color:var(--hot);min-height:1em}
 .fld.err>span{color:var(--hot)}
+.aphotos{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:8px;margin:14px 0 4px}
+.aphotos .aph-main{grid-row:span 2;border-radius:16px;overflow:hidden;background:var(--sunk);aspect-ratio:4/3;display:block}
+.aphotos img{width:100%;height:100%;object-fit:cover;display:block}
+.aph-thumbs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.aph-thumbs a{position:relative;border-radius:12px;overflow:hidden;background:var(--sunk);aspect-ratio:4/3;display:block}
+.aph-thumbs span{position:absolute;inset:0;display:grid;place-items:center;background:rgb(0 0 0/.45);color:#fff;font-weight:800;font-size:18px}
+.aphotos.loading{grid-template-columns:1fr}
+.aphotos.loading .aph-main{aspect-ratio:16/6}
+.skel{background:linear-gradient(90deg,var(--sunk),var(--line),var(--sunk));background-size:200% 100%;animation:skel 1.2s linear infinite}
+@keyframes skel{to{background-position:-200% 0}}
+.around{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.ar-col{display:grid;gap:4px;font-size:13.5px;align-content:start;padding:12px;border-radius:12px;background:var(--sunk)}
+.ar-col b{font-size:13px;color:var(--accent);margin-bottom:2px}
+@media (max-width:640px){.aphotos{grid-template-columns:1fr}.aph-thumbs{grid-template-columns:repeat(4,1fr)}.aphotos .aph-main{grid-row:auto}}
 .mbar{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 .msearch{display:flex;gap:6px;flex:1;justify-content:flex-end;min-width:280px}
 .msearch input,.msearch select{font:inherit;font-size:14px;color:var(--fg);background:var(--sunk);border:0;border-radius:12px;padding:9px 12px;min-width:0}
@@ -1741,15 +1755,122 @@ function aucCard(it){
       ${compareBadge(it.compare)}
     </div></a>`;
 }
+
+/* ---------- 공매 상세 추가 정보 (사진·입찰일정·감정평가·임대차·등기·건축물·주변) ---------- */
+const AUCX={};
+// 온비드 응답 필드 이름 → 우리말 (모르는 이름은 그대로 보여준다)
+const OB_LABEL={pbctNo:'회차',pbctSeq:'회차',pbctCdtnNo:'공매조건번호',bidBgngDtm:'입찰 시작',bidClsDtm:'입찰 마감',pbctBgngDtm:'입찰 시작',pbctClsDtm:'입찰 마감',opbdDtm:'개찰',opbdDt:'개찰일',
+  lowstBidPrc:'최저입찰가',minBidPrc:'최저입찰가',lowstBidPrcAmt:'최저입찰가',scfbAmt:'낙찰가',pbctStatNm:'결과',pbctStatCd:'결과코드',bidRsltNm:'결과',
+  apslEvlAmt:'감정가',apslEvlOrgNm:'감정기관',apslEvlInstNm:'감정기관',apslEvlDt:'평가일',apslEvlYmd:'평가일',
+  rgstRgtKndNm:'권리 종류',rgtrNm:'권리자',rgstRcptDt:'접수일',stngAmt:'채권 금액',
+  lsrNm:'임차인',rentDpst:'보증금',rentAmt:'월세',mvinDt:'전입일',fxdtDt:'확정일자',
+  urlAdr:'파일',fileNm:'파일명',atchFileNm:'파일명'};
+const isAmtKey=k=>/(Amt|Prc|Dpst|amount)$/i.test(k);
+const isDateKey=k=>/(Dt|Dtm|Ymd|Day)$/.test(k);
+function obCell(k,v){
+  if(v==null||v==='') return '';
+  if(typeof v==='object') return esc(JSON.stringify(v).slice(0,80));
+  const sv=String(v);
+  if(isAmtKey(k)&&/^\d+(\.\d+)?$/.test(sv)) return `<span class="num">${(+sv).toLocaleString()}원</span>`;
+  if(isDateKey(k)&&/^\d{8,14}$/.test(sv)) return `<span class="num">${sv.slice(0,4)}-${sv.slice(4,6)}-${sv.slice(6,8)}${sv.length>=12?' '+sv.slice(8,10)+':'+sv.slice(10,12):''}</span>`;
+  if(/^https?:\/\//.test(sv)) return `<a href="${esc(sv)}" target="_blank" rel="noopener" style="color:var(--accent)">열기</a>`;
+  return esc(sv.length>120?sv.slice(0,120)+'…':sv);
+}
+function obTable(rows,keys){
+  rows=(rows||[]).filter(r=>r&&typeof r==='object');
+  if(!rows.length) return '';
+  keys=keys||[...new Set(rows.flatMap(r=>Object.keys(r)))].filter(k=>rows.some(r=>r[k]!=null&&r[k]!=='')).slice(0,7);
+  return `<div class="tablewrap"><table class="mtable" style="min-width:${Math.min(720,keys.length*120)}px"><thead><tr>${keys.map(k=>`<th class="${isAmtKey(k)?'r':''}">${esc(OB_LABEL[k]||k)}</th>`).join('')}</tr></thead>
+    <tbody>${rows.slice(0,40).map(r=>`<tr>${keys.map(k=>`<td class="${isAmtKey(k)?'r':''}">${obCell(k,r[k])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+const OB_SECTIONS=[[/apsl|evl/i,'감정평가 정보'],[/rent|lsr|lease|imch/i,'임대차 정보'],[/rgst|regi|rgt|dngi/i,'등기 주요 정보'],[/ntc|anc|pbanc|notice/i,'공고·공지 사항'],[/area|ar$|lnd/i,'면적 정보']];
+function aucPhotosHtml(id){
+  const x=AUCX[id];
+  if(!x) return `<div class="aphotos loading"><div class="aph-main skel"></div></div>`;
+  if(!x.photos?.length) return '';
+  const p=x.photos;
+  return `<div class="aphotos"><a class="aph-main" href="${esc(p[0])}" target="_blank" rel="noopener"><img src="${esc(p[0])}" alt="물건 사진 1" loading="lazy"></a>
+    ${p.length>1?`<div class="aph-thumbs">${p.slice(1,5).map((u,i)=>`<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="물건 사진 ${i+2}" loading="lazy">${i===3&&p.length>5?`<span>+${p.length-5}</span>`:''}</a>`).join('')}</div>`:''}</div>
+    <p class="note" style="margin:6px 0 0">사진: 한국자산관리공사 온비드</p>`;
+}
+function aucExtraHtml(it){
+  const x=AUCX[it.id];
+  if(!x) return `<div class="dsec"><h2>상세 정보</h2><p class="note">온비드·건축물대장·주변 시설 정보를 불러오는 중이에요…</p></div>`;
+  if(x.error) return `<div class="dsec"><h2>상세 정보</h2><p class="note">${esc(x.error)}</p></div>`;
+  const out=[];
+  // 회차별 입찰
+  if(x.bids?.length){
+    const ks=Object.keys(x.bids[0]);
+    const want=['pbctNo','pbctSeq','bidBgngDtm','pbctBgngDtm','bidClsDtm','pbctClsDtm','opbdDtm','lowstBidPrc','minBidPrc','lowstBidPrcAmt','scfbAmt','pbctStatNm','bidRsltNm'].filter(k=>x.bids.some(r=>r[k]!=null&&r[k]!==''));
+    out.push(`<div class="dsec"><h2>회차별 입찰 일정</h2>${obTable(x.bids,want.length>=3?want:null)}</div>`);
+  }
+  // 온비드 상세 목록들
+  const used=new Set(['potoUrlList','photoUrlList','potoList']);
+  const lists=x.detail?.lists||{};
+  for(const [re,title] of OB_SECTIONS){
+    const ks=Object.keys(lists).filter(k=>!used.has(k)&&re.test(k));
+    if(!ks.length) continue;
+    ks.forEach(k=>used.add(k));
+    const html=ks.map(k=>obTable(lists[k])).join('');
+    if(html) out.push(`<div class="dsec"><h2>${title}</h2>${html}</div>`);
+  }
+  // 건축물대장
+  const b=x.building;
+  if(b){
+    const row=(k,v)=>v!=null&&v!==''?`<dt>${k}</dt><dd>${v}</dd>`:'';
+    const ymd=v=>v&&/^\d{8}$/.test(String(v))?`${String(v).slice(0,4)}-${String(v).slice(4,6)}-${String(v).slice(6)}`:v;
+    out.push(`<div class="dsec"><h2>건축물 정보 <span class="note" style="font-weight:400">건축물대장 표제부</span></h2><dl class="facts" style="background:transparent;padding:0;gap:8px 16px">
+      ${row('건물명',esc([b.name,b.dong].filter(Boolean).join(' ')))}${row('주용도',esc(b.mainUse||''))}${row('구조',esc(b.structure||''))}
+      ${row('층수',b.floorsUp!=null?`지상 ${b.floorsUp}층${b.floorsDown?` · 지하 ${b.floorsDown}층`:''}`:'')}
+      ${row('세대/가구/호',[b.households,b.families,b.units].some(v=>v)?`${b.households||0} / ${b.families||0} / ${b.units||0}`:'')}
+      ${row('대지면적',b.platArea?`<span class="num">${(+b.platArea).toLocaleString()}㎡ (${pyeong(b.platArea)}평)</span>`:'')}
+      ${row('연면적',b.totArea?`<span class="num">${(+b.totArea).toLocaleString()}㎡ (${pyeong(b.totArea)}평)</span>`:'')}
+      ${row('건폐율 / 용적률',b.bcRat||b.vlRat?`<span class="num">${b.bcRat??'-'}% / ${b.vlRat??'-'}%</span>`:'')}
+      ${row('주차',b.parking?`<span class="num">${b.parking}대</span>`:'')}${row('승강기',b.elevators!=null?`<span class="num">${b.elevators}대</span>`:'')}
+      ${row('사용승인일',esc(ymd(b.useAprDay)||''))}</dl>${b.count>1?`<p class="note">같은 지번에 건물이 ${b.count}동 있어 가장 큰 건물 기준이에요.</p>`:''}</div>`);
+  }
+  // 주변 시설
+  const a=x.around;
+  if(a&&Object.values(a).some(v=>v?.length)){
+    out.push(`<div class="dsec"><h2>주변 환경</h2><div class="around">${Object.entries(a).filter(([,v])=>v?.length).map(([k,v])=>`<div class="ar-col"><b>${esc(k)}</b>${v.map(p=>`<span>${esc(p.name)} <span class="note num">${p.dist>=1000?(p.dist/1000).toFixed(1)+'km':p.dist+'m'}</span></span>`).join('')}</div>`).join('')}</div>
+      <p class="note" style="margin-top:8px">직선거리 기준 · 자료: 카카오 로컬</p></div>`);
+  }
+  // 나머지(분류 못 한 목록)는 관리자만 원본으로
+  const rest=Object.keys(lists).filter(k=>!used.has(k));
+  if(isAdmin()&&(rest.length||x.errors&&Object.keys(x.errors).length)){
+    out.push(`<details class="dsec"><summary style="cursor:pointer;font-weight:700">관리자용: 분류 안 된 온비드 항목 ${rest.length}개 · 오류 ${Object.keys(x.errors||{}).length}개</summary>
+      ${Object.keys(x.errors||{}).length?`<pre class="note" style="white-space:pre-wrap">${esc(JSON.stringify(x.errors,null,1))}</pre>`:''}
+      ${rest.map(k=>`<h3 style="font-size:13px;margin:10px 0 4px">${esc(k)}</h3>${obTable(lists[k])}`).join('')}
+      <pre class="note" style="white-space:pre-wrap;max-height:240px;overflow:auto">${esc(JSON.stringify(x.detail?.scalars||{},null,1))}</pre></details>`);
+  }
+  if(!out.length) return `<div class="dsec"><h2>상세 정보</h2><p class="note">온비드에서 추가로 받은 상세 정보가 없어요. 온비드 원문에서 확인해 주세요.</p></div>`;
+  return out.join('')+`<p class="note" style="margin-top:8px">${x.fetchedAt?fmtTime(x.fetchedAt)+' 기준 · ':''}자료: 한국자산관리공사 온비드, 국토교통부 건축물대장</p>`;
+}
+async function loadAucExtra(it){
+  if(AUCX[it.id]||!CFG.supabaseUrl) return;
+  AUCX[it.id]={loading:true};
+  let x;
+  try{
+    const u=`${CFG.supabaseUrl}/functions/v1/onbid-detail?id=${encodeURIComponent(it.id)}&cond=${encodeURIComponent(it.link?.[3]||'')}${it.la?`&la=${it.la}&lo=${it.lo}`:''}`;
+    const r=await fetch(u,{headers:{apikey:CFG.supabaseAnonKey,Authorization:'Bearer '+CFG.supabaseAnonKey}});
+    const j=await r.json().catch(()=>({}));
+    x=r.status===404?{error:'상세 정보 서버 기능(onbid-detail)이 아직 배포되지 않았어요.',photos:[]}:(j.error&&!j.detail?{error:j.message||'상세 정보를 불러오지 못했어요.',photos:[]}:j);
+  }catch(e){x={error:'상세 정보를 불러오지 못했어요. 잠시 후 다시 열어 주세요.',photos:[]}}
+  AUCX[it.id]=x;
+  if(route()==='auc-'+it.id){const p=$('#aucPhotos'),e=$('#aucExtra');if(p)p.innerHTML=aucPhotosHtml(it.id);if(e)e.innerHTML=aucExtraHtml(it)}
+}
+
 function viewAuction(id){
   const it=AUC.items.find(x=>x.id===id);
   if(!it) return `<a class="back" href="#auctions">← 경매·공매 목록</a><div class="empty">${AUC.loaded?'마감됐거나 없는 물건이에요.':'불러오는 중입니다.'}</div>`;
   const [dl,dc]=aucDday(it), c=it.compare;
   const per=a=>a?Math.round(a/10000).toLocaleString()+'만/㎡':'-';
+  if(!AUCX[id]) AFTER.push(()=>loadAucExtra(it));
   return `<a class="back" href="#auctions">← 경매·공매 목록</a>
   <div class="dgrid"><div style="min-width:0">
     <div class="dhead"><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span class="dday ${dc}">${dl}</span><span class="reg" style="font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 7px">${esc(it.sido)} ${esc(it.sgg)}</span><span style="font-size:12px;font-weight:700;color:var(--accent)">${esc(it.usage)}</span>${it.share?'<span class="dday soon">지분</span>':''}</div>
       <h1>${esc(it.title)}</h1></div>
+    <div id="aucPhotos">${aucPhotosHtml(it.id)}</div>
     <div class="ticket"><div><div class="k">최저입찰가</div><div class="v num">${wonKRW(it.minp)}</div></div><div><div class="k">감정가</div><div class="v num">${wonKRW(it.apsl)}</div></div><div><div class="k">감정가 대비</div><div class="v num">${it.ratio?it.ratio+'%':'-'}</div></div><div><div class="k">유찰</div><div class="v num">${it.fails||0}회</div></div></div>
     <div class="dsec aisum"><h2>주변 실거래 비교</h2>
       ${!c?'<p class="note" style="font-size:14px">이 종류의 물건은 실거래가 비교 대상이 아니에요.</p>':c.skip?`<p class="note" style="font-size:14px">${esc(c.skip)}</p>`:`
@@ -1759,6 +1880,7 @@ function viewAuction(id){
       <p class="note" style="margin-top:10px">국토부 실거래가는 지번 일부가 가려져 있어 이 물건 자체의 직전 거래가는 알 수 없어요. 위 비교는 같은 동네·같은 종류 거래의 ㎡당 중앙값으로 계산한 참고치이고, 땅 모양·도로 조건·건물 상태는 반영하지 못합니다.</p>`}
     </div>
     <div class="dsec"><h2>입찰 정보</h2><dl class="facts" style="background:transparent;padding:0;gap:8px 16px"><dt>소재지</dt><dd>${esc(it.addr)}</dd>${it.landArea?`<dt>토지 면적</dt><dd class="num">${(+it.landArea).toLocaleString()}㎡ (${pyeong(it.landArea)}평)</dd>`:''}${it.bldArea?`<dt>건물 면적</dt><dd class="num">${(+it.bldArea).toLocaleString()}㎡ (${pyeong(it.bldArea)}평)</dd>`:''}${!it.landArea&&!it.bldArea&&it.area?`<dt>면적</dt><dd class="num">${(+it.area).toLocaleString()}㎡ (${pyeong(it.area)}평)</dd>`:''}<dt>입찰 기간</dt><dd class="num">${esc(it.bidStart||'-')} ~ ${esc(it.bidEnd||'-')}</dd><dt>진행 상태</dt><dd>${esc(it.status||'-')}</dd><dt>처분 방식</dt><dd>${esc(it.method||'-')}</dd><dt>재산 유형</dt><dd>${esc(it.prpt||'-')}</dd><dt>공고 기관</dt><dd>${esc(it.org||'-')}${trustOf(it.org)?' <span class="chip-s trust">신탁공매</span>':''}</dd><dt>물건관리번호</dt><dd class="num">${esc(it.id)}</dd></dl></div>
+    <div id="aucExtra">${aucExtraHtml(it)}</div>
   </div>
   <aside class="side"><div class="panel"><div style="font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center">입찰은 온비드에서 ${heartBtn('auction',it.id,it.title)}</div><p class="note" style="font-size:13px;margin:0 0 12px">감정평가서, 공매재산명세서, 입찰 참가는 온비드 원문에서 확인하세요.</p><a class="btn primary" style="width:100%;justify-content:center" href="${esc(onbidUrl(it))}" target="_blank" rel="noopener">온비드 원문 보기</a></div>
     <div class="panel note" style="font-size:13px">자료: 한국자산관리공사 온비드, 국토교통부 실거래가${AUC.updatedAt&&fmtTime(AUC.updatedAt)?'<br>'+fmtTime(AUC.updatedAt)+' 갱신':''}</div></aside></div>`;
