@@ -283,6 +283,9 @@ fieldset.sub legend small,.fld small{font-weight:400;color:var(--faint)}
 .aphotos.loading .aph-main{aspect-ratio:16/6}
 .skel{background:linear-gradient(90deg,var(--sunk),var(--line),var(--sunk));background-size:200% 100%;animation:skel 1.2s linear infinite}
 @keyframes skel{to{background-position:-200% 0}}
+.obtxt{padding:10px 0;border-top:1px solid var(--line)}.obtxt:first-of-type{border-top:0;padding-top:0}
+.obtxt b{font-size:13px;color:var(--muted)}.obtxt p{margin:4px 0 0;font-size:14px;line-height:1.65}
+.mtable tr.rnd-on td{background:var(--accent-soft,rgba(49,130,246,.08));font-weight:700}.mtable tr.rnd-past td{color:var(--muted)}
 .around{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
 .ar-col{display:grid;gap:4px;font-size:13.5px;align-content:start;padding:12px;border-radius:12px;background:var(--sunk)}
 .ar-col b{font-size:13px;color:var(--accent);margin-bottom:2px}
@@ -1785,7 +1788,7 @@ function obTable(rows,keys){
 }
 const OB_SECTIONS=[[/apsl|evl/i,'감정평가 정보'],[/rent|lsr|lease|imch/i,'임대차 정보'],[/rgst|regi|rgt|dngi/i,'등기 주요 정보'],[/ntc|anc|pbanc|notice/i,'공고·공지 사항'],[/area|ar$|lnd/i,'면적 정보']];
 function aucPhotosHtml(id){
-  const x=AUCX[id];
+  const x=AUCX[id]?.loading?null:AUCX[id];
   if(!x) return `<div class="aphotos loading"><div class="aph-main skel"></div></div>`;
   if(!x.photos?.length) return '';
   const p=x.photos;
@@ -1793,40 +1796,77 @@ function aucPhotosHtml(id){
     ${p.length>1?`<div class="aph-thumbs">${p.slice(1,5).map((u,i)=>`<a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="물건 사진 ${i+2}" loading="lazy">${i===3&&p.length>5?`<span>+${p.length-5}</span>`:''}</a>`).join('')}</div>`:''}</div>
     <p class="note" style="margin:6px 0 0">사진: 한국자산관리공사 온비드</p>`;
 }
+// 온비드 날짜 "202611111000" → "2026-11-11 10:00"
+const obDt=v=>{const d=String(v||'').replace(/\D/g,'');if(/^(2999|9999)/.test(d))return '';return d.length>=12?`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)} ${d.slice(8,10)}:${d.slice(10,12)}`:d.length>=8?`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`:esc(String(v||''))};
+const obYn=v=>v==='Y'?'가능':v==='N'?'불가':'';
+const obTxt=v=>esc(String(v||'').replace(/\r\n?/g,'\n').trim()).replace(/\n/g,'<br>');
+const obWon=v=>v!=null&&v!==''&&isFinite(+v)?`<span class="num">${(+v).toLocaleString()}원</span>`:'';
+function obList(rows,cols){
+  rows=(rows||[]).filter(r=>r&&typeof r==='object'&&cols.some(([k])=>r[k]!=null&&r[k]!==''));
+  if(!rows.length) return '';
+  return `<div class="tablewrap"><table class="mtable" style="min-width:${Math.min(540,cols.length*105)}px"><thead><tr>${cols.map(([,l,f])=>`<th class="${f==='won'||f==='m2'?'r':''}">${l}</th>`).join('')}</tr></thead>
+    <tbody>${rows.slice(0,40).map(r=>`<tr>${cols.map(([k,,f])=>{const v=r[k];let h;
+      if(f==="won")h=obWon(v);else if(f==='dt')h=`<span class="num">${obDt(v)}</span>`;else if(f==='m2')h=v!=null&&v!==''&&isFinite(+v)?`<span class="num">${(+v).toLocaleString()}㎡ (${pyeong(v)}평)</span>`:esc(String(v??''));
+      else if(f==='link')h=onbidLink(v)?`<a href="${esc(onbidLink(v))}" target="_blank" rel="noopener" style="color:var(--accent)">평가서 보기</a>`:'';else h=obTxt(v);
+      return `<td class="${f==='won'||f==='m2'?'r':''}">${h}</td>`}).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+const onbidLink=u=>{try{const x=new URL(String(u));return /(^|\.)onbid\.co\.kr$/.test(x.hostname)?x.href:null}catch{return null}};
+let ROUNDS=null;
+function roundsHtml(it){
+  const r=ROUNDS?.[it.id];
+  if(!r?.length) return '';
+  const cur=r.findIndex(x=>x[0]===it.bidStart);
+  return `<div class="dsec"><h2>회차별 입찰 일정</h2><div class="tablewrap"><table class="mtable" style="min-width:520px"><thead><tr><th>회차</th><th>입찰 시작</th><th>입찰 마감</th><th class="r">최저입찰가</th><th class="r">감정가 대비</th></tr></thead>
+    <tbody>${r.map((x,i)=>{const on=i===cur,past=cur>=0&&i<cur;return `<tr class="${on?'rnd-on':past?'rnd-past':''}"><td>${i+1}회차${on?' <span class="dday soon">진행중</span>':past?' <span class="note">지남</span>':''}</td><td class="num">${esc(x[0])}</td><td class="num">${esc(x[1])}</td><td class="num r">${x[2]?wonKRW(x[2]):'-'}</td><td class="num r">${x[2]&&it.apsl?Math.round(x[2]/it.apsl*100)+'%':'-'}</td></tr>`}).join('')}</tbody></table></div>
+    <p class="note" style="margin-top:8px">유찰되면 다음 회차로 넘어가며 최저입찰가가 내려가요. 실제 진행은 온비드 공고를 확인하세요.</p></div>`;
+}
 function aucExtraHtml(it){
-  const x=AUCX[it.id];
-  if(!x) return `<div class="dsec"><h2>상세 정보</h2><p class="note">온비드·건축물대장·주변 시설 정보를 불러오는 중이에요…</p></div>`;
-  if(x.error) return `<div class="dsec"><h2>상세 정보</h2><p class="note">${esc(x.error)}</p></div>`;
+  const x=AUCX[it.id]?.loading?null:AUCX[it.id];
+  const rnd=roundsHtml(it);
+  if(!x) return rnd+`<div class="dsec"><h2>상세 정보</h2><p class="note">온비드·건축물대장·주변 시설 정보를 불러오는 중이에요…</p></div>`;
+  if(x.error) return rnd+`<div class="dsec"><h2>상세 정보</h2><p class="note">${esc(x.error)}</p></div>`;
   const out=[];
-  // 회차별 입찰
-  if(x.bids?.length){
-    const ks=Object.keys(x.bids[0]);
-    const want=['pbctNo','pbctSeq','bidBgngDtm','pbctBgngDtm','bidClsDtm','pbctClsDtm','opbdDtm','lowstBidPrc','minBidPrc','lowstBidPrcAmt','scfbAmt','pbctStatNm','bidRsltNm'].filter(k=>x.bids.some(r=>r[k]!=null&&r[k]!==''));
-    out.push(`<div class="dsec"><h2>회차별 입찰 일정</h2>${obTable(x.bids,want.length>=3?want:null)}</div>`);
-  }
-  // 온비드 상세 목록들
-  const used=new Set(['potoUrlList','photoUrlList','potoList']);
-  const lists=x.detail?.lists||{};
-  for(const [re,title] of OB_SECTIONS){
-    const ks=Object.keys(lists).filter(k=>!used.has(k)&&re.test(k));
-    if(!ks.length) continue;
-    ks.forEach(k=>used.add(k));
-    const html=ks.map(k=>obTable(lists[k])).join('');
-    if(html) out.push(`<div class="dsec"><h2>${title}</h2>${html}</div>`);
-  }
+  const S=x.detail?.scalars||{}, L=x.detail?.lists||{};
+  const row=(k,v)=>v!=null&&v!==''?`<dt>${k}</dt><dd>${v}</dd>`:'';
+  // 물건 개요
+  const ov=[row('지번 주소',esc(S.zadrNm||'')),row('도로명 주소',esc(S.cltrRadr||'')),
+    row('회차 / 유찰',S.pbctNsq||S.usbdNft!=null?`<span class="num">${S.pbctNsq?S.pbctNsq+'회차':''}${S.usbdNft!=null?` · 유찰 ${S.usbdNft}회`:''}</span>`:''),
+    row('입찰 방식',esc([S.bidMthodNm,S.cptnMthodNm].filter(Boolean).join(' · '))),row('처분 방식',esc(S.dspsMthodNm||'')),
+    row('재산 구분',esc(S.prptDivNm||'')),row('집행 기관',esc(S.orgNm||'')),
+    row('명도 책임',esc(S.evcRsbyTrgtCont||'')),
+    row('공동입찰',obYn(S.collbBidPsblYn)),row('대리입찰',obYn(S.subtBidPsblYn)),row('2회 이상 입찰',obYn(S.twtmGthrBidPsblYn)),
+    row('수의계약',S.pvctTrgtYn==='Y'?'대상':S.pvctTrgtYn==='N'?'대상 아님':''),row('일괄입찰',S.batcBidYn==='Y'?'예 (여러 물건을 한 번에)':'')].join('');
+  if(ov) out.push(`<div class="dsec"><h2>물건 개요</h2><dl class="facts" style="background:transparent;padding:0;gap:8px 16px">${ov}</dl></div>`);
+  if(rnd) out.push(rnd);
+  // 글로 된 현황
+  const txt=[['위치 및 부근 현황',S.locVntyPscdCont],['이용 현황',S.utlzPscdCont],['기타 사항',S.cltrEtcCont],['부대 조건',S.icdlCdtnCont]].filter(([,v])=>v&&String(v).trim());
+  if(txt.length) out.push(`<div class="dsec"><h2>물건 현황</h2>${txt.map(([k,v])=>`<div class="obtxt"><b>${k}</b><p>${obTxt(v)}</p></div>`).join('')}</div>`);
+  // 면적
+  const sq=obList(L.sqmsList,[['clandCont','구분'],['dtlCltrNm','상세'],['sqmsCont','면적','m2'],['pursAlcCont','지분']]);
+  if(sq) out.push(`<div class="dsec"><h2>면적 정보</h2>${sq}</div>`);
+  // 감정평가
+  const ap=obList(L.apslEvlClgList,[['apslEvlYmd','평가일','dt'],['apslEvlOrgNm','평가기관'],['apslApprNm','감정평가사'],['apslEvlAmt','감정가','won'],['urlAdr','평가서','link']]);
+  if(ap) out.push(`<div class="dsec"><h2>감정평가 정보</h2>${ap}</div>`);
+  // 일괄입찰 물건
+  const bt=obList(L.batcBidCltrClgList,[['cltrMngNo','물건관리번호'],['onbidCltrNm','물건명'],['cltrUsgSclsCtgrNm','용도'],['landSqms','토지','m2'],['bldSqms','건물','m2'],['apslEvlAmt','감정가','won']]);
+  if(bt) out.push(`<div class="dsec"><h2>함께 입찰하는 물건 <span class="note" style="font-weight:400">일괄입찰</span></h2>${bt}</div>`);
+  // 권리 관계 (임대차·등기·배분요구·점유)
+  const rights=[['leasInfList','임대차 정보'],['rgstPrmrInfList','등기 주요 정보'],['dtbtRqrMtrsList','배분요구 사항'],['ocpyRelList','점유 관계']];
+  const rh=[],none=[];
+  for(const [k,t] of rights){const h=obTable(L[k]);h?rh.push(`<h3 style="font-size:14px;margin:14px 0 6px">${t}</h3>${h}`):none.push(t)}
+  out.push(`<div class="dsec"><h2>권리 관계</h2>${rh.join('')}${none.length?`<p class="note" style="margin-top:${rh.length?10:0}px">${none.join(' · ')}: 온비드에 공고된 내용이 없어요. 신탁공매·국유재산은 비어 있는 경우가 많으니 현장·등기부를 꼭 확인하세요.</p>`:''}</div>`);
   // 건축물대장
   const b=x.building;
   if(b){
-    const row=(k,v)=>v!=null&&v!==''?`<dt>${k}</dt><dd>${v}</dd>`:'';
     const ymd=v=>v&&/^\d{8}$/.test(String(v))?`${String(v).slice(0,4)}-${String(v).slice(4,6)}-${String(v).slice(6)}`:v;
     out.push(`<div class="dsec"><h2>건축물 정보 <span class="note" style="font-weight:400">건축물대장 표제부</span></h2><dl class="facts" style="background:transparent;padding:0;gap:8px 16px">
-      ${row('건물명',esc([b.name,b.dong].filter(Boolean).join(' ')))}${row('주용도',esc(b.mainUse||''))}${row('구조',esc(b.structure||''))}
+      ${row('건물명',esc([b.name,b.dong].filter(Boolean).join(' ')))}${row('주용도',esc([b.mainUse,b.etcUse&&b.etcUse!==b.mainUse?b.etcUse:''].filter(Boolean).join(' · ')))}${row('구조',esc(b.structure||''))}
       ${row('층수',b.floorsUp!=null?`지상 ${b.floorsUp}층${b.floorsDown?` · 지하 ${b.floorsDown}층`:''}`:'')}
       ${row('세대/가구/호',[b.households,b.families,b.units].some(v=>v)?`${b.households||0} / ${b.families||0} / ${b.units||0}`:'')}
       ${row('대지면적',b.platArea?`<span class="num">${(+b.platArea).toLocaleString()}㎡ (${pyeong(b.platArea)}평)</span>`:'')}
       ${row('연면적',b.totArea?`<span class="num">${(+b.totArea).toLocaleString()}㎡ (${pyeong(b.totArea)}평)</span>`:'')}
       ${row('건폐율 / 용적률',b.bcRat||b.vlRat?`<span class="num">${b.bcRat??'-'}% / ${b.vlRat??'-'}%</span>`:'')}
-      ${row('주차',b.parking?`<span class="num">${b.parking}대</span>`:'')}${row('승강기',b.elevators!=null?`<span class="num">${b.elevators}대</span>`:'')}
+      ${row('주차',b.parking?`<span class="num">${b.parking}대</span>`:'')}${row('승강기',b.elevators?`<span class="num">${b.elevators}대</span>`:'')}
       ${row('사용승인일',esc(ymd(b.useAprDay)||''))}</dl>${b.count>1?`<p class="note">같은 지번에 건물이 ${b.count}동 있어 가장 큰 건물 기준이에요.</p>`:''}</div>`);
   }
   // 주변 시설
@@ -1835,20 +1875,13 @@ function aucExtraHtml(it){
     out.push(`<div class="dsec"><h2>주변 환경</h2><div class="around">${Object.entries(a).filter(([,v])=>v?.length).map(([k,v])=>`<div class="ar-col"><b>${esc(k)}</b>${v.map(p=>`<span>${esc(p.name)} <span class="note num">${p.dist>=1000?(p.dist/1000).toFixed(1)+'km':p.dist+'m'}</span></span>`).join('')}</div>`).join('')}</div>
       <p class="note" style="margin-top:8px">직선거리 기준 · 자료: 카카오 로컬</p></div>`);
   }
-  // 나머지(분류 못 한 목록)는 관리자만 원본으로
-  const rest=Object.keys(lists).filter(k=>!used.has(k));
-  if(isAdmin()&&(rest.length||x.errors&&Object.keys(x.errors).length)){
-    out.push(`<details class="dsec"><summary style="cursor:pointer;font-weight:700">관리자용: 분류 안 된 온비드 항목 ${rest.length}개 · 오류 ${Object.keys(x.errors||{}).length}개</summary>
-      ${Object.keys(x.errors||{}).length?`<pre class="note" style="white-space:pre-wrap">${esc(JSON.stringify(x.errors,null,1))}</pre>`:''}
-      ${rest.map(k=>`<h3 style="font-size:13px;margin:10px 0 4px">${esc(k)}</h3>${obTable(lists[k])}`).join('')}
-      <pre class="note" style="white-space:pre-wrap;max-height:240px;overflow:auto">${esc(JSON.stringify(x.detail?.scalars||{},null,1))}</pre></details>`);
-  }
-  if(!out.length) return `<div class="dsec"><h2>상세 정보</h2><p class="note">온비드에서 추가로 받은 상세 정보가 없어요. 온비드 원문에서 확인해 주세요.</p></div>`;
-  return out.join('')+`<p class="note" style="margin-top:8px">${x.fetchedAt?fmtTime(x.fetchedAt)+' 기준 · ':''}자료: 한국자산관리공사 온비드, 국토교통부 건축물대장</p>`;
+  if(isAdmin()&&x.errors&&Object.keys(x.errors).length) out.push(`<details class="dsec"><summary style="cursor:pointer;font-weight:700">관리자용: 조회 오류 ${Object.keys(x.errors).length}개</summary><pre class="note" style="white-space:pre-wrap">${esc(JSON.stringify(x.errors,null,1))}</pre></details>`);
+  return out.join('')+`<p class="note" style="margin-top:8px">${x.fetchedAt?fmtTime(x.fetchedAt)+' 기준 · ':''}자료: 한국자산관리공사 온비드, 국토교통부 건축물대장, 카카오</p>`;
 }
 async function loadAucExtra(it){
   if(AUCX[it.id]||!CFG.supabaseUrl) return;
   AUCX[it.id]={loading:true};
+  if(!ROUNDS) fetch('auction-rounds.json?'+Date.now().toString().slice(0,-5)).then(r=>r.ok?r.json():{}).then(j=>{ROUNDS=j.rounds||{};if(route()==='auc-'+it.id&&AUCX[it.id]&&!AUCX[it.id].loading){const e=$('#aucExtra');if(e)e.innerHTML=aucExtraHtml(it)}}).catch(()=>{ROUNDS={}});
   let x;
   try{
     const u=`${CFG.supabaseUrl}/functions/v1/onbid-detail?id=${encodeURIComponent(it.id)}&cond=${encodeURIComponent(it.link?.[3]||'')}${it.la?`&la=${it.la}&lo=${it.lo}`:''}`;
