@@ -4,6 +4,7 @@
 // - 온비드 공매 + 국토부 실거래가 → auctions.json (환경변수 DATA_GO_KR_KEY, 공공데이터포털 인증키)
 // - 정책브리핑 정책뉴스(부동산)  → insight.json  (DATA_GO_KR_KEY, AI 해설은 ANTHROPIC_API_KEY 있을 때만)
 // - 청약홈 분양정보 + LH 분양·임대 공고 → housing.json (DATA_GO_KR_KEY)
+// - 공매 대표 사진 (DATA_GO_KR_KEY, 온비드 물건상세)
 // - 주소 → 지도 좌표 (KAKAO_REST_KEY, 카카오 로컬 API)
 // 키가 없는 쪽은 건너뛰고, 기존 파일은 그대로 둔다. Node 18 이상, 외부 패키지 없음.
 import { readFile, writeFile } from "node:fs/promises";
@@ -11,6 +12,7 @@ import { buildAuctions } from "./auctions.mjs";
 import { buildInsight } from "./insight.mjs";
 import { buildHousing } from "./housing.mjs";
 import { geocodeAll } from "./geocode.mjs";
+import { buildPhotos } from "./photos.mjs";
 
 const ROOT = new URL("../", import.meta.url);
 const nowKST = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 19) + "+09:00";
@@ -191,6 +193,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     ["DATA_GO_KR_KEY", "정책뉴스 인사이트", key => buildInsight(key, { readJson, writeJson, nowKST })],
     ["DATA_GO_KR_KEY", "분양·임대 공고", key => buildHousing(key, { readJson, writeJson, nowKST })],
     ["DATA_GO_KR_KEY", "온비드 공매·실거래 비교", key => buildAuctions(key, { readJson, writeJson, nowKST })],
+    ["DATA_GO_KR_KEY", "공매 대표 사진", key => buildPhotos(key, { readJson, writeJson })],
     ["KAKAO_REST_KEY", "지도 좌표", key => geocodeAll(key, { readJson, writeJson })]
   ];
   for (const [env, name, fn] of tasks) {
