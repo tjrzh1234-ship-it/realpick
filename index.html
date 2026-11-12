@@ -477,6 +477,9 @@ a.acard:hover .athumb img{transform:scale(1.04)}
 .seg input:focus-visible+span{outline:2px solid var(--accent)}
 #nickMsg{display:block;min-height:1.3em}
 .formmsg.ok{color:var(--ok)}
+.joinbar{display:flex;align-items:center;gap:10px;max-width:1180px;margin:12px auto 0;padding:12px 16px;border-radius:12px;background:#eef3ff;border:1px solid #c9d7ff;color:#1f3fbf;text-decoration:none;font-size:14px}
+.joinbar b{flex-shrink:0}.joinbar span{color:#4a5b8c;font-size:13px}.joinbar i{margin-left:auto;font-style:normal;font-weight:800}
+@media(max-width:640px){.joinbar{margin:10px 0 0;flex-wrap:wrap;gap:2px 8px}.joinbar span{flex-basis:100%;order:3}}
 .social{display:grid;gap:8px;margin:4px 0 14px}
 .social button{display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:12px;border:1px solid var(--line);font-weight:700;font-size:15px;cursor:pointer;background:#fff;color:#1f1f1f}
 .social button svg{width:18px;height:18px;flex-shrink:0}
@@ -1183,6 +1186,11 @@ async function startOAuth(provider,btn){
   if(error){btn.disabled=false;const m=$('#authMsg');if(m){m.classList.remove('ok');m.textContent=`${SOCIAL_NAME[provider]} 로그인을 시작하지 못했어요: `+errMsg(error)}}
 }
 // 간편 로그인으로 처음 들어온 회원은 약관 동의·닉네임을 받기 전까지 다른 화면을 막는다
+const JOIN_ROUTES=['join','my','agent','listing-new','write','admin'];
+// 가입을 마치지 않은 간편 로그인 회원이 회원 기능을 누르면 가입 마무리 화면으로
+const goJoin=e=>{e.preventDefault();e.stopImmediatePropagation();toast('가입을 먼저 마무리해 주세요');location.hash='#join'};
+document.addEventListener('click',e=>{if(needsConsent()&&e.target.closest('[data-heart],[data-fav],[data-mfav],[data-plike],[data-crep],[data-ask],[data-open-chat],#fab'))goJoin(e)},true);
+document.addEventListener('submit',e=>{if(needsConsent()&&e.target.id!=='consentForm')goJoin(e)},true);
 const needsConsent=()=>!!(AUTH.session&&AUTH.profile&&!AUTH.profile.agreed_terms_at);
 function viewConsent(){
   const via=AUTH.session.user.app_metadata?.provider; const name=SOCIAL_NAME[via]||(AUTH.session.user.app_metadata?.naver_id?'네이버':'');
@@ -3097,7 +3105,7 @@ function render(){
   let html, nav=r;
   if(r==='listings'){html=viewMap()}
   else if(r.startsWith('h-')){html=viewHouse(r.slice(2));nav='listings'}
-  else if(needsConsent()&&r!=='terms'&&r!=='privacy'){html=viewConsent();nav=''}
+  else if(needsConsent()&&(JOIN_ROUTES.includes(r)||/^(write|edit)-/.test(r))){html=viewConsent();nav=''}
   else if(r==='login'||r==='signup'){html=viewAuth(r);nav=''}
   else if(r==='agent'){html=viewAgent();nav=''}
   else if(r==='listing-new'){html=viewListingForm(null);nav=''}
@@ -3119,7 +3127,8 @@ function render(){
   else if(r==='support'){html=viewSupport();nav='insight'}
   else if(r.startsWith('notice-')){html=viewNotice(r.slice(7));nav='insight'}
   else {html=viewHome();nav='home'}
-  app.innerHTML=`<div class="view${r!==PAINTED?' enter':''}">${html}</div>`; PAINTED=r;
+  const joinbar=needsConsent()&&!html.includes('id="consentForm"')?`<a class="joinbar" href="#join"><b>가입을 마무리해 주세요</b><span>닉네임·약관 동의를 마치면 관심 목록·글쓰기·AI 상담을 쓸 수 있어요</span><i>→</i></a>`:'';
+  app.innerHTML=`${joinbar}<div class="view${r!==PAINTED?' enter':''}">${html}</div>`; PAINTED=r;
   renderBookmarks();
   const run=AFTER; AFTER=[]; run.forEach(fn=>{try{fn()}catch(e){console.error(e)}});
   document.querySelectorAll('[data-nav]').forEach(a=>{a.dataset.nav===nav?a.setAttribute('aria-current','page'):a.removeAttribute('aria-current')});
