@@ -27,7 +27,7 @@ export const RTMS = {
   indu: { url: `${RT}/RTMSDataSvcInduTrade/getRTMSDataSvcInduTrade`, label: "공장창고" }
 };
 const MONTHS = 12;            // 비교에 쓰는 기간
-const MAX_CALLS_PER_API = 900; // 실거래가 API마다 한 번 실행에 쓰는 호출 상한 (API별 하루 1,000회 한도 안쪽)
+const MAX_CALLS_PER_API = Number(process.env.RTMS_MAX_CALLS || 5000); // 실거래가 API마다 한 번 실행에 쓰는 호출 상한 (운영계정 기준. 한도를 넘으면 그 API만 멈추고 다음 날 이어서 받음)
 
 const SIDO_FULL = [
   ["서울", ["서울특별시", "서울시"]], ["부산", ["부산광역시"]], ["대구", ["대구광역시"]], ["인천", ["인천광역시"]],
