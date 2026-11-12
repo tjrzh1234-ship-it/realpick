@@ -1182,6 +1182,7 @@ function errMsg(e){
   if(/Invalid login credentials/i.test(m)) return '이메일 또는 비밀번호가 맞지 않아요.';
   if(/Email not confirmed/i.test(m)) return '메일함에서 가입 인증 링크를 먼저 눌러주세요.';
   if(/already registered/i.test(m)) return '이미 가입된 이메일이에요. 로그인해 주세요.';
+  if(/rate limit|security purposes/i.test(m)) return '요청이 너무 잦아요. 잠시 뒤에 다시 시도해 주세요.';
   if(/Password should be/i.test(m)) return '비밀번호는 8자 이상으로 정해주세요.';
   if(/row-level security|permission denied/i.test(m)) return '권한이 없어요. 중개사 승인 상태를 확인해 주세요.';
   if(/reports_one_per_user/.test(m)) return '이미 신고한 매물이에요.';
@@ -1616,6 +1617,7 @@ function armed(key,btn,label){
 document.addEventListener('click',async e=>{
   const t=e.target;
   if(t.closest('#logoutBtn')){await sb.auth.signOut();toast('로그아웃했어요');location.hash='#home';return}
+  const rs=t.closest('[data-resend]'); if(rs){resendConfirm(rs);return}
   if(t.closest('#resetPw')){const em=$('#auEmail')?.value.trim();const m=$('#authMsg');if(!em){m.textContent='위에 이메일을 먼저 적어주세요.';return}const {error}=await sb.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname});m.textContent=error?errMsg(error):'비밀번호 재설정 메일을 보냈어요.';return}
   const mk=t.closest('[data-mkkind]'); if(mk){LF.kind=mk.dataset.mkkind;render();return}
   if(t.closest('[data-mkloss]')){LF.loss=!LF.loss;render();return}
@@ -1656,7 +1658,7 @@ document.addEventListener('submit',async e=>{
     const email=f.email.value.trim(), password=f.password.value;
     const res=await sb.auth.signInWithPassword({email,password});
     btn.disabled=false;
-    if(res.error){m.textContent=errMsg(res.error);return}
+    if(res.error){m.classList.remove('ok');m.innerHTML=esc(errMsg(res.error))+(/Email not confirmed/i.test(res.error.message||'')?' '+`<button type="button" class="linkbtn" data-resend>인증 메일 다시 보내기</button>`:'');return}
     return;
   }
   if(f.id==='agentForm'){
@@ -2270,7 +2272,20 @@ function viewAuth(mode){
       </div>`:''}
       <p class="formmsg" id="authMsg" role="status"></p>
       <button class="btn primary" type="submit">${signup?'가입하기':'로그인'}</button>
-    </form>${signup?'':`<p class="note"><button type="button" class="linkbtn" id="resetPw">비밀번호를 잊었어요</button> · 계정이 없으면 <a href="#signup" style="color:var(--accent);font-weight:600">회원가입</a></p>`}</div>`;
+    </form>${signup?'':`<p class="note"><button type="button" class="linkbtn" id="resetPw">비밀번호를 잊었어요</button> · <button type="button" class="linkbtn" data-resend>인증 메일 다시 보내기</button> · 계정이 없으면 <a href="#signup" style="color:var(--accent);font-weight:600">회원가입</a></p>`}</div>`;
+}
+let RESEND_AT=0;
+async function resendConfirm(btn){
+  const em=$('#auEmail')?.value.trim(), m=$('#authMsg');
+  if(!em){m.classList.remove('ok');m.textContent='위에 가입한 이메일을 먼저 적어주세요.';$('#auEmail')?.focus();return}
+  const wait=Math.ceil((RESEND_AT+60e3-Date.now())/1e3);
+  if(wait>0){m.textContent=`${wait}초 뒤에 다시 보낼 수 있어요.`;return}
+  btn.disabled=true;
+  const {error}=await sb.auth.resend({type:'signup',email:em,options:{emailRedirectTo:location.origin+location.pathname}});
+  btn.disabled=false;
+  if(error){m.classList.remove('ok');m.textContent=/rate limit|security purposes|after \d+ seconds/i.test(error.message||'')?'메일을 너무 자주 요청했어요. 잠시 뒤에 다시 눌러주세요.':errMsg(error);return}
+  RESEND_AT=Date.now(); m.classList.add('ok');
+  m.textContent=`${em}로 인증 메일을 다시 보냈어요. 스팸함도 확인해 주세요. 이미 인증을 마친 계정이면 메일이 가지 않아요.`;
 }
 async function submitSignup(f){
   const m=$('#authMsg'), btn=f.querySelector('[type=submit]');
@@ -2284,7 +2299,7 @@ async function submitSignup(f){
     data:{nickname:nick,signup_type:f.stype.value,marketing:f.marketing.checked,agree_terms:'true',agree_privacy:'true'}}});
   btn.disabled=false;
   if(res.error){m.textContent=errMsg(res.error);return}
-  if(!res.data.session){m.textContent=`${email}로 인증 메일을 보냈어요. 메일의 링크를 누르면 가입이 끝납니다.`;m.classList.add('ok');}
+  if(!res.data.session){m.innerHTML=`${esc(email)}로 인증 메일을 보냈어요. 메일의 링크를 누르면 가입이 끝납니다.<br><small>메일이 안 보이면 스팸함을 확인하거나 `+`<button type="button" class="linkbtn" data-resend>인증 메일 다시 보내기</button>`+`</small>`;m.classList.add('ok');}
 }
 
 /* ---------- 마이페이지 ---------- */
