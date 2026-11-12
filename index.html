@@ -435,6 +435,7 @@ a.acard:hover .athumb img{transform:scale(1.04)}
 .dealgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}.dealgrid .panel{padding:16px 18px}
 .dealtbl td.up{color:#d9480f;font-weight:700}.dealtbl .mtable{min-width:0;width:100%}.dealtbl .tablewrap{overflow-x:auto}
 .rbar{display:grid;grid-template-columns:120px minmax(0,1fr) 48px;gap:10px;align-items:center;font-size:13.5px;margin:9px 0}.rb{height:10px;border-radius:5px;background:var(--sunk);overflow:hidden}.rb i{display:block;height:100%;background:#ff922b;border-radius:5px}.rbar b{text-align:right}
+.athumb .gcount{position:absolute;right:10px;bottom:10px;z-index:2;background:var(--accent);color:#fff;font-size:11.5px;font-weight:800;padding:2px 9px;border-radius:99px}
 .acheap{color:var(--accent);font-weight:700;background:var(--accent-soft);padding:1px 7px;border-radius:6px}
 .cmp{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;border-radius:8px;padding:6px 9px;font-size:13px}
 .cmp b.num{font-size:14px}
@@ -940,7 +941,8 @@ function viewHome(){
   ${(()=>{ // 메인 공매: 건물 사진이 있는 물건 우선
     const hasPh=i=>i.ph&&i.phk==='p';
     const open=AUC.items.filter(i=>aucDday(i)[1]!=='closed');
-    const pick=(list,n=4)=>[...list.filter(hasPh),...list.filter(i=>!hasPh(i))].slice(0,n);
+    // 같은 건물 호실이 여러 장 나오지 않게 건물당 1개만
+    const pick=(list,n=4)=>{const seen=new Set();return [...list.filter(hasPh),...list.filter(i=>!hasPh(i))].filter(i=>{const b=aucBldg(i.title);if(seen.has(b))return false;seen.add(b);return true}).slice(0,n)};
     // 기준을 먼저 통과한 물건(시세보다 30% 이상 싸게 시작)만 후보로 두고, 그 안에서 사진 있는 것을 먼저 보여준다
     const cheapL=open.filter(i=>i.compare&&!i.compare.skip&&i.compare.count>=5&&i.compare.minVsEst<=-30&&i.compare.minVsEst>-60).sort((a,b)=>a.compare.minVsEst-b.compare.minVsEst);
     // 마감 임박: 7일 안에 입찰이 끝나는 물건만 후보
@@ -1710,7 +1712,7 @@ function onbidUrl(it){
 const wonKRW=n=>n==null?'-':won(Math.round(n/10000));
 const AUC_CATS=[['전체',null],['아파트',['apt']],['오피스텔',['offi']],['빌라',['rh']],['단독·다가구',['sh']],['토지',['land']],['상가·업무',['nrg']],['공장·창고',['indu']]];
 const AF_DEFAULT=()=>({mode:'all',trust:'전체',sido:'전체',sgg:'전체',cat:'전체',sort:'end',cheap:false,q:'',shown:24,view:'card',
-  no:'',org:'',prpt:[],usage:'',status:'',apMin:'',apMax:'',mpMin:'',mpMax:'',rMin:'',rMax:'',laMin:'',laMax:'',baMin:'',baMax:'',unit:'m2',dFrom:'',dTo:'',fails:'',share:'all',adv:false});
+  no:'',org:'',prpt:[],usage:'',status:'',apMin:'',apMax:'',mpMin:'',mpMax:'',rMin:'',rMax:'',laMin:'',laMax:'',baMin:'',baMax:'',unit:'m2',dFrom:'',dTo:'',fails:'',share:'all',adv:false,grp:'',grpName:''});
 let AF=AF_DEFAULT();
 try{const v=localStorage.getItem('rp-aucview');if(v==='list'||v==='card')AF.view=v}catch(e){}
 /* 신탁회사 이름 정리: '주식회사 무궁화신탁' → '무궁화신탁', '케이비부동산신탁주식회사' → 'KB부동산신탁' */
@@ -1764,6 +1766,7 @@ const AUC_SORTS=[['end','입찰 마감 임박순'],['disc','주변 시세 대비
 function filteredAuc(){
   const cats=AUC_CATS.find(c=>c[0]===AF.cat)?.[1];
   let rows=aucBase().filter(it=>!cats||cats.includes(it.cat));
+  if(AF.grp) rows=rows.filter(it=>aucGKey(it)===AF.grp);
   const v=x=>x??Infinity, s=AF.sort;
   if(s==='disc') rows.sort((a,b)=>v(a.compare?.minVsEst)-v(b.compare?.minVsEst));
   else if(s==='ratio') rows.sort((a,b)=>v(a.ratio)-v(b.ratio));
@@ -1829,10 +1832,10 @@ function viewAuctions(){
       </form>
       <p class="note" style="margin:10px 0 0">역세권, 유치권·맹지·법정지상권 같은 특수조건은 온비드 공개 API에 없는 정보라 검색할 수 없어요. 감정평가서와 공매재산명세서에서 확인하세요.</p>
     </details>
-    <div class="reshead"><b>검색된 물건 <span class="num" style="color:var(--accent)">${rows.length.toLocaleString()}</span>건</b><div class="viewtog" role="group" aria-label="보기 방식"><button type="button" data-aucview="card" aria-pressed="${AF.view==='card'}">카드형</button><button type="button" data-aucview="list" aria-pressed="${AF.view==='list'}">목록형</button></div></div>
+    <div class="reshead"><b>검색된 물건 <span class="num" style="color:var(--accent)">${rows.length.toLocaleString()}</span>건${AF.view==='card'&&!AF.q&&!AF.grp?'<span class="note" style="font-weight:400;margin-left:8px">같은 건물 호실은 묶어서 보여줘요</span>':''}${AF.grp?`<span class="note" style="font-weight:400;margin-left:8px">${esc(AF.grpName||'')}</span><button type="button" class="btn sm" data-aucclearg style="margin-left:8px">← 묶음 보기로</button>`:''}</b><div class="viewtog" role="group" aria-label="보기 방식"><button type="button" data-aucview="card" aria-pressed="${AF.view==='card'}">카드형</button><button type="button" data-aucview="list" aria-pressed="${AF.view==='list'}">목록형</button></div></div>
     ${!AUC.loaded?'<div class="empty">공매 물건을 불러오는 중입니다.</div>':!AUC.items.length?'<div class="empty">아직 수집된 공매 물건이 없어요. 공공데이터포털 인증키를 등록하면 매일 자동으로 채워집니다.</div>':!rows.length?'<div class="empty">조건에 맞는 물건이 없어요. 상세 검색 조건을 줄여 보세요.</div>':
-      AF.view==='list'?`<div class="panel" style="padding:6px 12px"><div class="tablewrap"><table class="mtable auctable"><thead><tr><th>물건</th><th class="r">감정가 / 최저가</th><th class="r">시세 대비</th><th>상태</th><th>입찰 시작 / 마감</th><th class="r">유찰</th></tr></thead><tbody>${rows.slice(0,AF.shown).map(aucRow).join('')}</tbody></table></div></div>`:`<div class="rail">${rows.slice(0,AF.shown).map(aucCard).join('')}</div>`}
-    ${rows.length>AF.shown?`<div style="text-align:center;margin-top:16px"><button class="btn" type="button" data-aucmore>더 보기 (${(rows.length-AF.shown).toLocaleString()}건 남음)</button></div>`:''}
+      AF.view==='list'?`<div class="panel" style="padding:6px 12px"><div class="tablewrap"><table class="mtable auctable"><thead><tr><th>물건</th><th class="r">감정가 / 최저가</th><th class="r">시세 대비</th><th>상태</th><th>입찰 시작 / 마감</th><th class="r">유찰</th></tr></thead><tbody>${rows.slice(0,AF.shown).map(aucRow).join('')}</tbody></table></div></div>`:(()=>{const gs=AF.q||AF.grp?rows.map(r=>[r]):groupAuc(rows);return `<div class="rail">${gs.slice(0,AF.shown).map(aucGroupCard).join('')}</div>`+(gs.length>AF.shown?`<div style="text-align:center;margin-top:16px"><button class="btn" type="button" data-aucmore>더 보기 (${(gs.length-AF.shown).toLocaleString()}개 남음)</button></div>`:'')})()}
+    ${AF.view==='list'&&rows.length>AF.shown?`<div style="text-align:center;margin-top:16px"><button class="btn" type="button" data-aucmore>더 보기 (${(rows.length-AF.shown).toLocaleString()}건 남음)</button></div>`:''}
     <p class="note">${esc(AUC.note||'')} 입찰 전에는 온비드 원문, 감정평가서, 등기부등본을 꼭 확인하세요.</p>
     <div class="panel" style="margin-top:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap"><div style="flex:1;min-width:220px"><b>법원경매 물건</b><div class="note">대법원 법원경매는 아직 공식 오픈 API가 없어 자동 수집하지 않아요. 법원경매정보 사이트에서 직접 확인하세요.</div></div><a class="btn" href="https://www.courtauction.go.kr" target="_blank" rel="noopener">법원경매정보 바로가기</a></div>
   </section>`;
@@ -1857,6 +1860,39 @@ function aucIcon(it){
   const u=(it.usage||'')+(it.cat||'');
   const k=/토지|대지|전|답|임야|land/.test(u)&&!/주택|건물/.test(u)?'land':/공장|창고/.test(u)?'fac':/상가|근린|업무|숙박|biz/.test(u)?'biz':'apt';
   return `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${AUC_ICON[k]}</svg>`;
+}
+/* 같은 건물·같은 입찰일의 호실별 물건은 카드 하나로 묶는다 */
+function aucBldg(t){
+  return String(t||'').replace(/\s+(제?\s?[A-Za-z]?\d+(-\d+)?\s?(층|호))(\s*[,및]\s*(제?\s?[A-Za-z]?\d+(-\d+)?\s?(층|호)))*/g,' ')
+    .replace(/\s+외\s*\d+\s*(세대|개호|호실|필지)?/g,' ')
+    .replace(/\s+(근린생활시설|아파트|오피스텔|다세대주택|업무시설|도시형생활주택|숙박시설|공장|창고|상가)(\s*등)?\s*$/,'')
+    .replace(/\s{2,}/g,' ').replace(/[\s,]+$/,'').trim();
+}
+// 묶는 기준: 지번(또는 도로명 번호)까지의 주소 + 입찰 마감일 + 집행기관
+function aucGKey(it){
+  const t=String(it.title||'');
+  const m=t.match(/^(.+?(?:동|리|가|로|길)\d*\s*(?:산\s*)?\d+(?:-\d+)?)(?=[\s,]|$)/);
+  return (m?m[1]:aucBldg(t))+'|'+(it.bidEnd||'').slice(0,10)+'|'+(it.org||'');
+}
+function groupAuc(rows){
+  const m=new Map(), out=[];
+  for(const it of rows){
+    if(aucBldg(it.title)===String(it.title||'').trim()){out.push([it]);continue}   // 호실 정보가 없으면 묶지 않음
+    const k=aucGKey(it);
+    if(m.has(k)) m.get(k).push(it); else {const g=[it];m.set(k,g);out.push(g)}
+  }
+  return out;
+}
+function aucGroupCard(g){
+  if(g.length<2) return aucCard(g[0]);
+  const it=g.find(i=>i.ph&&i.phk==='p')||g[0];
+  const base=g.map(i=>aucBldg(i.title)).sort((a,b)=>b.length-a.length)[0];
+  const ps=g.map(i=>i.minp).filter(v=>v>0), lo=Math.min(...ps), hi=Math.max(...ps);
+  const html=aucCard(it);
+  return html.replace(/^<a class="lcard acard" href="[^"]*"/,`<a class="lcard acard agroup" href="#auctions" data-aucgroup="${esc(aucGKey(it))}" data-aucgname="${esc(base)}"`)
+    .replace(/<div class="ttl">[\s\S]*?<\/div>/,`<div class="ttl">${esc(base)}</div>`)
+    .replace(/<div class="price">[\s\S]*?<\/div>/,`<div class="price"><b class="num">${lo===hi?wonKRW(lo):wonKRW(lo)+' ~ '+wonKRW(hi)}</b></div>`)
+    .replace(/(<div class="athumb[^"]*">)/,`$1<span class="gcount">${g.length}개 호실</span>`);
 }
 function aucCard(it){
   const [dl,dc]=aucDday(it), c=it.compare;
@@ -2168,7 +2204,7 @@ document.addEventListener('change',e=>{
   else if(e.target.id==='aucSort'){AF.sort=e.target.value;render()}
 });
 document.addEventListener('submit',e=>{
-  if(e.target.id==='aucForm'){e.preventDefault();AF.q=$('#aucQ').value;AF.shown=24;render()}
+  if(e.target.id==='aucForm'){e.preventDefault();AF.q=$('#aucQ').value;AF.grp='';AF.shown=24;render()}
   else if(e.target.id==='aucAdv'){e.preventDefault();readAdv();AF.adv=true;AF.shown=24;render();$('.reshead')?.scrollIntoView({block:'start'})}
 });
 
@@ -3008,6 +3044,8 @@ document.addEventListener('click',async e=>{
   const ask=t.closest('[data-ask]'); if(ask){openChat(ask.dataset.ask);return}
   if(t.closest('[data-open-chat]')){e.preventDefault();openChat();return}
   const hg=t.closest('[data-hhg]'); if(hg){HHG=hg.dataset.hhg;const el=$('#homeHouse');if(el)el.outerHTML=homeHousing();return}
+  const ag=t.closest('[data-aucgroup]'); if(ag){e.preventDefault();AF.grp=ag.dataset.aucgroup;AF.grpName=ag.dataset.aucgname;AF.shown=24;if(route()!=='auctions')location.hash='#auctions';else{render();$('.reshead')?.scrollIntoView({block:'start'});scrollBy(0,-80)}return}
+  if(t.closest('[data-aucclearg]')){AF.grp='';AF.shown=24;render();return}
   if(t.closest('#homeHouse .more')){MF.src='house'}
   const gh=t.closest('[data-gohouse]'); if(gh){MF.src='house';MF.hgroup=gh.dataset.gohouse||''}
   if(t.closest('[data-goloss]')){LF.loss=true;MF.src='agent';MF.loss=true}
