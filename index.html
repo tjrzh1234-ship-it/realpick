@@ -477,6 +477,14 @@ a.acard:hover .athumb img{transform:scale(1.04)}
 .seg input:focus-visible+span{outline:2px solid var(--accent)}
 #nickMsg{display:block;min-height:1.3em}
 .formmsg.ok{color:var(--ok)}
+.social{display:grid;gap:8px;margin:4px 0 14px}
+.social button{display:flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:12px;border:1px solid var(--line);font-weight:700;font-size:15px;cursor:pointer;background:#fff;color:#1f1f1f}
+.social button svg{width:18px;height:18px;flex-shrink:0}
+.social .kakao{background:#FEE500;border-color:#FEE500;color:rgba(0,0,0,.85)}
+.social .naver{background:#03C75A;border-color:#03C75A;color:#fff}
+.social button:disabled{opacity:.6;cursor:wait}
+.orline{display:flex;align-items:center;gap:10px;color:var(--faint);font-size:12.5px;margin:2px 0 12px}
+.orline:before,.orline:after{content:"";flex:1;height:1px;background:var(--line)}
 .consent{display:grid;gap:8px;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--bg)}
 .consent .all{padding-bottom:8px;border-bottom:1px solid var(--line)}
 .consent .see{margin-left:auto;font-size:12.5px;color:var(--muted);text-decoration:underline}
@@ -1157,6 +1165,47 @@ const PW_RECOVERY=/type=recovery/.test(location.hash+location.search);
 const sb = (CFG.supabaseUrl && CFG.supabaseAnonKey && window.supabase?.createClient)
   ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey) : null;
 const AUTH = {session:null, agent:null, ready:!sb};
+// 간편 로그인: config.js 의 social 로 켜고 끌 수 있다 (기본: 카카오·네이버·구글)
+const SOCIAL=Array.isArray(CFG.social)?CFG.social:['kakao','naver','google'];
+const SOCIAL_NAME={kakao:'카카오',naver:'네이버',google:'구글'};
+const SOCIAL_ICON={kakao:'<svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 3C6.5 3 2 6.5 2 10.8c0 2.8 1.9 5.2 4.7 6.6l-1 3.6c-.1.3.3.6.6.4l4.3-2.8c.5.1.9.1 1.4.1 5.5 0 10-3.5 10-7.9S17.5 3 12 3z"/></svg>',
+  naver:'<svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.6 12.8 8.1 2H2v20h6.4V11.2L15.9 22H22V2h-6.4z"/></svg>',
+  google:'<svg viewBox="0 0 24 24"><path fill="#4285F4" d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5a5.6 5.6 0 0 1-2.4 3.6v3h3.9c2.2-2.1 3.5-5.2 3.5-8.8z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3.1A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.3 14.3a7.2 7.2 0 0 1 0-4.6V6.6h-4a12 12 0 0 0 0 10.8z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4A12 12 0 0 0 1.3 6.6l4 3.1c.9-2.8 3.6-4.9 6.7-4.9z"/></svg>'};
+const socialButtons=signup=>SOCIAL.length?`<div class="social">${SOCIAL.map(k=>`<button type="button" class="${k}" data-oauth="${k}">${SOCIAL_ICON[k]||''}${SOCIAL_NAME[k]}로 ${signup?'시작하기':'로그인'}</button>`).join('')}</div><div class="orline">또는 이메일로 ${signup?'가입':'로그인'}</div>`:'';
+// 네이버 로그인 서버 함수가 돌려보낸 결과 (?naver=...)
+const NAVER_RESULT=new URLSearchParams(location.search).get('naver');
+if(NAVER_RESULT){history.replaceState(null,'',location.pathname+location.hash)}
+async function startOAuth(provider,btn){
+  const back=location.origin+location.pathname;
+  if(provider==='naver'){location.href=`${CFG.supabaseUrl}/functions/v1/naver-auth?redirect=${encodeURIComponent(back)}`;return}
+  btn.disabled=true;
+  const {error}=await sb.auth.signInWithOAuth({provider,options:{redirectTo:back}});
+  if(error){btn.disabled=false;const m=$('#authMsg');if(m){m.classList.remove('ok');m.textContent=`${SOCIAL_NAME[provider]} 로그인을 시작하지 못했어요: `+errMsg(error)}}
+}
+// 간편 로그인으로 처음 들어온 회원은 약관 동의·닉네임을 받기 전까지 다른 화면을 막는다
+const needsConsent=()=>!!(AUTH.session&&AUTH.profile&&!AUTH.profile.agreed_terms_at);
+function viewConsent(){
+  const via=AUTH.session.user.app_metadata?.provider; const name=SOCIAL_NAME[via]||(AUTH.session.user.app_metadata?.naver_id?'네이버':'');
+  return `<div class="formcard">
+    <h1>가입을 마무리해 주세요</h1>
+    <p class="note">${name?`${name} 계정`:'계정'}(${esc(AUTH.session.user.email||'')})으로 처음 오셨어요. 닉네임과 약관 동의만 받으면 바로 시작할 수 있어요.</p>
+    <form id="consentForm" data-keep class="fgrid" style="grid-template-columns:1fr">
+      <div class="fld"><span>회원 유형</span><div class="seg">
+        <label><input type="radio" name="stype" value="general" checked><span><b>일반 회원</b><small>매물·공매 찾기, 관심 목록</small></span></label>
+        <label><input type="radio" name="stype" value="agent"><span><b>중개사 회원</b><small>가입 후 사무소 등록 → 매물 등록</small></span></label></div></div>
+      <label class="fld"><span>닉네임 (2~20자, 커뮤니티에 보여요)</span><input id="auNick" name="nickname" required minlength="2" maxlength="20" autocomplete="nickname"><small id="nickMsg" class="note"></small></label>
+      <div class="consent">
+        <label class="chk all"><input type="checkbox" id="agreeAll"> <b>전체 동의</b></label>
+        <label class="chk"><input type="checkbox" name="age" required data-agree> [필수] 만 14세 이상입니다</label>
+        <label class="chk"><input type="checkbox" name="terms" required data-agree> [필수] 이용약관 동의 <a href="#terms" target="_blank" class="see">보기</a></label>
+        <label class="chk"><input type="checkbox" name="privacy" required data-agree> [필수] 개인정보 수집·이용 동의 <a href="#privacy" target="_blank" class="see">보기</a></label>
+        <label class="chk"><input type="checkbox" name="marketing" data-agree> [선택] 새 공매·급매 소식 등 마케팅 정보 수신</label>
+      </div>
+      <p class="formmsg" id="authMsg" role="status"></p>
+      <button class="btn primary" type="submit">가입 완료</button>
+    </form>
+    <p class="note"><button type="button" class="linkbtn" id="consentCancel" style="color:var(--muted)">가입하지 않을래요</button> (방금 만들어진 계정을 지우고 나갑니다)</p></div>`;
+}
 const MARKET = {loaded:!sb, items:[], error:null};
 const KINDS=['아파트','오피스텔','상가','사무실','꼬마빌딩','다가구','단독주택','토지','공장·창고','기타'];
 const SIDOS=REGIONS.filter(r=>r!=='전국');
@@ -1210,6 +1259,8 @@ async function initAuth(){
   if(!sb){renderHeader();return}
   const {data:{session}}=await sb.auth.getSession();
   AUTH.session=session; await loadMe(); AUTH.ready=true; renderHeader(); render();
+  if(NAVER_RESULT==='exists'){location.hash='#login';setTimeout(()=>{const m=$('#authMsg');if(m)m.textContent='이 이메일은 이미 다른 방법(이메일·카카오·구글)으로 가입되어 있어요. 원래 쓰던 방법으로 로그인해 주세요.'},300)}
+  else if(NAVER_RESULT&&NAVER_RESULT!=='ok'){location.hash='#login';setTimeout(()=>{const m=$('#authMsg');if(m)m.textContent=NAVER_RESULT==='noemail'?'네이버에서 이메일 제공에 동의해야 가입할 수 있어요.':NAVER_RESULT==='cancel'?'네이버 로그인을 취소했어요.':'네이버 로그인에 실패했어요. 잠시 뒤 다시 시도해 주세요.'},300)}
   if(PW_RECOVERY&&session){ location.hash='#my'; setTimeout(()=>{const f=$('#pwForm');if(f){f.scrollIntoView({block:'center'});f.pw.focus()}toast('새 비밀번호를 정해 주세요')},400) }
   sb.auth.onAuthStateChange((ev,s)=>{
     setTimeout(async()=>{
@@ -1618,6 +1669,8 @@ document.addEventListener('click',async e=>{
   const t=e.target;
   if(t.closest('#logoutBtn')){await sb.auth.signOut();toast('로그아웃했어요');location.hash='#home';return}
   const rs=t.closest('[data-resend]'); if(rs){resendConfirm(rs);return}
+  const oa=t.closest('[data-oauth]'); if(oa){startOAuth(oa.dataset.oauth,oa);return}
+  const cc=t.closest('#consentCancel'); if(cc){if(!armed('consentCancel',cc,'한 번 더 누르면 계정을 지워요'))return;cc.disabled=true;await sb.rpc('delete_my_account');await sb.auth.signOut();toast('가입을 취소했어요');location.hash='#home';return}
   if(t.closest('#resetPw')){const em=$('#auEmail')?.value.trim();const m=$('#authMsg');if(!em){m.textContent='위에 이메일을 먼저 적어주세요.';return}const {error}=await sb.auth.resetPasswordForEmail(em,{redirectTo:location.origin+location.pathname});m.textContent=error?errMsg(error):'비밀번호 재설정 메일을 보냈어요.';return}
   const mk=t.closest('[data-mkkind]'); if(mk){LF.kind=mk.dataset.mkkind;render();return}
   if(t.closest('[data-mkloss]')){LF.loss=!LF.loss;render();return}
@@ -1660,6 +1713,14 @@ document.addEventListener('submit',async e=>{
     btn.disabled=false;
     if(res.error){m.classList.remove('ok');m.innerHTML=esc(errMsg(res.error))+(/Email not confirmed/i.test(res.error.message||'')?' '+`<button type="button" class="linkbtn" data-resend>인증 메일 다시 보내기</button>`:'');return}
     return;
+  }
+  if(f.id==='consentForm'){
+    const m=$('#authMsg'), btn=f.querySelector('[type=submit]'); btn.disabled=true; m.textContent='처리 중…';
+    const {error}=await sb.rpc('agree_social_signup',{p_nick:f.nickname.value,p_agent:f.stype.value==='agent',p_marketing:f.marketing.checked});
+    btn.disabled=false;
+    if(error){m.classList.remove('ok');const em=error.message||'';m.textContent=/nickname_taken/.test(em)?'이미 쓰는 닉네임이에요. 다른 닉네임을 정해주세요.':/nickname_length/.test(em)?'닉네임은 띄어쓰기 없이 2~20자로 정해주세요.':errMsg(error);return}
+    await loadMe(); renderHeader(); toast('가입을 마쳤어요. 환영해요!');
+    location.hash=f.stype.value==='agent'&&!AUTH.agent?'#agent':'#my'; render(); return;
   }
   if(f.id==='agentForm'){
     const m=$('#agentMsg'), btn=f.querySelector('[type=submit]'); btn.disabled=true; m.textContent='제출하는 중…';
@@ -2254,6 +2315,7 @@ function viewAuth(mode){
   return `<div class="formcard">
     <div class="tabs"><a class="btn ${signup?'':'primary'}" href="#login">로그인</a><a class="btn ${signup?'primary':''}" href="#signup">회원가입</a></div>
     <h1>${signup?'리얼픽 회원가입':'로그인'}</h1>
+    ${socialButtons(signup)}
     ${signup?`<p class="note">관심 물건 저장과 마이페이지를 쓸 수 있어요. 중개사는 가입 후 중개사무소를 등록하면 매물을 올릴 수 있어요.</p>`:''}
     <form id="${signup?'signupForm':'loginForm'}" data-keep class="fgrid" style="grid-template-columns:1fr">
       ${signup?`<div class="fld"><span>회원 유형</span><div class="seg">
@@ -2366,6 +2428,7 @@ function viewPrivacy(){return legalPage('개인정보처리방침',`
   <h2>1. 수집하는 개인정보와 목적</h2>
   <div class="tablewrap"><table class="mtable" style="min-width:560px"><thead><tr><th>구분</th><th>항목</th><th>목적</th></tr></thead><tbody>
     <tr><td>회원가입 (필수)</td><td>이메일, 비밀번호(암호화 저장), 닉네임, 약관 동의 일시</td><td>회원 식별, 로그인, 공지 전달</td></tr>
+    <tr><td>간편 로그인 (선택)</td><td>카카오·네이버·구글 계정의 이메일, 서비스별 회원 식별값</td><td>회원 식별, 로그인</td></tr>
     <tr><td>서비스 이용 (선택)</td><td>관심 지역, 관심 목록</td><td>맞춤 정보 제공</td></tr>
     <tr><td>커뮤니티 이용</td><td>작성한 글·댓글·사진, 추천·신고 기록</td><td>게시판 운영, 부정 게시물 관리</td></tr>
     <tr><td>AI 상담 이용</td><td>질문 내용 (리얼픽 서버에는 저장하지 않음), 일일 이용 횟수</td><td>AI 답변 생성, 이용 한도 관리</td></tr>
@@ -3034,6 +3097,7 @@ function render(){
   let html, nav=r;
   if(r==='listings'){html=viewMap()}
   else if(r.startsWith('h-')){html=viewHouse(r.slice(2));nav='listings'}
+  else if(needsConsent()&&r!=='terms'&&r!=='privacy'){html=viewConsent();nav=''}
   else if(r==='login'||r==='signup'){html=viewAuth(r);nav=''}
   else if(r==='agent'){html=viewAgent();nav=''}
   else if(r==='listing-new'){html=viewListingForm(null);nav=''}
