@@ -1,10 +1,10 @@
 // 공매 목록 카드에 쓸 대표 사진 1장 (온비드 부동산 물건상세 API: OnbidRlstDtlSrvc2/getRlstDtlInf2)
 // - 사진 목록 중 지도(지적도·위치도)는 건너뛰고 첫 건물 사진을 고른다 (photo-kind.mjs)
 // - 물건마다 한 번만 묻고 photo-cache.json (GitHub 캐시)에 저장한다. 사진 없는 물건은 14일 뒤 다시 확인.
-// - 공공데이터포털 하루 호출 한도를 지키려고 한 번 실행에 새로 묻는 수를 PHOTO_LIMIT(기본 300)으로 제한.
+// - 공공데이터포털 하루 호출 한도를 지키려고 한 번 실행에 새로 묻는 수를 PHOTO_LIMIT(기본 1500, 운영계정 기준)으로 제한.
 //   마감이 가까운 물건부터 채우고, 남은 물건은 다음 날 이어서 채운다.
 const API = "https://apis.data.go.kr/B010003/OnbidRlstDtlSrvc2/getRlstDtlInf2";
-const LIMIT = Number(process.env.PHOTO_LIMIT || 300), CONCURRENCY = 4, RECHECK_DAYS = 14;
+const LIMIT = Number(process.env.PHOTO_LIMIT || 1500), CONCURRENCY = 4, RECHECK_DAYS = 14;
 
 import { photoKind } from "./photo-kind.mjs";
 
