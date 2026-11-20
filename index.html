@@ -485,6 +485,23 @@ a.acard:hover .athumb img{transform:scale(1.04)}
 @media(max-width:640px){.joinbar{margin:10px 0 0;flex-wrap:wrap;gap:2px 8px}.joinbar span{flex-basis:100%;order:3}}
 
 /* 리얼픽 분석 리포트 */
+.mk-filter{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}.mk-filter .tabs{margin:0}
+.mk-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.mk-kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:grid;gap:2px;border-top:3px solid var(--accent)}
+.mk-kpi span{font-size:13px;color:var(--muted);font-weight:700}.mk-kpi b{font-size:26px;font-weight:900;letter-spacing:-.02em}.mk-kpi small{font-size:12px;color:var(--faint)}
+.mk-brief{background:var(--accent-soft);border-radius:var(--r);padding:14px 18px;margin-bottom:14px}.mk-brief b{font-size:14px}.mk-brief ul{margin:6px 0 0;padding-left:18px;display:grid;gap:4px;font-size:14px}
+.mk-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.mk-card.wide{grid-column:1/-1}.mk-card h3{margin:0 0 4px;font-size:16px;font-weight:800;display:flex;gap:8px;align-items:center}.mk-card>.note{margin:0 0 10px}
+.mk-scroll{overflow-x:auto}.mk-svg{width:100%;height:auto;display:block}.mk-grid line.mk-grid,.mk-svg .mk-grid{stroke:var(--line);stroke-dasharray:3 4}
+.mk-svg .mk-bar{fill:var(--accent);opacity:.55}.mk-svg .mk-hl{fill:var(--accent)}
+.mk-svg text{font-size:12px;text-anchor:middle;fill:var(--muted)}.mk-svg .mk-val{font-weight:800;fill:var(--fg)}.mk-svg .mk-lbl{font-weight:700}.mk-svg .mk-sub{font-size:11px;fill:var(--faint)}
+.mk-tbl{display:grid;font-size:13.5px}.mk-tr{display:grid;grid-template-columns:1.1fr 2fr 1fr .8fr 1.1fr;gap:10px;align-items:center;padding:8px 2px;border-top:1px solid var(--line)}
+.mk-th{font-size:12px;color:var(--faint);font-weight:700;border-top:0}.mk-tr>span:not(:first-child):not(.mk-nbar){text-align:right}.mk-tr a{font-weight:700;color:var(--accent)}
+.mk-nbar{display:flex;align-items:center;gap:8px}.mk-nbar i{height:8px;border-radius:4px;background:var(--accent);opacity:.7;min-width:2px}.mk-nbar b{font-size:12.5px}
+.mk-tr em{font-style:normal;font-size:11px}
+.mk-picks{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.mk-pick{border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:4px;background:var(--surface)}.mk-pick:hover{border-color:var(--accent)}
+.mk-pick b{font-size:14px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.mk-off{font-style:normal;color:var(--hot);font-weight:800;margin-left:4px}
+.mk-soon{background:var(--sunk);border-style:dashed}
+@media (max-width:760px){.mk-kpis{grid-template-columns:1fr 1fr}.mk-grid{grid-template-columns:1fr}.mk-picks{grid-template-columns:1fr}.mk-tr{grid-template-columns:1fr 1.4fr .9fr;font-size:12.5px}.mk-tr>span:nth-child(4),.mk-tr>span:nth-child(5){display:none}.mk-kpi b{font-size:21px}}
 .rpt{margin:18px 0;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
 .rpt-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 18px;background:linear-gradient(120deg,#0F1B3D,#22356e);color:#fff}
 .rpt-head b{font-size:18px;font-weight:900;display:block}.rpt-head .note{color:#c9d3ef;font-size:12.5px}
@@ -1951,7 +1968,7 @@ function viewAuctions(){
   const advCount=['no','org','usage','status','apMin','apMax','mpMin','mpMax','rMin','rMax','laMin','laMax','baMin','baMax','dFrom','dTo','fails'].filter(k=>AF[k]!=='').length+(AF.prpt.length?1:0)+(AF.share!=='all'?1:0);
   const u=AF.unit==='py'?'평':'㎡';
   return `<section class="block">${secHead('온비드 공매 · 매일 자동 갱신','경매·공매 물건')}
-    <nav class="subnav" aria-label="공매 구분">${[['all','공매 전체',AUC.items.filter(i=>aucDday(i)[1]!=='closed').length],['trust','신탁공매',trusts.reduce((s,[,n])=>s+n,0)],['kdic','예보공매',kdicN]].map(([k,t,n])=>`<a href="#auctions" data-aucmode="${k}" ${AF.mode===k?'aria-current="page"':''}>${t} <span class="num" style="opacity:.55;font-weight:600">${n.toLocaleString()}</span></a>`).join('')}<a href="#calc" style="margin-left:auto">🧮 수익률 계산기</a></nav>
+    <nav class="subnav" aria-label="공매 구분">${[['all','공매 전체',AUC.items.filter(i=>aucDday(i)[1]!=='closed').length],['trust','신탁공매',trusts.reduce((s,[,n])=>s+n,0)],['kdic','예보공매',kdicN]].map(([k,t,n])=>`<a href="#auctions" data-aucmode="${k}" ${AF.mode===k?'aria-current="page"':''}>${t} <span class="num" style="opacity:.55;font-weight:600">${n.toLocaleString()}</span></a>`).join('')}<a href="#market" style="margin-left:auto">📊 시장 리포트</a><a href="#calc">🧮 수익률 계산기</a></nav>
     ${AF.mode==='trust'?`<div class="trustbar"><span class="note" style="font-weight:700">신탁회사</span>${[['전체',trusts.reduce((s,[,n])=>s+n,0)],...trusts].map(([t,n])=>`<button type="button" class="tchip" aria-pressed="${AF.trust===t}" data-auctrust="${esc(t)}">${esc(t)} <span class="num">${n}</span></button>`).join('')}</div>`:''}
     ${AF.mode==='kdic'&&!kdicN?'<div class="empty" style="margin-bottom:14px">지금 온비드에 올라온 예금보험공사 공매 물건이 없어요. 새로 올라오면 자동으로 여기에 모입니다.</div>':''}
     <div class="feed"><span class="dot"></span><span>한국자산관리공사 온비드 공매</span><span>·</span><span>${AUC.updatedAt?'마지막 동기화 '+fmtTime(AUC.updatedAt):'동기화 대기 중'}</span></div>
@@ -2463,6 +2480,81 @@ function calcPrefill(it,a){
 
 /* ---- 수익률 계산기 화면 ---- */
 const cin=(k,label,unit='만원',extra='')=>`<label class="cf"><span>${label}</span><div class="cin"><input name="${k}" value="${esc(String(CALC[k]??''))}" inputmode="decimal" autocomplete="off" ${extra}><i>${unit}</i></div>${unit==='만원'?`<small data-h="${k}"></small>`:''}</label>`;
+/* ================= 공매 시장 리포트 (현재 진행 물건 기준) ================= */
+let MK={sido:'전체',cat:'전체'};
+const MK_FB=[['유찰 없음',0,0],['1회',1,1],['2회',2,2],['3회',3,3],['4회',4,4],['5회',5,5],['6~9회',6,9],['10회+',10,999]];
+const MK_PB=[['1억 미만',0,1e8],['1~3억',1e8,3e8],['3~5억',3e8,5e8],['5~10억',5e8,1e9],['10~30억',1e9,3e9],['30억 이상',3e9,Infinity]];
+const mkAvg=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:null;
+function mkStat(rows){
+  const r=rows.map(i=>i.ratio).filter(v=>v>0&&v<=150), f=rows.map(i=>i.fails||0);
+  const cmp=rows.filter(i=>i.compare&&i.compare.minVsEst!=null);
+  return {n:rows.length,ratio:mkAvg(r),fails:mkAvg(f),cmpN:cmp.length,cheap:cmp.length?cmp.filter(i=>i.compare.minVsEst<0).length/cmp.length*100:null};
+}
+function mkRows(){
+  const cats=AUC_CATS.find(c=>c[0]===MK.cat)?.[1];
+  return AUC.items.filter(i=>aucDday(i)[1]!=='closed'&&(MK.sido==='전체'||i.sido===MK.sido)&&(!cats||cats.includes(i.cat)));
+}
+const mkPct=v=>v==null?'-':v.toFixed(1)+'%';
+function mkBars(data,{unit='%',max,hl,fmt,W=560}={}){
+  const H=210,pb=44,pt=26,bw=(W-20)/data.length, mx=max||Math.max(...data.map(d=>d.v||0),1);
+  return `<div class="mk-scroll"><svg class="mk-svg" viewBox="0 0 ${W} ${H}" role="img" style="min-width:${W>800?640:0}px">${[0,.5,1].map(t=>`<line x1="10" x2="${W-10}" y1="${pt+(H-pb-pt)*(1-t)}" y2="${pt+(H-pb-pt)*(1-t)}" class="mk-grid"/>`).join('')}
+  ${data.map((d,k)=>{const h=d.v==null?0:(H-pb-pt)*d.v/mx,x=10+k*bw+bw*.18,w=bw*.64,y=H-pb-h;
+    return `<g><title>${esc(d.l)} · ${d.v==null?'-':(fmt?fmt(d.v):d.v.toFixed(1)+unit)} · ${d.n??''}건</title><rect x="${x}" y="${y}" width="${w}" height="${Math.max(h,0)}" rx="4" class="${hl&&hl(d,k)?'mk-hl':'mk-bar'}"/>
+    <text x="${x+w/2}" y="${y-7}" class="mk-val">${d.v==null?'':(fmt?fmt(d.v):Math.round(d.v)+unit)}</text>
+    <text x="${x+w/2}" y="${H-pb+17}" class="mk-lbl">${esc(d.l)}</text>${d.n!=null?`<text x="${x+w/2}" y="${H-pb+33}" class="mk-sub">${d.n.toLocaleString()}건</text>`:''}</g>`}).join('')}</svg></div>`;
+}
+function mkTable(groups,label){
+  const mx=Math.max(...groups.map(g=>g.s.n),1);
+  return `<div class="mk-tbl"><div class="mk-tr mk-th"><span>${label}</span><span>물건 수</span><span>평균 최저가율</span><span>평균 유찰</span><span>시세보다 싼 비율</span></div>
+  ${groups.map(g=>`<div class="mk-tr"><span>${g.link?`<a href="#market" data-mksido="${esc(g.k)}">${esc(g.k)}</a>`:esc(g.k)}</span><span class="mk-nbar"><i style="width:${(g.s.n/mx*100).toFixed(1)}%"></i><b>${g.s.n.toLocaleString()}</b></span><span class="num">${mkPct(g.s.ratio)}</span><span class="num">${g.s.fails==null?'-':g.s.fails.toFixed(1)+'회'}</span><span class="num">${g.s.cheap==null?'<em class="note">비교 없음</em>':mkPct(g.s.cheap)+` <em class="note">/${g.s.cmpN}</em>`}</span></div>`).join('')}</div>`;
+}
+function viewMarket(){
+  if(!AUC.loaded) return `<section class="block">${secHead('공매 시장 리포트','시장 리포트')}<div class="empty">데이터를 불러오는 중이에요…</div></section>`;
+  const all=AUC.items.filter(i=>aucDday(i)[1]!=='closed');
+  const sidos=Object.entries(all.reduce((m,i)=>{if(i.sido)m[i.sido]=(m[i.sido]||0)+1;return m},{})).sort((a,b)=>b[1]-a[1]);
+  const rows=mkRows(), S=mkStat(rows);
+  const now=Date.now(), wk=rows.filter(i=>{const t=Date.parse((i.bidEnd||'').replace(' ','T')+':00+09:00');return t>now&&t-now<7*864e5}).length;
+  const deep=rows.filter(i=>(i.fails||0)>=3), deepS=mkStat(deep), freshS=mkStat(rows.filter(i=>!(i.fails>0)));
+  const fb=MK_FB.map(([l,a,b])=>{const g=rows.filter(i=>(i.fails||0)>=a&&(i.fails||0)<=b);return {l,v:mkStat(g).ratio,n:g.length}});
+  const pb=MK_PB.map(([l,a,b])=>({l,v:rows.filter(i=>i.minp>=a&&i.minp<b).length,n:null}));
+  const weeks=[...Array(6)].map((_,k)=>{const s=+TODAY+k*7*864e5,e=s+7*864e5,d=new Date(s);const n=rows.filter(i=>{const t=Date.parse((i.bidEnd||'').slice(0,10)+'T00:00:00+09:00');return t>=s&&t<e}).length;return {l:k===0?'이번 주':`${d.getMonth()+1}/${d.getDate()}~`,v:n,n:null}});
+  const groups=MK.sido==='전체'
+    ? sidos.map(([k])=>({k,link:true,s:mkStat(rows.filter(i=>i.sido===k))})).filter(g=>g.s.n).slice(0,17)
+    : Object.entries(rows.reduce((m,i)=>{const k=i.sgg||'기타';(m[k]=m[k]||[]).push(i);return m},{})).map(([k,a])=>({k,s:mkStat(a)})).sort((a,b)=>b.s.n-a.s.n).slice(0,15);
+  const catG=AUC_CATS.slice(1).map(([k,c])=>({k,s:mkStat(rows.filter(i=>c.includes(i.cat)))})).filter(g=>g.s.n);
+  const picks=rows.filter(i=>i.compare&&i.compare.minVsEst!=null&&i.compare.count>=5&&i.compare.minVsEst<-10&&i.compare.minVsEst>-60&&!/지분/.test(i.title+(i.usage||''))).sort((a,b)=>a.compare.minVsEst-b.compare.minVsEst).slice(0,6);
+  const place=MK.sido==='전체'?'전국':MK.sido, kind=MK.cat==='전체'?'공매 물건':MK.cat;
+  const lines=[];
+  if(deepS.n&&freshS.ratio!=null&&deepS.ratio!=null) lines.push(`${place} ${kind} 중 <b>3회 이상 유찰</b>된 물건은 ${deepS.n.toLocaleString()}건으로, 최저가가 감정가의 평균 <b>${Math.round(deepS.ratio)}%</b>까지 내려와 있어요. 유찰 없는 물건은 ${Math.round(freshS.ratio)}%예요.`);
+  if(S.cheap!=null&&S.cmpN>=10) lines.push(`주변 실거래가와 비교할 수 있는 ${S.cmpN.toLocaleString()}건 가운데 <b>${Math.round(S.cheap)}%</b>는 최저가가 시세 추정치보다 낮아요.`);
+  if(wk) lines.push(`앞으로 7일 안에 입찰이 마감되는 물건이 <b>${wk.toLocaleString()}건</b> 있어요.`);
+  if(rows.length&&rows.length<30) lines.push(`물건 수가 ${rows.length}건으로 적어서 통계는 참고만 해 주세요.`);
+  const kpi=(t,v,s)=>`<div class="mk-kpi"><span>${t}</span><b>${v}</b><small>${s}</small></div>`;
+  return `<section class="block mk">${secHead('온비드 공매 · 진행 중인 물건 기준','공매 시장 리포트')}
+  <nav class="subnav" aria-label="공매 메뉴"><a href="#auctions">물건 목록</a><a href="#market" aria-current="page">📊 시장 리포트</a><a href="#calc">🧮 수익률 계산기</a></nav>
+  <div class="mk-filter"><select id="mkSido" aria-label="지역"><option value="전체">전국 (${all.length.toLocaleString()})</option>${sidos.map(([s,n])=>`<option value="${esc(s)}" ${s===MK.sido?'selected':''}>${esc(s)} (${n.toLocaleString()})</option>`).join('')}</select>
+    <div class="tabs">${AUC_CATS.map(([k])=>`<button type="button" data-mkcat="${k}" aria-pressed="${k===MK.cat}">${k}</button>`).join('')}</div></div>
+  ${!rows.length?'<div class="empty">조건에 맞는 진행 중 물건이 없어요.</div>':`
+  <div class="mk-kpis">${kpi('진행 중인 물건',S.n.toLocaleString()+'건',place+' · '+kind)}${kpi('평균 최저가율',mkPct(S.ratio),'감정가 대비 최저입찰가')}${kpi('평균 유찰 횟수',S.fails==null?'-':S.fails.toFixed(1)+'회',`3회 이상 ${deep.length.toLocaleString()}건`)}${kpi('7일 내 마감',wk.toLocaleString()+'건','입찰 마감 기준')}</div>
+  ${lines.length?`<div class="mk-brief"><b>한눈에 보기</b><ul>${lines.map(l=>`<li>${l}</li>`).join('')}</ul></div>`:''}
+  <div class="mk-grid">
+    <div class="panel mk-card wide"><h3>유찰될수록 얼마나 싸지나</h3><p class="note">유찰 횟수별로 최저입찰가가 감정가의 몇 %인지 평균을 냈어요.</p>${mkBars(fb,{max:110,hl:(d,k)=>k>=3,W:1100})}</div>
+    <div class="panel mk-card wide"><h3>${MK.sido==='전체'?'지역별 현황':esc(MK.sido)+' 시·군·구별 현황'}</h3><p class="note">${MK.sido==='전체'?'지역 이름을 누르면 시·군·구별로 볼 수 있어요.':'<a href="#market" data-mksido="전체">← 전국으로 돌아가기</a> '} 시세보다 싼 비율은 주변 실거래가와 비교된 물건만 계산해요.</p>${mkTable(groups,MK.sido==='전체'?'시·도':'시·군·구')}</div>
+    ${MK.cat==='전체'?`<div class="panel mk-card wide"><h3>종류별 비교</h3>${mkTable(catG,'종류')}</div>`:''}
+    <div class="panel mk-card"><h3>최저가 가격대</h3><p class="note">최저입찰가 기준 물건 수</p>${mkBars(pb,{fmt:v=>v.toLocaleString()+'건'})}</div>
+    <div class="panel mk-card"><h3>입찰 마감 일정</h3><p class="note">주별로 마감되는 물건 수</p>${mkBars(weeks,{fmt:v=>v.toLocaleString()+'건',hl:(d,k)=>k===0})}</div>
+    <div class="panel mk-card wide"><h3>시세 대비 할인 폭이 큰 물건</h3><p class="note">최저가가 주변 실거래 추정가보다 많이 낮은 순서예요. 비교 거래 5건 이상이고, 지분 물건과 차이가 지나치게 큰(60% 초과) 물건은 뺐어요. 지분·토지 별도 여부는 꼭 상세에서 확인하세요.</p>
+      ${picks.length?`<div class="mk-picks">${picks.map(i=>`<a class="mk-pick" href="#auc-${esc(i.id)}"><span class="note">${esc(i.sgg||i.sido||'')} · ${esc((i.usage||'').split(' > ').pop())} · 유찰 ${i.fails||0}회</span><b>${esc(i.title)}</b><span>최저가 ${wonKRW(i.minp)} <em class="mk-off">시세보다 ${Math.abs(i.compare.minVsEst).toFixed(0)}% ↓</em></span></a>`).join('')}</div>`:'<div class="note">이 조건에서는 비교 가능한 물건이 없어요.</div>'}</div>
+    <div class="panel mk-card wide mk-soon"><h3>낙찰가율 · 경쟁률 추이 <span class="dday upcoming">준비 중</span></h3><p class="note">온비드 입찰결과·통계 데이터를 연결하면 실제 낙찰가율, 경쟁률, 월별 추이를 이 자리에 보여드릴 예정이에요.</p></div>
+  </div>
+  <p class="note" style="margin-top:14px">기준: 온비드에 올라온 진행 중·예정 공매 물건${AUC.updatedAt?' · '+fmtTime(AUC.updatedAt)+' 동기화':''}. 통계는 참고용이며 투자 권유가 아니에요.</p>`}
+  </section>`;
+}
+document.addEventListener('click',e=>{
+  const c=e.target.closest('[data-mkcat]');if(c){MK.cat=c.dataset.mkcat;render();return}
+  const s=e.target.closest('[data-mksido]');if(s){e.preventDefault();MK.sido=s.dataset.mksido;render();scrollTo({top:0,behavior:'smooth'});return}
+});
+document.addEventListener('change',e=>{if(e.target.id==='mkSido'){MK.sido=e.target.value;render()}});
 function viewCalc(){
   const c=CALC;
   return `<section class="block calc">${secHead('경매·공매 수익률 계산','수익률 계산기')}
@@ -2766,7 +2858,7 @@ function viewPrivacy(){return legalPage('개인정보처리방침',`
   <h2>10. 방침 변경</h2><p>이 방침을 바꿀 때는 시행 7일 전부터 서비스 화면에 알립니다.</p>`)}
 function footerInfo(){
   const c=COMPANY, parts=[['상호',c.name],['대표',c.ceo],['사업자등록번호',c.bizNo],['통신판매업 신고',c.mailOrderNo],['주소',c.address],['이메일',c.email],['전화',c.phone]].filter(([,v])=>v);
-  return `<nav><a href="#calc">수익률 계산기</a><a href="#terms">이용약관</a><a href="#privacy"><b>개인정보처리방침</b></a><a href="#insight">전문가 인사이트</a><a href="#support">정부지원금</a><a href="#auctions">경매·공매</a></nav>
+  return `<nav><a href="#market">공매 시장 리포트</a><a href="#calc">수익률 계산기</a><a href="#terms">이용약관</a><a href="#privacy"><b>개인정보처리방침</b></a><a href="#insight">전문가 인사이트</a><a href="#support">정부지원금</a><a href="#auctions">경매·공매</a></nav>
     ${parts.length?`<div class="bizinfo">${parts.map(([k,v])=>`<span>${k} ${esc(v)}</span>`).join('')}</div>`:''}
     <div>리얼픽은 매물 검색, 경매·공매와 실거래가 비교, 지원사업 공고, 금리 정보를 한곳에서 제공합니다. 매물은 등록 심사를 거친 개업공인중개사가 올리며, 정책 해설은 정책브리핑(공공누리 제1유형) 자료를 AI가 요약한 참고용입니다. 공매·실거래·공고 정보는 공공기관 공개 자료이고, 시세 추정과 AI 답변은 참고용입니다.</div>`;
 }
@@ -3428,6 +3520,7 @@ function render(){
   else if(r.startsWith('ins-')){html=viewIns(r.slice(4));nav='insight'}
   else if(r==='rates'){html=viewRates();nav='insight'}
   else if(r==='calc'){html=viewCalc();nav='auctions';AFTER.push(calcHints)}
+  else if(r==='market'){html=viewMarket();nav='auctions'}
   else if(r==='support'){html=viewSupport();nav='insight'}
   else if(r.startsWith('notice-')){html=viewNotice(r.slice(7));nav='insight'}
   else {html=viewHome();nav='home'}
