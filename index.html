@@ -485,6 +485,11 @@ a.acard:hover .athumb img{transform:scale(1.04)}
 @media(max-width:640px){.joinbar{margin:10px 0 0;flex-wrap:wrap;gap:2px 8px}.joinbar span{flex-basis:100%;order:3}}
 
 /* 리얼픽 분석 리포트 */
+.mk-h{font-size:18px;font-weight:900;margin:8px 0 12px}.mk-svg .mk-fail{fill:var(--line)}
+.mk-key{display:inline-block;width:10px;height:10px;border-radius:3px;margin:0 4px 0 6px;vertical-align:-1px}.mk-key.hl{background:var(--accent)}.mk-key.fail{background:var(--line)}
+.mk-result{background:linear-gradient(180deg,var(--accent-soft),var(--surface))}
+.mk-rec .mk-tr{grid-template-columns:.6fr 3fr 1fr 1fr .8fr}.mk-rec em{display:block;margin-top:2px}.mk-rec .mk-tr>span:nth-child(2){text-align:left!important}
+@media (max-width:760px){.mk-rec .mk-tr{grid-template-columns:2.4fr 1fr .8fr}.mk-rec .mk-tr>span:nth-child(1),.mk-rec .mk-tr>span:nth-child(3){display:none}.mk-rec .mk-tr>span:nth-child(4),.mk-rec .mk-tr>span:nth-child(5){display:block}}
 .mk-filter{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}.mk-filter .tabs{margin:0}
 .mk-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
 .mk-kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:grid;gap:2px;border-top:3px solid var(--accent)}
@@ -1396,6 +1401,57 @@ const LF={kind:'전체',deal:'전체',sido:'전체',loss:false,q:''};
 function filteredMarket(){
   const {sidos,words}=splitRegionQuery(LF.q);
   return MARKET.items.filter(l=>(LF.kind==='전체'||l.kind===LF.kind)&&(LF.deal==='전체'||l.deal_type===LF.deal)&&(LF.sido==='전체'||l.sido===LF.sido)&&(!sidos||sidos.includes(l.sido))&&(!LF.loss||lossInfo(l))&&(!words.length||textHit(l.title+' '+l.address+' '+l.sigungu+' '+(l.agent?.office_name||''),words)));
+}
+let MKT={loaded:false,data:null};
+async function loadMkt(){if(MKT.loading||MKT.loaded)return;MKT.loading=true;try{const r=await fetch('market.json',{cache:'no-store'});if(r.ok)MKT.data=await r.json()}catch(e){}MKT.loaded=true;if(location.hash==='#market')render()}
+function mktSel(){
+  const d=MKT.data;if(!d||!d.months)return null;
+  const cats=AUC_CATS.find(c=>c[0]===MK.cat)?.[1];
+  const ms=Object.keys(d.months).sort();
+  const z=()=>({a:0,f:0,r:0,rn:0,m:0,b:0,bn:0,fr:d.fb.map(()=>[0,0]),h:d.rb.map(()=>0)});
+  const add=(t,b)=>{['a','f','r','rn','m','b','bn'].forEach(k=>t[k]+=b[k]||0);b.fr.forEach((x,i)=>{t.fr[i][0]+=x[0];t.fr[i][1]+=x[1]});b.h.forEach((x,i)=>t.h[i]+=x)};
+  const per=ms.map(m=>{const t=z();for(const [k,b] of Object.entries(d.months[m])){const [s,c]=k.split('|');if(MK.sido!=='전체'&&s!==MK.sido)continue;if(cats&&!cats.includes(c))continue;add(t,b)}return [m,t]});
+  const tot=z();per.forEach(([,t])=>add(tot,t));
+  const last3=z();per.slice(-3).forEach(([,t])=>add(last3,t));
+  const recent=(d.recent||[]).filter(r=>(MK.sido==='전체'||r.sido===MK.sido)&&(!cats||cats.includes(r.cat)));
+  return {per,tot,last3,recent,d};
+}
+function mkLine(pts,{min=0,max=100,fmt=v=>Math.round(v)+'%',W=1100}={}){
+  const H=220,pl=48,pr=30,pt=28,pb=34,iw=W-pl-pr,ih=H-pt-pb,n=pts.length;
+  const X=i=>pl+iw*(n<2?.5:i/(n-1)),Y=v=>pt+ih*(1-(v-min)/(max-min));
+  const ok=pts.map((p,i)=>[p,i]).filter(([p])=>p.v!=null);
+  const path=ok.map(([p,i],k)=>`${k?'L':'M'}${X(i).toFixed(1)},${Y(p.v).toFixed(1)}`).join('');
+  return `<div class="mk-scroll"><svg class="mk-svg" viewBox="0 0 ${W} ${H}" style="min-width:${W>800?640:0}px">${[0,.5,1].map(t=>`<line x1="${pl}" x2="${W-pr}" y1="${pt+ih*t}" y2="${pt+ih*t}" class="mk-grid"/><text x="${pl-8}" y="${pt+ih*t+4}" class="mk-sub" style="text-anchor:end">${fmt(max-(max-min)*t)}</text>`).join('')}
+  <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round"/>
+  ${ok.map(([p,i])=>`<g><title>${esc(p.l)} · ${fmt(p.v)}${p.n!=null?' · '+p.n+'건':''}</title><circle cx="${X(i)}" cy="${Y(p.v)}" r="4" fill="var(--surface)" stroke="var(--accent)" stroke-width="2"/><text x="${X(i)}" y="${Y(p.v)-10}" class="mk-val">${fmt(p.v)}</text></g>`).join('')}
+  ${pts.map((p,i)=>`<text x="${X(i)}" y="${H-10}" class="mk-lbl">${esc(p.l)}</text>`).join('')}</svg></div>`;
+}
+function mkStack(pts,W=1100){
+  const H=210,pb=34,pt=16,mx=Math.max(...pts.map(p=>p.a+p.f),1),bw=(W-20)/pts.length;
+  return `<div class="mk-scroll"><svg class="mk-svg" viewBox="0 0 ${W} ${H}" style="min-width:${W>800?640:0}px">${pts.map((p,k)=>{const x=10+k*bw+bw*.2,w=bw*.6,ha=(H-pb-pt)*p.a/mx,hf=(H-pb-pt)*p.f/mx;
+    return `<g><title>${esc(p.l)} · 낙찰 ${p.a}건 · 유찰 ${p.f}건</title><rect x="${x}" y="${H-pb-ha-hf}" width="${w}" height="${hf}" class="mk-fail" rx="3"/><rect x="${x}" y="${H-pb-ha}" width="${w}" height="${ha}" class="mk-hl" rx="3"/>
+    <text x="${x+w/2}" y="${H-pb-ha-hf-5}" class="mk-sub">${p.a+p.f?Math.round(p.a/(p.a+p.f)*100)+'%':''}</text><text x="${x+w/2}" y="${H-10}" class="mk-lbl">${esc(p.l)}</text></g>`}).join('')}</svg></div>`;
+}
+function mkResultHtml(){
+  if(!MKT.loaded){loadMkt();return `<div class="panel mk-card wide mk-soon"><h3>낙찰 결과 분석</h3><p class="note">불러오는 중이에요…</p></div>`}
+  const s=mktSel();
+  if(!s||!s.tot.a&&!s.tot.f) return `<div class="panel mk-card wide mk-soon"><h3>낙찰가율 · 경쟁률 추이 <span class="dday upcoming">준비 중</span></h3><p class="note">${s?'이 조건의 낙찰 결과가 아직 없어요.':'온비드 입찰결과 데이터를 매일 새벽 모으고 있어요. 첫 수집이 끝나면 실제 낙찰가율·낙찰률·경쟁 추이가 이 자리에 나와요.'}</p></div>`;
+  const {per,tot,last3,recent,d}=s, avg=(t)=>t.rn?t.r/t.rn:null;
+  const ml=m=>`${+m.slice(4)}월`;
+  const rates=per.map(([m,t])=>({l:ml(m),v:t.rn>=3?t.r/t.rn:null,n:t.rn}));
+  const vs=rates.filter(p=>p.v!=null).map(p=>p.v), lo=vs.length?Math.max(0,Math.floor((Math.min(...vs)-10)/10)*10):0, hi=vs.length?Math.ceil((Math.max(...vs)+10)/10)*10:100;
+  const FBL=['유찰 없음','1회','2회','3회','4회','5회','6~9회','10회+'];
+  const RBL=d.rb.map((v,i)=>i===0?'30% 미만':i===d.rb.length-1?v+'% 이상':v+'~'+d.rb[i+1]+'%');
+  const hTot=tot.h.reduce((a,b)=>a+b,0)||1;
+  const kpi=(t,v,s2)=>`<div class="mk-kpi"><span>${t}</span><b>${v}</b><small>${s2}</small></div>`;
+  const comp=last3.bn?last3.b/last3.bn:null, last3n=last3.a+last3.f;
+  return `<div class="panel mk-card wide mk-result"><h3>실제 낙찰 결과 <span class="note" style="font-weight:600">최근 ${per.length}개월 · 온비드 입찰결과</span></h3>
+    <div class="mk-kpis" style="margin:10px 0 0">${kpi('평균 낙찰가율',avg(last3)==null?'-':avg(last3).toFixed(1)+'%','최근 3개월 · 감정가 대비')}${kpi('낙찰률',last3n?(last3.a/last3n*100).toFixed(1)+'%':'-',`입찰 ${last3n.toLocaleString()}건 중 ${last3.a.toLocaleString()}건 낙찰`)}${kpi('평균 경쟁',comp==null?'-':comp.toFixed(1)+'명','낙찰 물건의 유효 입찰자 수')}${kpi('최저가 대비 낙찰가',last3.rn?(last3.m/last3.rn).toFixed(1)+'%':'-','최저가보다 얼마나 더 써냈나')}</div></div>
+  <div class="panel mk-card wide"><h3>월별 평균 낙찰가율</h3><p class="note">감정가 대비 낙찰가의 월 평균이에요. 낙찰이 3건 미만인 달은 비워 뒀어요.</p>${mkLine(rates,{min:lo,max:hi})}</div>
+  <div class="panel mk-card wide"><h3>월별 낙찰 · 유찰</h3><p class="note"><span class="mk-key hl"></span>낙찰 <span class="mk-key fail"></span>유찰 · 막대 위 숫자는 낙찰률이에요.</p>${mkStack(per.map(([m,t])=>({l:ml(m),a:t.a,f:t.f})))}</div>
+  <div class="panel mk-card"><h3>몇 번 유찰된 뒤 얼마에 팔렸나</h3><p class="note">유찰 횟수별 평균 낙찰가율 (감정가 대비)</p>${mkBars(tot.fr.map(([n,sum],i)=>({l:FBL[i],v:n>=3?sum/n:null,n})),{max:Math.max(110,...tot.fr.map(([n,s2])=>n>=3?s2/n:0))+5,hl:(x,k)=>k>=3})}</div>
+  <div class="panel mk-card"><h3>낙찰가율 분포</h3><p class="note">낙찰 물건이 감정가의 몇 %에 팔렸는지 구간별 비율</p>${mkBars(tot.h.map((n,i)=>({l:RBL[i],v:n/hTot*100,n})),{fmt:v=>Math.round(v)+'%',W:760,hl:(x,k)=>x.v===Math.max(...tot.h.map(n=>n/hTot*100))})}</div>
+  ${recent.length?`<div class="panel mk-card wide"><h3>최근 낙찰 사례</h3><div class="mk-tbl mk-rec"><div class="mk-tr mk-th"><span>개찰일</span><span>물건</span><span>감정가</span><span>낙찰가</span><span>낙찰가율</span></div>${recent.slice(0,10).map(r=>`<div class="mk-tr"><span class="note">${esc(r.d.slice(5))}</span><span><b>${esc(r.t)}</b> <em class="note">${esc(r.sido)} · 유찰 ${r.fails||0}회${r.n!=null?' · '+r.n+'명 입찰':''}</em></span><span class="num">${wonKRW(r.apsl)}</span><span class="num"><b>${wonKRW(r.win)}</b></span><span class="num">${r.rate==null?'-':r.rate.toFixed(1)+'%'}</span></div>`).join('')}</div></div>`:''}`;
 }
 function viewMarket(){
   const rows=filteredMarket();
@@ -2530,24 +2586,27 @@ function viewMarket(){
   if(wk) lines.push(`앞으로 7일 안에 입찰이 마감되는 물건이 <b>${wk.toLocaleString()}건</b> 있어요.`);
   if(rows.length&&rows.length<30) lines.push(`물건 수가 ${rows.length}건으로 적어서 통계는 참고만 해 주세요.`);
   const kpi=(t,v,s)=>`<div class="mk-kpi"><span>${t}</span><b>${v}</b><small>${s}</small></div>`;
-  return `<section class="block mk">${secHead('온비드 공매 · 진행 중인 물건 기준','공매 시장 리포트')}
+  return `<section class="block mk">${secHead('온비드 공매 · 낙찰 결과와 진행 물건','공매 시장 리포트')}
   <nav class="subnav" aria-label="공매 메뉴"><a href="#auctions">물건 목록</a><a href="#market" aria-current="page">📊 시장 리포트</a><a href="#calc">🧮 수익률 계산기</a></nav>
   <div class="mk-filter"><select id="mkSido" aria-label="지역"><option value="전체">전국 (${all.length.toLocaleString()})</option>${sidos.map(([s,n])=>`<option value="${esc(s)}" ${s===MK.sido?'selected':''}>${esc(s)} (${n.toLocaleString()})</option>`).join('')}</select>
     <div class="tabs">${AUC_CATS.map(([k])=>`<button type="button" data-mkcat="${k}" aria-pressed="${k===MK.cat}">${k}</button>`).join('')}</div></div>
   ${!rows.length?'<div class="empty">조건에 맞는 진행 중 물건이 없어요.</div>':`
   <div class="mk-kpis">${kpi('진행 중인 물건',S.n.toLocaleString()+'건',place+' · '+kind)}${kpi('평균 최저가율',mkPct(S.ratio),'감정가 대비 최저입찰가')}${kpi('평균 유찰 횟수',S.fails==null?'-':S.fails.toFixed(1)+'회',`3회 이상 ${deep.length.toLocaleString()}건`)}${kpi('7일 내 마감',wk.toLocaleString()+'건','입찰 마감 기준')}</div>
   ${lines.length?`<div class="mk-brief"><b>한눈에 보기</b><ul>${lines.map(l=>`<li>${l}</li>`).join('')}</ul></div>`:''}
+  <h2 class="mk-h">낙찰 결과로 보는 시장</h2>
+  <div class="mk-grid" style="margin-bottom:22px">${mkResultHtml()}</div>
+  <h2 class="mk-h">지금 진행 중인 물건</h2>
   <div class="mk-grid">
-    <div class="panel mk-card wide"><h3>유찰될수록 얼마나 싸지나</h3><p class="note">유찰 횟수별로 최저입찰가가 감정가의 몇 %인지 평균을 냈어요.</p>${mkBars(fb,{max:110,hl:(d,k)=>k>=3,W:1100})}</div>
+    <div class="panel mk-card wide"><h3>유찰될수록 최저가는 얼마나 내려가나</h3><p class="note">유찰 횟수별로 최저입찰가가 감정가의 몇 %인지 평균을 냈어요.</p>${mkBars(fb,{max:110,hl:(d,k)=>k>=3,W:1100})}</div>
     <div class="panel mk-card wide"><h3>${MK.sido==='전체'?'지역별 현황':esc(MK.sido)+' 시·군·구별 현황'}</h3><p class="note">${MK.sido==='전체'?'지역 이름을 누르면 시·군·구별로 볼 수 있어요.':'<a href="#market" data-mksido="전체">← 전국으로 돌아가기</a> '} 시세보다 싼 비율은 주변 실거래가와 비교된 물건만 계산해요.</p>${mkTable(groups,MK.sido==='전체'?'시·도':'시·군·구')}</div>
     ${MK.cat==='전체'?`<div class="panel mk-card wide"><h3>종류별 비교</h3>${mkTable(catG,'종류')}</div>`:''}
     <div class="panel mk-card"><h3>최저가 가격대</h3><p class="note">최저입찰가 기준 물건 수</p>${mkBars(pb,{fmt:v=>v.toLocaleString()+'건'})}</div>
     <div class="panel mk-card"><h3>입찰 마감 일정</h3><p class="note">주별로 마감되는 물건 수</p>${mkBars(weeks,{fmt:v=>v.toLocaleString()+'건',hl:(d,k)=>k===0})}</div>
     <div class="panel mk-card wide"><h3>시세 대비 할인 폭이 큰 물건</h3><p class="note">최저가가 주변 실거래 추정가보다 많이 낮은 순서예요. 비교 거래 5건 이상이고, 지분 물건과 차이가 지나치게 큰(60% 초과) 물건은 뺐어요. 지분·토지 별도 여부는 꼭 상세에서 확인하세요.</p>
       ${picks.length?`<div class="mk-picks">${picks.map(i=>`<a class="mk-pick" href="#auc-${esc(i.id)}"><span class="note">${esc(i.sgg||i.sido||'')} · ${esc((i.usage||'').split(' > ').pop())} · 유찰 ${i.fails||0}회</span><b>${esc(i.title)}</b><span>최저가 ${wonKRW(i.minp)} <em class="mk-off">시세보다 ${Math.abs(i.compare.minVsEst).toFixed(0)}% ↓</em></span></a>`).join('')}</div>`:'<div class="note">이 조건에서는 비교 가능한 물건이 없어요.</div>'}</div>
-    <div class="panel mk-card wide mk-soon"><h3>낙찰가율 · 경쟁률 추이 <span class="dday upcoming">준비 중</span></h3><p class="note">온비드 입찰결과·통계 데이터를 연결하면 실제 낙찰가율, 경쟁률, 월별 추이를 이 자리에 보여드릴 예정이에요.</p></div>
+
   </div>
-  <p class="note" style="margin-top:14px">기준: 온비드에 올라온 진행 중·예정 공매 물건${AUC.updatedAt?' · '+fmtTime(AUC.updatedAt)+' 동기화':''}. 통계는 참고용이며 투자 권유가 아니에요.</p>`}
+  <p class="note" style="margin-top:14px">기준: 온비드 입찰결과(낙찰 결과 영역)${MKT.data?.updatedAt?' · '+fmtTime(MKT.data.updatedAt)+' 갱신':''}, 온비드에 올라온 진행 중·예정 공매 물건${AUC.updatedAt?' · '+fmtTime(AUC.updatedAt)+' 동기화':''}. 통계는 참고용이며 투자 권유가 아니에요.</p>`}
   </section>`;
 }
 document.addEventListener('click',e=>{
